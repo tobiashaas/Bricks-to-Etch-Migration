@@ -43,6 +43,11 @@ class B2E_Migration_Manager {
     private $api_client;
     
     /**
+     * Transfer manager instance
+     */
+    private $transfer_manager;
+    
+    /**
      * Constructor
      */
     public function __construct() {
@@ -52,6 +57,7 @@ class B2E_Migration_Manager {
         $this->css_converter = new B2E_CSS_Converter();
         $this->gutenberg_generator = new B2E_Gutenberg_Generator();
         $this->api_client = new B2E_API_Client();
+        $this->transfer_manager = new B2E_Transfer_Manager();
     }
     
     /**
