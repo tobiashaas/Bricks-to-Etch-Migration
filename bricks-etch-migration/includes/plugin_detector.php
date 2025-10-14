@@ -73,7 +73,7 @@ class B2E_Plugin_Detector {
     }
     
     /**
-     * Validate migration requirements
+     * Validate migration requirements (Source Site)
      */
     public function validate_migration_requirements() {
         $validation_results = array(
@@ -83,40 +83,49 @@ class B2E_Plugin_Detector {
             'plugins' => $this->get_installed_plugins(),
         );
         
-        // Check Bricks Builder
+        // Check Bricks Builder (REQUIRED on Source Site)
         if (!$this->is_bricks_active()) {
             $validation_results['valid'] = false;
-            $validation_results['errors'][] = 'Bricks Builder is not active';
+            $validation_results['errors'][] = 'Bricks Builder is not active on source site';
         }
         
-        // Check Etch PageBuilder
-        if (!$this->is_etch_active()) {
-            $validation_results['valid'] = false;
-            $validation_results['errors'][] = 'Etch PageBuilder is not active';
-        }
+        // Note: We DON'T check for Etch on source site
+        // Etch should be on the TARGET site, not source
         
         // Check for Bricks content
         $bricks_posts = $this->get_bricks_posts_count();
         if ($bricks_posts === 0) {
-            $validation_results['warnings'][] = 'No Bricks content found';
+            $validation_results['warnings'][] = 'No Bricks content found. Nothing to migrate.';
+        } else {
+            $validation_results['bricks_posts_count'] = $bricks_posts;
         }
         
-        // Check custom field plugins
+        // Check for Bricks global classes
+        $bricks_classes = get_option('bricks_global_classes', array());
+        if (empty($bricks_classes)) {
+            $validation_results['warnings'][] = 'No Bricks global classes found';
+        } else {
+            $validation_results['bricks_classes_count'] = count($bricks_classes);
+        }
+        
+        // Check custom field plugins (informational only)
         $custom_field_plugins = array(
             'acf' => 'Advanced Custom Fields',
             'metabox' => 'MetaBox',
             'jetengine' => 'JetEngine',
         );
         
-        $active_custom_field_plugins = 0;
+        $active_custom_field_plugins = array();
         foreach ($custom_field_plugins as $plugin => $name) {
             if ($this->is_plugin_active($plugin)) {
-                $active_custom_field_plugins++;
+                $active_custom_field_plugins[] = $name;
             }
         }
         
-        if ($active_custom_field_plugins === 0) {
-            $validation_results['warnings'][] = 'No custom field plugins detected';
+        if (empty($active_custom_field_plugins)) {
+            $validation_results['warnings'][] = 'No custom field plugins detected. Custom fields will not be migrated.';
+        } else {
+            $validation_results['custom_field_plugins'] = $active_custom_field_plugins;
         }
         
         return $validation_results;
