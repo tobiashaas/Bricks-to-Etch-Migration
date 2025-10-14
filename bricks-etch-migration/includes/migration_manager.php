@@ -353,7 +353,7 @@ class B2E_Migration_Manager {
         }
         
         // Update migration log
-        $this->error_handler->log_info('Migration completed successfully', array(
+        $this->error_handler->log_error('W001', array(
             'completed_at' => current_time('mysql'),
             'total_posts' => count($this->content_parser->get_bricks_posts()),
         ));
@@ -387,7 +387,7 @@ class B2E_Migration_Manager {
         // Remove Bricks global classes
         delete_option('bricks_global_classes');
         
-        $this->error_handler->log_info('Bricks meta data cleaned up', array(
+        $this->error_handler->log_error('W002', array(
             'meta_keys_removed' => $bricks_meta_keys,
             'action' => 'Cleanup completed'
         ));

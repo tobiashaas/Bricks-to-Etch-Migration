@@ -379,7 +379,7 @@ class B2E_Cross_Plugin_Converter {
      * Log conversion activity
      */
     public function log_conversion($from_plugin, $to_plugin, $field_group_name, $success = true) {
-        $this->error_handler->log_info('Cross-plugin conversion', array(
+        $this->error_handler->log_error('W003', array(
             'from_plugin' => $from_plugin,
             'to_plugin' => $to_plugin,
             'field_group_name' => $field_group_name,
