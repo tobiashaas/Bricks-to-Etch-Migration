@@ -369,23 +369,28 @@ class B2E_API_Endpoints {
      * Import custom post types
      */
     public static function import_custom_post_types($request) {
-        $cpts_data = $request->get_json_params();
-        
-        if (empty($cpts_data)) {
-            return new WP_Error('missing_data', 'CPTs data is required', array('status' => 400));
+        try {
+            $cpts_data = $request->get_json_params();
+            
+            if (empty($cpts_data)) {
+                return new WP_Error('missing_data', 'CPTs data is required', array('status' => 400));
+            }
+            
+            $cpt_migrator = new B2E_CPT_Migrator();
+            $result = $cpt_migrator->register_custom_post_types($cpts_data);
+            
+            if (is_wp_error($result)) {
+                return $result;
+            }
+            
+            return new WP_REST_Response(array(
+                'message' => 'Custom post types registered successfully',
+                'registered_count' => count($cpts_data),
+            ), 200);
+        } catch (Exception $e) {
+            error_log('B2E Import CPTs Error: ' . $e->getMessage() . ' in ' . $e->getFile() . ' on line ' . $e->getLine());
+            return new WP_Error('import_error', 'CPT import failed: ' . $e->getMessage() . ' (Line: ' . $e->getLine() . ')', array('status' => 500));
         }
-        
-        $cpt_migrator = new B2E_CPT_Migrator();
-        $result = $cpt_migrator->register_custom_post_types($cpts_data);
-        
-        if (is_wp_error($result)) {
-            return $result;
-        }
-        
-        return new WP_REST_Response(array(
-            'message' => 'Custom post types registered successfully',
-            'registered_count' => count($cpts_data),
-        ), 200);
     }
     
     /**
