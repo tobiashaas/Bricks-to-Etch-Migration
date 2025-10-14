@@ -1870,6 +1870,25 @@ class B2E_Admin_Interface {
     }
     
     /**
+     * Parse post statuses from string or array
+     */
+    private function parse_post_statuses($input) {
+        if (is_array($input)) {
+            // If already array, check if it's a single string element
+            if (count($input) === 1 && is_string($input[0]) && strpos($input[0], ',') !== false) {
+                return array_map('trim', explode(',', $input[0]));
+            }
+            return $input;
+        }
+        
+        if (is_string($input) && strpos($input, ',') !== false) {
+            return array_map('trim', explode(',', $input));
+        }
+        
+        return array($input);
+    }
+    
+    /**
      * AJAX: Save migration settings
      */
     public function ajax_save_migration_settings() {
@@ -1891,7 +1910,7 @@ class B2E_Admin_Interface {
             'migrate_metabox' => isset($_POST['migrate_metabox']),
             'migrate_jetengine' => isset($_POST['migrate_jetengine']),
             'selected_post_types' => isset($_POST['selected_post_types']) ? (array) $_POST['selected_post_types'] : array(),
-            'selected_post_statuses' => isset($_POST['selected_post_statuses']) ? (array) $_POST['selected_post_statuses'] : array('publish'),
+            'selected_post_statuses' => $this->parse_post_statuses($_POST['selected_post_statuses'] ?? 'publish'),
             'cleanup_bricks_meta' => isset($_POST['cleanup_bricks_meta']),
             'convert_div_to_flex' => isset($_POST['convert_div_to_flex'])
         );

@@ -317,21 +317,49 @@ class B2E_Content_Parser {
      * Get all Bricks posts
      */
     public function get_bricks_posts() {
+        // Get migration settings
+        $settings_manager = new B2E_Migration_Settings();
+        $settings = $settings_manager->get_settings();
+        
+        // Determine which post types to migrate
+        $post_types = array();
+        if (!empty($settings['selected_post_types']) && is_array($settings['selected_post_types'])) {
+            $post_types = $settings['selected_post_types'];
+        } else {
+            // Default: migrate posts and pages
+            if ($settings['migrate_posts']) {
+                $post_types[] = 'post';
+            }
+            if ($settings['migrate_pages']) {
+                $post_types[] = 'page';
+            }
+            if ($settings['migrate_cpts']) {
+                // Get all custom post types
+                $custom_post_types = get_post_types(array('_builtin' => false), 'names');
+                $post_types = array_merge($post_types, $custom_post_types);
+            }
+        }
+        
+        // If no post types selected, use 'any'
+        if (empty($post_types)) {
+            $post_types = 'any';
+        }
+        
+        // Determine which post statuses to migrate
+        $post_statuses = array('publish');
+        if (!empty($settings['selected_post_statuses']) && is_array($settings['selected_post_statuses'])) {
+            $post_statuses = $settings['selected_post_statuses'];
+        }
+        
+        // Query for Bricks posts with the key that contains actual content
         $posts = get_posts(array(
-            'post_type' => 'any',
-            'post_status' => 'publish',
+            'post_type' => $post_types,
+            'post_status' => $post_statuses,
             'numberposts' => -1,
             'meta_query' => array(
-                'relation' => 'AND',
                 array(
-                    'key' => '_bricks_template_type',
-                    'value' => 'content',
-                    'compare' => '='
-                ),
-                array(
-                    'key' => '_bricks_editor_mode',
-                    'value' => 'bricks',
-                    'compare' => '='
+                    'key' => '_bricks_page_content_2',
+                    'compare' => 'EXISTS'
                 )
             )
         ));
