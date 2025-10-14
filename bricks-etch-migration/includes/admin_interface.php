@@ -639,13 +639,17 @@ class B2E_Admin_Interface {
             })
             .then(data => {
                 console.log('Response data:', data);
+                console.log('Success:', data.success);
+                console.log('Error Data:', data.data);
                 
                 if (data.success) {
                     showToast('Migration started successfully!', 'success');
                     startProgressPolling();
                 } else {
                     console.error('Migration failed:', data);
-                    showToast('Migration failed: ' + (data.data || 'Unknown error'), 'error');
+                    const errorMsg = typeof data.data === 'string' ? data.data : JSON.stringify(data.data);
+                    console.error('Error message:', errorMsg);
+                    showToast('Migration failed: ' + errorMsg, 'error', 8000);
                 }
             })
             .catch(error => {

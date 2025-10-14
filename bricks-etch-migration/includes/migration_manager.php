@@ -73,11 +73,16 @@ class B2E_Migration_Manager {
             $validation_result = $this->validate_migration_requirements();
             
             if (!$validation_result['valid']) {
+                $error_message = 'Migration validation failed: ' . implode(', ', $validation_result['errors']);
+                
                 $this->error_handler->log_error('E103', array(
                     'validation_errors' => $validation_result['errors'],
                     'action' => 'Migration validation failed'
                 ));
-                return new WP_Error('validation_failed', 'Migration validation failed');
+                
+                $this->update_progress('error', 0, $error_message);
+                
+                return new WP_Error('validation_failed', $error_message);
             }
             
             // Step 2: Custom Post Types
@@ -134,16 +139,19 @@ class B2E_Migration_Manager {
             return true;
             
         } catch (Exception $e) {
+            $error_message = 'Migration process failed: ' . $e->getMessage() . ' (File: ' . basename($e->getFile()) . ', Line: ' . $e->getLine() . ')';
+            
             $this->error_handler->log_error('E201', array(
                 'message' => $e->getMessage(),
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
                 'action' => 'Migration process failed'
             ));
             
-            $this->update_progress('error', 0, __('Migration failed: ' . $e->getMessage(), 'bricks-etch-migration'));
+            $this->update_progress('error', 0, $error_message);
             
-            return new WP_Error('migration_failed', $e->getMessage());
+            return new WP_Error('migration_failed', $error_message);
         }
     }
     
