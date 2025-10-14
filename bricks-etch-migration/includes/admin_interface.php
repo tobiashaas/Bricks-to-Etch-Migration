@@ -1623,6 +1623,29 @@ class B2E_Admin_Interface {
             // Also store the API key for this site (target site will use this for validation)
             update_option('b2e_api_key', $api_key);
             
+            // Pre-check: Verify required classes exist
+            $required_classes = array(
+                'B2E_Migration_Manager',
+                'B2E_Error_Handler',
+                'B2E_Plugin_Detector',
+                'B2E_Content_Parser',
+                'B2E_CSS_Converter',
+                'B2E_Gutenberg_Generator',
+                'B2E_API_Client',
+            );
+            
+            $missing_classes = array();
+            foreach ($required_classes as $class) {
+                if (!class_exists($class)) {
+                    $missing_classes[] = $class;
+                }
+            }
+            
+            if (!empty($missing_classes)) {
+                wp_send_json_error('Missing required classes: ' . implode(', ', $missing_classes));
+                return;
+            }
+            
             // Start migration immediately (simplified for now)
             $migration_manager = new B2E_Migration_Manager();
             $result = $migration_manager->start_migration($target_url, $api_key);
