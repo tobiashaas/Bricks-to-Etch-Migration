@@ -13,43 +13,44 @@ if (!defined('ABSPATH')) {
 class B2E_API_Endpoints {
     
     /**
-     * Constructor
+     * Initialize the API endpoints
      */
-    public function __construct() {
-        add_action('rest_api_init', array($this, 'register_routes'));
+    public static function init() {
+        add_action('rest_api_init', array(__CLASS__, 'register_routes'));
     }
+    
     
     /**
      * Register REST API routes
      */
-    public function register_routes() {
+    public static function register_routes() {
         $namespace = 'b2e/v1';
         
         // Authentication endpoint
         register_rest_route($namespace, '/auth/validate', array(
             'methods' => 'POST',
-            'callback' => array($this, 'validate_api_key'),
+            'callback' => array(__CLASS__, 'validate_api_key'),
             'permission_callback' => '__return_true',
         ));
         
         // Plugin status endpoint
         register_rest_route($namespace, '/validate/plugins', array(
             'methods' => 'GET',
-            'callback' => array($this, 'get_plugin_status'),
-            'permission_callback' => array($this, 'check_api_key'),
+            'callback' => array(__CLASS__, 'get_plugin_status'),
+            'permission_callback' => array(__CLASS__, 'check_api_key'),
         ));
         
         // Export endpoints
         register_rest_route($namespace, '/export/posts', array(
             'methods' => 'GET',
-            'callback' => array($this, 'export_posts_list'),
-            'permission_callback' => array($this, 'check_api_key'),
+            'callback' => array(__CLASS__, 'export_posts_list'),
+            'permission_callback' => array(__CLASS__, 'check_api_key'),
         ));
         
         register_rest_route($namespace, '/export/post/(?P<id>\d+)', array(
             'methods' => 'GET',
-            'callback' => array($this, 'export_post_content'),
-            'permission_callback' => array($this, 'check_api_key'),
+            'callback' => array(__CLASS__, 'export_post_content'),
+            'permission_callback' => array(__CLASS__, 'check_api_key'),
             'args' => array(
                 'id' => array(
                     'required' => true,
@@ -60,70 +61,70 @@ class B2E_API_Endpoints {
         
         register_rest_route($namespace, '/export/css-classes', array(
             'methods' => 'GET',
-            'callback' => array($this, 'export_css_classes'),
-            'permission_callback' => array($this, 'check_api_key'),
+            'callback' => array(__CLASS__, 'export_css_classes'),
+            'permission_callback' => array(__CLASS__, 'check_api_key'),
         ));
         
         register_rest_route($namespace, '/export/cpts', array(
             'methods' => 'GET',
-            'callback' => array($this, 'export_custom_post_types'),
-            'permission_callback' => array($this, 'check_api_key'),
+            'callback' => array(__CLASS__, 'export_custom_post_types'),
+            'permission_callback' => array(__CLASS__, 'check_api_key'),
         ));
         
         register_rest_route($namespace, '/export/acf-field-groups', array(
             'methods' => 'GET',
-            'callback' => array($this, 'export_acf_field_groups'),
-            'permission_callback' => array($this, 'check_api_key'),
+            'callback' => array(__CLASS__, 'export_acf_field_groups'),
+            'permission_callback' => array(__CLASS__, 'check_api_key'),
         ));
         
         register_rest_route($namespace, '/export/metabox-configs', array(
             'methods' => 'GET',
-            'callback' => array($this, 'export_metabox_configs'),
-            'permission_callback' => array($this, 'check_api_key'),
+            'callback' => array(__CLASS__, 'export_metabox_configs'),
+            'permission_callback' => array(__CLASS__, 'check_api_key'),
         ));
         
         // Import endpoints
         register_rest_route($namespace, '/import/post', array(
             'methods' => 'POST',
-            'callback' => array($this, 'import_post'),
-            'permission_callback' => array($this, 'check_api_key'),
+            'callback' => array(__CLASS__, 'import_post'),
+            'permission_callback' => array(__CLASS__, 'check_api_key'),
         ));
         
         register_rest_route($namespace, '/import/css-classes', array(
             'methods' => 'POST',
-            'callback' => array($this, 'import_css_classes'),
-            'permission_callback' => array($this, 'check_api_key'),
+            'callback' => array(__CLASS__, 'import_css_classes'),
+            'permission_callback' => array(__CLASS__, 'check_api_key'),
         ));
         
         register_rest_route($namespace, '/import/cpts', array(
             'methods' => 'POST',
-            'callback' => array($this, 'import_custom_post_types'),
-            'permission_callback' => array($this, 'check_api_key'),
+            'callback' => array(__CLASS__, 'import_custom_post_types'),
+            'permission_callback' => array(__CLASS__, 'check_api_key'),
         ));
         
         register_rest_route($namespace, '/import/acf-field-groups', array(
             'methods' => 'POST',
-            'callback' => array($this, 'import_acf_field_groups'),
-            'permission_callback' => array($this, 'check_api_key'),
+            'callback' => array(__CLASS__, 'import_acf_field_groups'),
+            'permission_callback' => array(__CLASS__, 'check_api_key'),
         ));
         
         register_rest_route($namespace, '/import/metabox-configs', array(
             'methods' => 'POST',
-            'callback' => array($this, 'import_metabox_configs'),
-            'permission_callback' => array($this, 'check_api_key'),
+            'callback' => array(__CLASS__, 'import_metabox_configs'),
+            'permission_callback' => array(__CLASS__, 'check_api_key'),
         ));
         
         register_rest_route($namespace, '/import/post-meta', array(
             'methods' => 'POST',
-            'callback' => array($this, 'import_post_meta'),
-            'permission_callback' => array($this, 'check_api_key'),
+            'callback' => array(__CLASS__, 'import_post_meta'),
+            'permission_callback' => array(__CLASS__, 'check_api_key'),
         ));
     }
     
     /**
      * Validate API key
      */
-    public function validate_api_key($request) {
+    public static function validate_api_key($request) {
         $api_key = $request->get_param('api_key');
         
         if (empty($api_key)) {
@@ -145,7 +146,7 @@ class B2E_API_Endpoints {
     /**
      * Check API key for authentication
      */
-    public function check_api_key($request) {
+    public static function check_api_key($request) {
         $api_key = $request->get_header('X-API-Key');
         
         if (empty($api_key)) {
@@ -164,7 +165,7 @@ class B2E_API_Endpoints {
     /**
      * Get plugin status
      */
-    public function get_plugin_status($request) {
+    public static function get_plugin_status($request) {
         $plugin_detector = new B2E_Plugin_Detector();
         
         return new WP_REST_Response(array(
@@ -177,7 +178,7 @@ class B2E_API_Endpoints {
     /**
      * Export posts list
      */
-    public function export_posts_list($request) {
+    public static function export_posts_list($request) {
         $posts = get_posts(array(
             'post_type' => 'any',
             'post_status' => 'publish',
@@ -213,7 +214,7 @@ class B2E_API_Endpoints {
     /**
      * Export post content
      */
-    public function export_post_content($request) {
+    public static function export_post_content($request) {
         $post_id = $request->get_param('id');
         
         $post = get_post($post_id);
@@ -244,7 +245,7 @@ class B2E_API_Endpoints {
     /**
      * Export CSS classes
      */
-    public function export_css_classes($request) {
+    public static function export_css_classes($request) {
         $css_converter = new B2E_CSS_Converter();
         $bricks_classes = get_option('bricks_global_classes', array());
         
@@ -259,7 +260,7 @@ class B2E_API_Endpoints {
     /**
      * Export custom post types
      */
-    public function export_custom_post_types($request) {
+    public static function export_custom_post_types($request) {
         $cpt_migrator = new B2E_CPT_Migrator();
         $cpts = $cpt_migrator->export_custom_post_types();
         
@@ -269,7 +270,7 @@ class B2E_API_Endpoints {
     /**
      * Export ACF field groups
      */
-    public function export_acf_field_groups($request) {
+    public static function export_acf_field_groups($request) {
         $acf_migrator = new B2E_ACF_Field_Groups_Migrator();
         $field_groups = $acf_migrator->export_field_groups();
         
@@ -279,7 +280,7 @@ class B2E_API_Endpoints {
     /**
      * Export MetaBox configs
      */
-    public function export_metabox_configs($request) {
+    public static function export_metabox_configs($request) {
         $metabox_migrator = new B2E_MetaBox_Migrator();
         $configs = $metabox_migrator->export_metabox_configs();
         
@@ -289,7 +290,7 @@ class B2E_API_Endpoints {
     /**
      * Import post
      */
-    public function import_post($request) {
+    public static function import_post($request) {
         $post_data = $request->get_json_params();
         
         if (empty($post_data['post']) || empty($post_data['etch_content'])) {
@@ -321,7 +322,7 @@ class B2E_API_Endpoints {
     /**
      * Import CSS classes
      */
-    public function import_css_classes($request) {
+    public static function import_css_classes($request) {
         $classes_data = $request->get_json_params();
         
         if (empty($classes_data)) {
@@ -344,7 +345,7 @@ class B2E_API_Endpoints {
     /**
      * Import custom post types
      */
-    public function import_custom_post_types($request) {
+    public static function import_custom_post_types($request) {
         $cpts_data = $request->get_json_params();
         
         if (empty($cpts_data)) {
@@ -367,7 +368,7 @@ class B2E_API_Endpoints {
     /**
      * Import ACF field groups
      */
-    public function import_acf_field_groups($request) {
+    public static function import_acf_field_groups($request) {
         $field_groups_data = $request->get_json_params();
         
         if (empty($field_groups_data)) {
@@ -390,7 +391,7 @@ class B2E_API_Endpoints {
     /**
      * Import MetaBox configs
      */
-    public function import_metabox_configs($request) {
+    public static function import_metabox_configs($request) {
         $configs_data = $request->get_json_params();
         
         if (empty($configs_data)) {
@@ -413,7 +414,7 @@ class B2E_API_Endpoints {
     /**
      * Import post meta
      */
-    public function import_post_meta($request) {
+    public static function import_post_meta($request) {
         $meta_data = $request->get_json_params();
         
         if (empty($meta_data['post_id']) || empty($meta_data['meta'])) {

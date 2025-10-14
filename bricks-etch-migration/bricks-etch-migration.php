@@ -106,8 +106,8 @@ class Bricks_Etch_Migration {
             new B2E_Admin_Interface();
         }
         
-        // Initialize API endpoints
-        new B2E_API_Endpoints();
+        // Initialize API endpoints (static registration)
+        B2E_API_Endpoints::init();
         
         // Initialize error handler
         new B2E_Error_Handler();
