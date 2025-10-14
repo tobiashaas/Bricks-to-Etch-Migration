@@ -22,6 +22,8 @@ class B2E_Admin_Interface {
         add_action('wp_ajax_b2e_clear_logs', array($this, 'ajax_clear_logs'));
         add_action('wp_ajax_b2e_validate_import_key', array($this, 'ajax_validate_import_key'));
         add_action('wp_ajax_b2e_save_import_settings', array($this, 'ajax_save_import_settings'));
+        add_action('wp_ajax_b2e_generate_report', array($this, 'ajax_generate_report'));
+        add_action('wp_ajax_b2e_save_migration_settings', array($this, 'ajax_save_migration_settings'));
     }
     
     /**
@@ -1200,5 +1202,58 @@ class B2E_Admin_Interface {
         }
         
         wp_send_json_success(__('Import settings saved successfully.', 'bricks-etch-migration'));
+    }
+    
+    /**
+     * AJAX: Generate migration report
+     */
+    public function ajax_generate_report() {
+        check_ajax_referer('b2e_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(__('Insufficient permissions', 'bricks-etch-migration'));
+            return;
+        }
+        
+        $analyzer = new B2E_Migration_Analyzer();
+        $report = $analyzer->generate_report();
+        
+        wp_send_json_success($report);
+    }
+    
+    /**
+     * AJAX: Save migration settings
+     */
+    public function ajax_save_migration_settings() {
+        check_ajax_referer('b2e_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(__('Insufficient permissions', 'bricks-etch-migration'));
+            return;
+        }
+        
+        $settings_manager = new B2E_Migration_Settings();
+        
+        $settings = array(
+            'migrate_posts' => isset($_POST['migrate_posts']),
+            'migrate_pages' => isset($_POST['migrate_pages']),
+            'migrate_css' => isset($_POST['migrate_css']),
+            'migrate_cpts' => isset($_POST['migrate_cpts']),
+            'migrate_acf' => isset($_POST['migrate_acf']),
+            'migrate_metabox' => isset($_POST['migrate_metabox']),
+            'migrate_jetengine' => isset($_POST['migrate_jetengine']),
+            'selected_post_types' => isset($_POST['selected_post_types']) ? (array) $_POST['selected_post_types'] : array(),
+            'selected_post_statuses' => isset($_POST['selected_post_statuses']) ? (array) $_POST['selected_post_statuses'] : array('publish'),
+            'cleanup_bricks_meta' => isset($_POST['cleanup_bricks_meta']),
+            'convert_div_to_flex' => isset($_POST['convert_div_to_flex'])
+        );
+        
+        $saved_settings = $settings_manager->save_settings($settings);
+        
+        wp_send_json_success(array(
+            'message' => __('Migration settings saved successfully.', 'bricks-etch-migration'),
+            'settings' => $saved_settings,
+            'scope' => $settings_manager->get_scope_summary()
+        ));
     }
 }

@@ -44,6 +44,8 @@ require_once B2E_PLUGIN_DIR . 'includes/metabox_migrator.php';
 require_once B2E_PLUGIN_DIR . 'includes/cpt_migrator.php';
 require_once B2E_PLUGIN_DIR . 'includes/cross_plugin_converter.php';
 require_once B2E_PLUGIN_DIR . 'includes/class-b2e-transfer-manager.php';
+require_once B2E_PLUGIN_DIR . 'includes/class-b2e-migration-analyzer.php';
+require_once B2E_PLUGIN_DIR . 'includes/class-b2e-migration-settings.php';
 
 // Main plugin class
 class Bricks_Etch_Migration {
