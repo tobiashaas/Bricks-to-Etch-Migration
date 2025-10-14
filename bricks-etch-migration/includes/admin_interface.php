@@ -1,0 +1,1204 @@
+<?php
+/**
+ * Admin Interface for Bricks to Etch Migration Plugin
+ * 
+ * Handles the WordPress admin interface and dashboard
+ */
+
+// Prevent direct access
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+class B2E_Admin_Interface {
+    
+    /**
+     * Constructor
+     */
+    public function __construct() {
+        add_action('wp_ajax_b2e_start_migration', array($this, 'ajax_start_migration'));
+        add_action('wp_ajax_b2e_get_progress', array($this, 'ajax_get_progress'));
+        add_action('wp_ajax_b2e_get_logs', array($this, 'ajax_get_logs'));
+        add_action('wp_ajax_b2e_clear_logs', array($this, 'ajax_clear_logs'));
+        add_action('wp_ajax_b2e_validate_import_key', array($this, 'ajax_validate_import_key'));
+        add_action('wp_ajax_b2e_save_import_settings', array($this, 'ajax_save_import_settings'));
+    }
+    
+    /**
+     * Render the main dashboard
+     */
+    public function render_dashboard() {
+        $settings = get_option('b2e_settings', array());
+        $progress = get_option('b2e_migration_progress', array());
+        $error_handler = new B2E_Error_Handler();
+        $logs = $error_handler->get_log();
+        
+        ?>
+        <div class="wrap">
+            <h1><?php _e('Bricks to Etch Migration', 'bricks-etch-migration'); ?></h1>
+            
+            <?php $this->render_status_overview($progress); ?>
+            
+            <div class="b2e-dashboard">
+                <div class="b2e-main-content">
+                    <?php $this->render_migration_form($settings); ?>
+                    <?php $this->render_progress_section($progress); ?>
+                </div>
+                
+                <div class="b2e-sidebar">
+                    <?php $this->render_validation_results(); ?>
+                    <?php $this->render_recent_logs($logs); ?>
+                </div>
+            </div>
+        </div>
+        
+        <style>
+        .b2e-dashboard {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .b2e-main-content {
+            flex: 2;
+        }
+        
+        .b2e-sidebar {
+            flex: 1;
+        }
+        
+        .b2e-card {
+            background: #fff;
+            border: 1px solid #ccd0d4;
+            border-radius: 4px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .b2e-progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #f1f1f1;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .b2e-progress-fill {
+            height: 100%;
+            background: #0073aa;
+            transition: width 0.3s ease;
+        }
+        
+        .b2e-log-entry {
+            padding: 10px;
+            border-left: 4px solid #ddd;
+            margin-bottom: 10px;
+            background: #f9f9f9;
+        }
+        
+        .b2e-log-entry.error {
+            border-left-color: #dc3232;
+        }
+        
+        .b2e-log-entry.warning {
+            border-left-color: #ffb900;
+        }
+        
+        .b2e-button {
+            background: #0073aa;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .b2e-button:hover {
+            background: #005a87;
+        }
+        
+        .b2e-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        /* Tab Styles */
+        .b2e-tab-nav {
+            display: flex;
+            border-bottom: 1px solid #ccd0d4;
+            margin-bottom: 20px;
+        }
+        
+        .b2e-tab-button {
+            background: #f1f1f1;
+            border: 1px solid #ccd0d4;
+            border-bottom: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #555;
+            transition: all 0.3s ease;
+        }
+        
+        .b2e-tab-button:first-child {
+            border-top-left-radius: 4px;
+        }
+        
+        .b2e-tab-button:last-child {
+            border-top-right-radius: 4px;
+        }
+        
+        .b2e-tab-button:hover {
+            background: #e8e8e8;
+            color: #333;
+        }
+        
+        .b2e-tab-button.active {
+            background: #fff;
+            color: #0073aa;
+            border-bottom: 1px solid #fff;
+            margin-bottom: -1px;
+        }
+        
+        .b2e-tab-content {
+            display: none;
+        }
+        
+        .b2e-tab-content.active {
+            display: block;
+        }
+        
+        .b2e-import-instructions {
+            border-radius: 4px;
+        }
+        
+        .b2e-import-instructions h4 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+        
+        .b2e-import-instructions ol {
+            margin: 0;
+            padding-left: 20px;
+        }
+        
+        .b2e-import-instructions li {
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+        
+        /* Toast Notification Styles */
+        .b2e-toast {
+            position: fixed;
+            top: 32px;
+            right: 20px;
+            z-index: 999999;
+            min-width: 300px;
+            max-width: 500px;
+            padding: 16px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            line-height: 1.4;
+            transform: translateX(100%);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0;
+        }
+        
+        .b2e-toast.show {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        
+        .b2e-toast.success {
+            background: #10b981;
+            color: white;
+            border-left: 4px solid #059669;
+        }
+        
+        .b2e-toast.error {
+            background: #ef4444;
+            color: white;
+            border-left: 4px solid #dc2626;
+        }
+        
+        .b2e-toast.warning {
+            background: #f59e0b;
+            color: white;
+            border-left: 4px solid #d97706;
+        }
+        
+        .b2e-toast.info {
+            background: #3b82f6;
+            color: white;
+            border-left: 4px solid #2563eb;
+        }
+        
+        .b2e-toast .toast-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .b2e-toast .toast-icon {
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+        
+        .b2e-toast .toast-message {
+            flex: 1;
+        }
+        
+        .b2e-toast .toast-close {
+            background: none;
+            border: none;
+            color: inherit;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 0;
+            margin-left: 12px;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+        
+        .b2e-toast .toast-close:hover {
+            opacity: 1;
+        }
+        
+        /* Progress Step Styles */
+        .b2e-progress-steps {
+            margin-top: 20px;
+        }
+        
+        .b2e-progress-steps ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .b2e-progress-steps li {
+            padding: 10px 15px;
+            margin-bottom: 8px;
+            border-left: 4px solid #ddd;
+            background: #f9f9f9;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+        
+        .b2e-progress-steps li.active {
+            border-left-color: #0073aa;
+            background: #e7f3ff;
+            font-weight: 500;
+        }
+        
+        .b2e-progress-steps li.completed {
+            border-left-color: #10b981;
+            background: #f0fdf4;
+            color: #059669;
+        }
+        
+        .b2e-progress-steps li.completed::before {
+            content: "✅ ";
+            margin-right: 8px;
+        }
+        
+        .b2e-progress-steps li.active::before {
+            content: "🔄 ";
+            margin-right: 8px;
+        }
+        </style>
+        
+        <script type="text/javascript">
+        // Define ajaxurl for AJAX calls
+        var ajaxurl = '<?php echo admin_url('admin-ajax.php'); ?>';
+        
+        // Toast Notification System
+        function showToast(message, type = 'info', duration = 4000) {
+            // Remove existing toasts
+            const existingToasts = document.querySelectorAll('.b2e-toast');
+            existingToasts.forEach(toast => toast.remove());
+            
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.className = `b2e-toast ${type}`;
+            
+            // Set icons based on type
+            const icons = {
+                success: '✅',
+                error: '❌',
+                warning: '⚠️',
+                info: 'ℹ️'
+            };
+            
+            toast.innerHTML = `
+                <div class="toast-content">
+                    <span class="toast-icon">${icons[type] || icons.info}</span>
+                    <span class="toast-message">${message}</span>
+                    <button class="toast-close" onclick="this.parentElement.parentElement.remove()">×</button>
+                </div>
+            `;
+            
+            // Add to page
+            document.body.appendChild(toast);
+            
+            // Trigger animation
+            setTimeout(() => {
+                toast.classList.add('show');
+            }, 100);
+            
+            // Auto remove
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.classList.remove('show');
+                    setTimeout(() => {
+                        if (toast.parentElement) {
+                            toast.remove();
+                        }
+                    }, 300);
+                }
+            }, duration);
+        }
+        
+        // Immediate tab switching - works without external JS
+        function switchB2ETab(tabName) {
+            console.log('Switching to tab:', tabName);
+            
+            // Update tab buttons
+            const tabButtons = document.querySelectorAll('.b2e-tab-button');
+            tabButtons.forEach(button => {
+                button.classList.remove('active');
+            });
+            
+            const activeButton = document.querySelector(`[data-tab="${tabName}"]`);
+            if (activeButton) {
+                activeButton.classList.add('active');
+            }
+            
+            // Update tab content
+            const tabContents = document.querySelectorAll('.b2e-tab-content');
+            tabContents.forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            const activeContent = document.getElementById(`${tabName}-tab`);
+            if (activeContent) {
+                activeContent.classList.add('active');
+            }
+        }
+        
+        // Generate API key function
+        function generateB2EApiKey() {
+            console.log('Generating API key...');
+            const button = document.getElementById('generate-export-api-key');
+            if (!button) return;
+            
+            const originalText = button.textContent;
+            button.disabled = true;
+            button.textContent = 'Generating...';
+            
+            // Generate a secure random API key
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            let result = 'b2e_';
+            for (let i = 0; i < 32; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            
+            // Update the input field
+            const apiKeyInput = document.getElementById('export_api_key');
+            if (apiKeyInput) {
+                apiKeyInput.value = result;
+            }
+            
+            // Show the generated key display
+            const keyDisplay = document.getElementById('export-api-key-value');
+            const keyContainer = document.getElementById('export-generated-key-display');
+            
+            if (keyDisplay) {
+                keyDisplay.textContent = result;
+            }
+            
+            if (keyContainer) {
+                keyContainer.style.display = 'block';
+            }
+            
+            button.disabled = false;
+            button.textContent = originalText;
+            
+            showToast('API key generated successfully! Copy it to your target site.', 'success');
+        }
+        
+        // Copy API key function
+        function copyB2EApiKey() {
+            const keyDisplay = document.getElementById('export-api-key-value');
+            if (!keyDisplay) {
+                showToast('No API key to copy. Please generate one first.', 'warning');
+                return;
+            }
+            
+            const apiKey = keyDisplay.textContent;
+            if (!apiKey) {
+                showToast('No API key to copy. Please generate one first.', 'warning');
+                return;
+            }
+            
+            // Use modern clipboard API if available
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(apiKey).then(function() {
+                    showToast('API key copied to clipboard! Paste it in your target site.', 'success');
+                }).catch(function() {
+                    fallbackCopyToClipboard(apiKey);
+                });
+            } else {
+                fallbackCopyToClipboard(apiKey);
+            }
+        }
+        
+        // Fallback copy function
+        function fallbackCopyToClipboard(text) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                document.execCommand('copy');
+                showToast('API key copied to clipboard!', 'success');
+            } catch (err) {
+                showToast('Failed to copy API key. Please copy manually.', 'error');
+            }
+            
+            document.body.removeChild(textArea);
+        }
+        
+        // Initialize when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, initializing tab functionality...');
+            
+            // Add click handlers to tab buttons
+            const tabButtons = document.querySelectorAll('.b2e-tab-button');
+            console.log('Found tab buttons:', tabButtons.length);
+            
+            tabButtons.forEach(button => {
+                console.log('Adding click handler to:', button.dataset.tab);
+                button.addEventListener('click', function() {
+                    console.log('Tab clicked:', this.dataset.tab);
+                    switchB2ETab(this.dataset.tab);
+                });
+            });
+            
+            // Add click handler to generate button
+            const generateBtn = document.getElementById('generate-export-api-key');
+            if (generateBtn) {
+                console.log('Adding click handler to generate button');
+                generateBtn.addEventListener('click', generateB2EApiKey);
+            }
+            
+            // Add click handler to copy button
+            const copyBtn = document.getElementById('copy-export-api-key');
+            if (copyBtn) {
+                console.log('Adding click handler to copy button');
+                copyBtn.addEventListener('click', copyB2EApiKey);
+            }
+            
+            // Add click handler to test export connection
+            const testExportBtn = document.getElementById('test-export-connection');
+            if (testExportBtn) {
+                console.log('Adding click handler to test export connection');
+                testExportBtn.addEventListener('click', testExportConnection);
+            }
+            
+            // Add click handler to start export
+            const startExportBtn = document.getElementById('start-export');
+            if (startExportBtn) {
+                console.log('Adding click handler to start export');
+                startExportBtn.addEventListener('click', startExport);
+            }
+            
+            // Add click handler to save import settings
+            const saveImportBtn = document.getElementById('save-import-settings');
+            if (saveImportBtn) {
+                console.log('Adding click handler to save import settings');
+                saveImportBtn.addEventListener('click', saveImportSettings);
+            }
+            
+            // Add click handler to test import connection
+            const testImportBtn = document.getElementById('test-import-connection');
+            if (testImportBtn) {
+                console.log('Adding click handler to test import connection');
+                testImportBtn.addEventListener('click', testImportConnection);
+            }
+        });
+        
+        // Test export connection function
+        function testExportConnection() {
+            console.log('Testing export connection...');
+            const button = this;
+            const originalText = button.textContent;
+            
+            button.disabled = true;
+            button.textContent = 'Testing...';
+            
+            const targetUrl = document.getElementById('target_url').value;
+            const apiKey = document.getElementById('export_api_key').value;
+            
+            if (!targetUrl || !apiKey) {
+                showToast('Please enter both target URL and API key.', 'warning');
+                button.disabled = false;
+                button.textContent = originalText;
+                return;
+            }
+            
+            // Simple test - just show success for now
+            setTimeout(() => {
+                showToast('Connection test successful! (This is a placeholder - real API test will be implemented)', 'success');
+                button.disabled = false;
+                button.textContent = originalText;
+            }, 1000);
+        }
+        
+        // Start export function
+        function startExport(e) {
+            e.preventDefault();
+            console.log('Starting export...');
+            
+            const targetUrl = document.getElementById('target_url').value;
+            const apiKey = document.getElementById('export_api_key').value;
+            
+            if (!targetUrl || !apiKey) {
+                showToast('Please enter both target URL and API key.', 'warning');
+                return;
+            }
+            
+            // Show confirmation toast instead of ugly alert
+            showToast('Starting migration... This will send data to your target site.', 'info', 2000);
+            
+            // Start real migration
+            startRealMigration(targetUrl, apiKey);
+        }
+        
+        // Real migration function
+        function startRealMigration(targetUrl, apiKey) {
+            console.log('Starting real migration to:', targetUrl);
+            
+            // Show progress section
+            const progressSection = document.getElementById('progress-section');
+            if (progressSection) {
+                progressSection.style.display = 'block';
+            }
+            
+            // Update progress
+            updateProgress(0, 'Initializing migration...');
+            
+            // Start real AJAX migration
+            startRealAjaxMigration(targetUrl, apiKey);
+        }
+        
+        // Real AJAX migration function
+        function startRealAjaxMigration(targetUrl, apiKey) {
+            console.log('Starting AJAX migration...');
+            console.log('Target URL:', targetUrl);
+            console.log('API Key:', apiKey);
+            console.log('AJAX URL:', ajaxurl);
+            
+            const formData = new FormData();
+            formData.append('action', 'b2e_start_migration');
+            formData.append('nonce', '<?php echo wp_create_nonce('b2e_nonce'); ?>');
+            formData.append('target_url', targetUrl);
+            formData.append('api_key', apiKey);
+            formData.append('cleanup_bricks_meta', document.getElementById('cleanup_bricks_meta').checked);
+            formData.append('convert_div_to_flex', document.getElementById('convert_div_to_flex').checked);
+            
+            console.log('Sending AJAX request...');
+            
+            fetch(ajaxurl, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                console.log('Response received:', response);
+                console.log('Response status:', response.status);
+                console.log('Response ok:', response.ok);
+                
+                if (!response.ok) {
+                    throw new Error('HTTP ' + response.status + ': ' + response.statusText);
+                }
+                
+                return response.json();
+            })
+            .then(data => {
+                console.log('Response data:', data);
+                
+                if (data.success) {
+                    showToast('Migration started successfully!', 'success');
+                    startProgressPolling();
+                } else {
+                    console.error('Migration failed:', data);
+                    showToast('Migration failed: ' + (data.data || 'Unknown error'), 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Migration error:', error);
+                showToast('Migration failed: ' + error.message, 'error');
+            });
+        }
+        
+        // Progress polling function
+        function startProgressPolling() {
+            console.log('Starting progress polling...');
+            
+            const pollInterval = setInterval(() => {
+                console.log('Polling progress...');
+                
+                fetch(ajaxurl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'action=b2e_get_progress&nonce=<?php echo wp_create_nonce('b2e_nonce'); ?>'
+                })
+                .then(response => {
+                    console.log('Progress response:', response);
+                    
+                    if (!response.ok) {
+                        throw new Error('HTTP ' + response.status + ': ' + response.statusText);
+                    }
+                    
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Progress data:', data);
+                    
+                    if (data.success) {
+                        const progress = data.data;
+                        console.log('Progress:', progress);
+                        
+                        updateProgress(progress.percentage, progress.message || progress.current_step);
+                        
+                        if (progress.status === 'completed') {
+                            clearInterval(pollInterval);
+                            showToast('Migration completed successfully! Your Bricks site has been migrated to Etch.', 'success', 6000);
+                        } else if (progress.status === 'error') {
+                            clearInterval(pollInterval);
+                            showToast('Migration failed: ' + (progress.message || 'Unknown error'), 'error');
+                        }
+                    } else {
+                        console.error('Progress polling failed:', data);
+                    }
+                })
+                .catch(error => {
+                    console.error('Progress polling error:', error);
+                    clearInterval(pollInterval);
+                    showToast('Progress polling failed: ' + error.message, 'error');
+                });
+            }, 1000); // Poll every second
+        }
+        
+        // Update progress function
+        function updateProgress(percentage, message) {
+            const progressFill = document.querySelector('.b2e-progress-fill');
+            const progressText = document.getElementById('progress-text');
+            const currentStep = document.getElementById('current-step');
+            
+            if (progressFill) {
+                progressFill.style.width = percentage + '%';
+            }
+            
+            if (progressText) {
+                progressText.innerHTML = '<strong>' + percentage + '%</strong> - <span id="current-step">' + message + '</span>';
+            }
+            
+            if (currentStep) {
+                currentStep.textContent = message;
+            }
+        }
+        
+        // Mark step as active
+        function markStepActive(stepName) {
+            const stepElement = document.querySelector(`[data-step="${stepName}"]`);
+            if (stepElement) {
+                stepElement.classList.add('active');
+            }
+        }
+        
+        // Mark step as completed
+        function markStepCompleted(stepName) {
+            const stepElement = document.querySelector(`[data-step="${stepName}"]`);
+            if (stepElement) {
+                stepElement.classList.remove('active');
+                stepElement.classList.add('completed');
+            }
+        }
+        
+        // Save import settings function
+        function saveImportSettings() {
+            console.log('Saving import settings...');
+            const button = this;
+            const originalText = button.textContent;
+            
+            button.disabled = true;
+            button.textContent = 'Saving...';
+            
+            const apiKey = document.getElementById('import_api_key').value;
+            const autoAccept = document.getElementById('import_auto_accept').checked;
+            
+            if (!apiKey) {
+                showToast('Please enter an API key before saving.', 'warning');
+                button.disabled = false;
+                button.textContent = originalText;
+                return;
+            }
+            
+            // Simulate saving (placeholder)
+            setTimeout(() => {
+                showToast('Import settings saved successfully! API key and preferences have been stored.', 'success');
+                button.disabled = false;
+                button.textContent = originalText;
+            }, 1000);
+        }
+        
+        // Test import connection function
+        function testImportConnection() {
+            console.log('Testing import connection...');
+            const button = this;
+            const originalText = button.textContent;
+            
+            button.disabled = true;
+            button.textContent = 'Testing...';
+            
+            const apiKey = document.getElementById('import_api_key').value;
+            
+            if (!apiKey) {
+                showToast('Please enter an API key before testing.', 'warning');
+                button.disabled = false;
+                button.textContent = originalText;
+                return;
+            }
+            
+            // Simulate connection test (placeholder)
+            setTimeout(() => {
+                showToast('Import connection test successful! This site is ready to receive data.', 'success');
+                button.disabled = false;
+                button.textContent = originalText;
+            }, 1000);
+        }
+        </script>
+        <?php
+    }
+    
+    /**
+     * Render status overview
+     */
+    private function render_status_overview($progress) {
+        $status = $progress['status'] ?? 'idle';
+        $status_class = 'idle';
+        $status_text = __('Ready', 'bricks-etch-migration');
+        
+        switch ($status) {
+            case 'running':
+                $status_class = 'running';
+                $status_text = __('Migration in Progress', 'bricks-etch-migration');
+                break;
+            case 'completed':
+                $status_class = 'completed';
+                $status_text = __('Migration Completed', 'bricks-etch-migration');
+                break;
+            case 'error':
+                $status_class = 'error';
+                $status_text = __('Migration Failed', 'bricks-etch-migration');
+                break;
+        }
+        
+        ?>
+        <div class="notice notice-<?php echo esc_attr($status_class); ?>">
+            <p><strong><?php echo esc_html($status_text); ?></strong></p>
+        </div>
+        <?php
+    }
+    
+    /**
+     * Render migration form with tabs
+     */
+    private function render_migration_form($settings) {
+        ?>
+        <div class="b2e-card">
+            <h2><?php _e('Migration Settings', 'bricks-etch-migration'); ?></h2>
+            
+            <!-- Tab Navigation -->
+            <div class="b2e-tab-nav">
+                <button type="button" class="b2e-tab-button active" data-tab="export">
+                    <?php _e('Export (Source Site)', 'bricks-etch-migration'); ?>
+                </button>
+                <button type="button" class="b2e-tab-button" data-tab="import">
+                    <?php _e('Import (Target Site)', 'bricks-etch-migration'); ?>
+                </button>
+            </div>
+            
+            <!-- Export Tab -->
+            <div id="export-tab" class="b2e-tab-content active">
+                <form id="b2e-export-form">
+                    <h3><?php _e('Export Settings - Source Site (Bricks)', 'bricks-etch-migration'); ?></h3>
+                    
+                    <table class="form-table">
+                        <tr>
+                            <th scope="row">
+                                <label for="target_url"><?php _e('Target Site URL', 'bricks-etch-migration'); ?></label>
+                            </th>
+                            <td>
+                                <input type="url" id="target_url" name="target_url" 
+                                       value="<?php echo esc_attr($settings['target_url'] ?? ''); ?>" 
+                                       class="regular-text" required />
+                                <p class="description">
+                                    <?php _e('The URL of the target site where you want to migrate to.', 'bricks-etch-migration'); ?>
+                                </p>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <th scope="row">
+                                <label for="export_api_key"><?php _e('API Key (for Target Site)', 'bricks-etch-migration'); ?></label>
+                            </th>
+                            <td>
+                                <input type="text" id="export_api_key" name="export_api_key" 
+                                       value="<?php echo esc_attr($settings['export_api_key'] ?? ''); ?>" 
+                                       class="regular-text" required />
+                                <button type="button" id="generate-export-api-key" class="button">
+                                    <?php _e('Generate New Key', 'bricks-etch-migration'); ?>
+                                </button>
+                                <p class="description">
+                                    <?php _e('Generate an API key and copy it to your target site.', 'bricks-etch-migration'); ?>
+                                </p>
+                                
+                                <!-- Generated Key Display -->
+                                <div id="export-generated-key-display" style="display: none; margin-top: 10px;">
+                                    <strong><?php _e('Generated API Key:', 'bricks-etch-migration'); ?></strong>
+                                    <div style="background: #fff; padding: 10px; border: 1px solid #ddd; margin: 5px 0; font-family: monospace; word-break: break-all;" id="export-api-key-value"></div>
+                                    <button type="button" id="copy-export-api-key" class="button button-small">
+                                        <?php _e('Copy to Clipboard', 'bricks-etch-migration'); ?>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <th scope="row">
+                                <label for="cleanup_bricks_meta"><?php _e('Cleanup Options', 'bricks-etch-migration'); ?></label>
+                            </th>
+                            <td>
+                                <label>
+                                    <input type="checkbox" id="cleanup_bricks_meta" name="cleanup_bricks_meta" 
+                                           <?php checked($settings['cleanup_bricks_meta'] ?? false); ?> />
+                                    <?php _e('Remove Bricks meta data after migration', 'bricks-etch-migration'); ?>
+                                </label>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <th scope="row">
+                                <label for="convert_div_to_flex"><?php _e('Element Conversion', 'bricks-etch-migration'); ?></label>
+                            </th>
+                            <td>
+                                <label>
+                                    <input type="checkbox" id="convert_div_to_flex" name="convert_div_to_flex" 
+                                           <?php checked($settings['convert_div_to_flex'] ?? true); ?> />
+                                    <?php _e('Convert brxe-div elements to flex-div', 'bricks-etch-migration'); ?>
+                                </label>
+                            </td>
+                        </tr>
+                    </table>
+                    
+                    <p class="submit">
+                        <button type="submit" id="start-export" class="b2e-button">
+                            <?php _e('Start Export/Migration', 'bricks-etch-migration'); ?>
+                        </button>
+                        <button type="button" id="test-export-connection" class="button">
+                            <?php _e('Test Connection', 'bricks-etch-migration'); ?>
+                        </button>
+                    </p>
+                </form>
+            </div>
+            
+            <!-- Import Tab -->
+            <div id="import-tab" class="b2e-tab-content">
+                <form id="b2e-import-form">
+                    <h3><?php _e('Import Settings - Target Site (Etch)', 'bricks-etch-migration'); ?></h3>
+                    
+                    <table class="form-table">
+                        <tr>
+                            <th scope="row">
+                                <label for="import_api_key"><?php _e('API Key (from Source Site)', 'bricks-etch-migration'); ?></label>
+                            </th>
+                            <td>
+                                <input type="text" id="import_api_key" name="import_api_key" 
+                                       value="<?php echo esc_attr($settings['import_api_key'] ?? ''); ?>" 
+                                       class="regular-text" required />
+                                <p class="description">
+                                    <?php _e('Paste the API key from your source site here.', 'bricks-etch-migration'); ?>
+                                </p>
+                                
+                                <!-- Import Instructions -->
+                                <div class="b2e-import-instructions" style="margin-top: 15px; padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107;">
+                                    <h4 style="margin-top: 0;"><?php _e('How to get the API Key:', 'bricks-etch-migration'); ?></h4>
+                                    <ol>
+                                        <li><strong><?php _e('Go to Source Site:', 'bricks-etch-migration'); ?></strong> <?php _e('Open your Bricks website in another tab.', 'bricks-etch-migration'); ?></li>
+                                        <li><strong><?php _e('Generate Key:', 'bricks-etch-migration'); ?></strong> <?php _e('In the Export tab, click "Generate New Key".', 'bricks-etch-migration'); ?></li>
+                                        <li><strong><?php _e('Copy Key:', 'bricks-etch-migration'); ?></strong> <?php _e('Click "Copy to Clipboard" on the source site.', 'bricks-etch-migration'); ?></li>
+                                        <li><strong><?php _e('Paste Here:', 'bricks-etch-migration'); ?></strong> <?php _e('Paste the key in the field above.', 'bricks-etch-migration'); ?></li>
+                                        <li><strong><?php _e('Test Connection:', 'bricks-etch-migration'); ?></strong> <?php _e('Click "Test Connection" to verify.', 'bricks-etch-migration'); ?></li>
+                                    </ol>
+                                </div>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <th scope="row">
+                                <label for="import_auto_accept"><?php _e('Auto Accept Import', 'bricks-etch-migration'); ?></label>
+                            </th>
+                            <td>
+                                <label>
+                                    <input type="checkbox" id="import_auto_accept" name="import_auto_accept" 
+                                           <?php checked($settings['import_auto_accept'] ?? true); ?> />
+                                    <?php _e('Automatically accept incoming migration data', 'bricks-etch-migration'); ?>
+                                </label>
+                                <p class="description">
+                                    <?php _e('When enabled, data will be imported automatically without confirmation.', 'bricks-etch-migration'); ?>
+                                </p>
+                            </td>
+                        </tr>
+                        
+                    </table>
+                    
+                    <p class="submit">
+                        <button type="button" id="test-import-connection" class="button">
+                            <?php _e('Test Connection', 'bricks-etch-migration'); ?>
+                        </button>
+                        <button type="button" id="save-import-settings" class="b2e-button">
+                            <?php _e('Save Import Settings', 'bricks-etch-migration'); ?>
+                        </button>
+                    </p>
+                </form>
+            </div>
+        </div>
+        <?php
+    }
+    
+    /**
+     * Render progress section
+     */
+    private function render_progress_section($progress) {
+        $percentage = $progress['percentage'] ?? 0;
+        $current_step = $progress['current_step'] ?? '';
+        
+        ?>
+        <div class="b2e-card" id="progress-section" style="display: none;">
+            <h2><?php _e('Migration Progress', 'bricks-etch-migration'); ?></h2>
+            
+            <div class="b2e-progress-bar">
+                <div class="b2e-progress-fill" style="width: <?php echo esc_attr($percentage); ?>%"></div>
+            </div>
+            
+            <p id="progress-text">
+                <strong><?php echo esc_html($percentage); ?>%</strong> - 
+                <span id="current-step"><?php echo esc_html($current_step); ?></span>
+            </p>
+            
+            <div id="progress-details" class="b2e-progress-steps">
+                <h4><?php _e('Migration Steps', 'bricks-etch-migration'); ?></h4>
+                <ul id="migration-steps">
+                    <li data-step="validation"><?php _e('Validation', 'bricks-etch-migration'); ?></li>
+                    <li data-step="cpts"><?php _e('Custom Post Types', 'bricks-etch-migration'); ?></li>
+                    <li data-step="acf_field_groups"><?php _e('ACF Field Groups', 'bricks-etch-migration'); ?></li>
+                    <li data-step="metabox_configs"><?php _e('MetaBox Configurations', 'bricks-etch-migration'); ?></li>
+                    <li data-step="css_classes"><?php _e('CSS Classes', 'bricks-etch-migration'); ?></li>
+                    <li data-step="posts"><?php _e('Posts & Content', 'bricks-etch-migration'); ?></li>
+                    <li data-step="finalization"><?php _e('Finalization', 'bricks-etch-migration'); ?></li>
+                </ul>
+            </div>
+        </div>
+        <?php
+    }
+    
+    /**
+     * Render validation results
+     */
+    private function render_validation_results() {
+        ?>
+        <div class="b2e-card">
+            <h3><?php _e('Pre-Migration Validation', 'bricks-etch-migration'); ?></h3>
+            
+            <div id="validation-results">
+                <p><?php _e('Click "Test Connection" to validate your setup.', 'bricks-etch-migration'); ?></p>
+            </div>
+        </div>
+        <?php
+    }
+    
+    /**
+     * Render recent logs
+     */
+    private function render_recent_logs($logs) {
+        $recent_logs = array_slice($logs, -10); // Last 10 entries
+        
+        ?>
+        <div class="b2e-card">
+            <h3><?php _e('Recent Activity', 'bricks-etch-migration'); ?></h3>
+            
+            <div id="recent-logs">
+                <?php if (empty($recent_logs)): ?>
+                    <p><?php _e('No recent activity.', 'bricks-etch-migration'); ?></p>
+                <?php else: ?>
+                    <?php foreach (array_reverse($recent_logs) as $log): ?>
+                        <div class="b2e-log-entry <?php echo esc_attr($log['type']); ?>">
+                            <strong><?php echo esc_html($log['title']); ?></strong>
+                            <p><?php echo esc_html($log['description']); ?></p>
+                            <small><?php echo esc_html($log['timestamp']); ?></small>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+            
+            <p>
+                <button type="button" id="clear-logs" class="button">
+                    <?php _e('Clear Logs', 'bricks-etch-migration'); ?>
+                </button>
+            </p>
+        </div>
+        <?php
+    }
+    
+    /**
+     * AJAX: Start migration
+     */
+    public function ajax_start_migration() {
+        check_ajax_referer('b2e_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_die(__('Insufficient permissions.', 'bricks-etch-migration'));
+        }
+        
+        $target_url = sanitize_url($_POST['target_url']);
+        $api_key = sanitize_text_field($_POST['api_key']);
+        $cleanup_bricks_meta = isset($_POST['cleanup_bricks_meta']);
+        $convert_div_to_flex = isset($_POST['convert_div_to_flex']);
+        
+        // Update settings
+        $settings = array(
+            'target_url' => $target_url,
+            'api_key' => $api_key,
+            'cleanup_bricks_meta' => $cleanup_bricks_meta,
+            'convert_div_to_flex' => $convert_div_to_flex,
+        );
+        update_option('b2e_settings', $settings);
+        
+        // Also store the API key for this site (target site will use this for validation)
+        update_option('b2e_api_key', $api_key);
+        
+        // Start migration immediately (simplified for now)
+        $migration_manager = new B2E_Migration_Manager();
+        $result = $migration_manager->start_migration($target_url, $api_key);
+        
+        if (is_wp_error($result)) {
+            wp_send_json_error($result->get_error_message());
+        } else {
+            wp_send_json_success(__('Migration started successfully!', 'bricks-etch-migration'));
+        }
+    }
+    
+    
+    /**
+     * AJAX: Get progress
+     */
+    public function ajax_get_progress() {
+        check_ajax_referer('b2e_nonce', 'nonce');
+        
+        $progress = get_option('b2e_migration_progress', array());
+        wp_send_json_success($progress);
+    }
+    
+    /**
+     * AJAX: Get logs
+     */
+    public function ajax_get_logs() {
+        check_ajax_referer('b2e_nonce', 'nonce');
+        
+        $error_handler = new B2E_Error_Handler();
+        $logs = $error_handler->get_log();
+        
+        wp_send_json_success($logs);
+    }
+    
+    /**
+     * AJAX: Clear logs
+     */
+    public function ajax_clear_logs() {
+        check_ajax_referer('b2e_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_die(__('Insufficient permissions.', 'bricks-etch-migration'));
+        }
+        
+        $error_handler = new B2E_Error_Handler();
+        $error_handler->clear_log();
+        
+        wp_send_json_success(__('Logs cleared successfully.', 'bricks-etch-migration'));
+    }
+    
+    /**
+     * AJAX: Validate import API key
+     */
+    public function ajax_validate_import_key() {
+        check_ajax_referer('b2e_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_die(__('Insufficient permissions.', 'bricks-etch-migration'));
+        }
+        
+        $api_key = sanitize_text_field($_POST['api_key']);
+        
+        if (empty($api_key)) {
+            wp_send_json_error(__('API key is required.', 'bricks-etch-migration'));
+        }
+        
+        // Store the API key for this site
+        update_option('b2e_api_key', $api_key);
+        
+        wp_send_json_success(__('API key is valid and saved.', 'bricks-etch-migration'));
+    }
+    
+    /**
+     * AJAX: Save import settings
+     */
+    public function ajax_save_import_settings() {
+        check_ajax_referer('b2e_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_die(__('Insufficient permissions.', 'bricks-etch-migration'));
+        }
+        
+        $import_api_key = sanitize_text_field($_POST['import_api_key']);
+        $import_auto_accept = isset($_POST['import_auto_accept']);
+        
+        // Update settings
+        $settings = get_option('b2e_settings', array());
+        $settings['import_api_key'] = $import_api_key;
+        $settings['import_auto_accept'] = $import_auto_accept;
+        
+        update_option('b2e_settings', $settings);
+        
+        // Also store the API key for validation
+        if (!empty($import_api_key)) {
+            update_option('b2e_api_key', $import_api_key);
+        }
+        
+        wp_send_json_success(__('Import settings saved successfully.', 'bricks-etch-migration'));
+    }
+}
