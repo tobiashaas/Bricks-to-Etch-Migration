@@ -147,8 +147,11 @@ class B2E_CPT_Migrator {
             return true;
         }
         
+        // Sanitize CPT data before registration
+        $sanitized_args = $this->sanitize_cpt_args($cpt_data);
+        
         // Register the custom post type
-        $result = register_post_type($post_type_name, $cpt_data);
+        $result = register_post_type($post_type_name, $sanitized_args);
         
         if (is_wp_error($result)) {
             $this->error_handler->log_error('E302', array(
@@ -163,6 +166,44 @@ class B2E_CPT_Migrator {
         $this->save_cpt_registration($post_type_name, $cpt_data);
         
         return true;
+    }
+    
+    /**
+     * Sanitize CPT arguments for register_post_type()
+     * Remove null values and ensure arrays are proper arrays
+     */
+    private function sanitize_cpt_args($cpt_data) {
+        $args = array();
+        
+        // Only include non-null values
+        foreach ($cpt_data as $key => $value) {
+            // Skip the 'name' key as it's not a valid argument
+            if ($key === 'name') {
+                continue;
+            }
+            
+            // Skip null values
+            if ($value === null) {
+                continue;
+            }
+            
+            // Convert objects to arrays (for labels, capabilities, etc.)
+            if (is_object($value)) {
+                $value = (array) $value;
+            }
+            
+            $args[$key] = $value;
+        }
+        
+        // Ensure critical array fields are arrays
+        $array_fields = array('labels', 'capabilities', 'supports', 'taxonomies');
+        foreach ($array_fields as $field) {
+            if (isset($args[$field]) && !is_array($args[$field])) {
+                unset($args[$field]);
+            }
+        }
+        
+        return $args;
     }
     
     /**
