@@ -1573,25 +1573,45 @@ class B2E_Admin_Interface {
                 return;
             }
             
-            // Simple connection test - just check if target URL is reachable
+            // Test 1: Basic WordPress REST API
             $test_url = rtrim($target_url, '/') . '/wp-json/';
-            
-            $response = wp_remote_get($test_url, array(
-                'timeout' => 10,
-                'headers' => array(
-                    'X-API-Key' => $api_key
-                )
-            ));
+            $response = wp_remote_get($test_url, array('timeout' => 10));
             
             if (is_wp_error($response)) {
                 wp_send_json_error('Cannot reach target site: ' . $response->get_error_message());
+            }
+            
+            $status_code = wp_remote_retrieve_response_code($response);
+            if ($status_code < 200 || $status_code >= 400) {
+                wp_send_json_error('Target site returned status code: ' . $status_code);
+            }
+            
+            // Test 2: Our specific API endpoint with authentication
+            $api_test_url = rtrim($target_url, '/') . '/wp-json/b2e/v1/validate-api-key';
+            $api_response = wp_remote_post($api_test_url, array(
+                'timeout' => 10,
+                'headers' => array(
+                    'Content-Type' => 'application/json',
+                    'X-API-Key' => $api_key
+                ),
+                'body' => json_encode(array('api_key' => $api_key))
+            ));
+            
+            if (is_wp_error($api_response)) {
+                wp_send_json_error('API endpoint test failed: ' . $api_response->get_error_message());
+            }
+            
+            $api_status_code = wp_remote_retrieve_response_code($api_response);
+            $api_body = wp_remote_retrieve_body($api_response);
+            
+            if ($api_status_code === 401) {
+                wp_send_json_error('API Key authentication failed (401). Please check if the API key is correctly set on the target site.');
+            } elseif ($api_status_code === 404) {
+                wp_send_json_error('API endpoint not found (404). Please ensure the Bricks to Etch Migration plugin is installed on the target site.');
+            } elseif ($api_status_code >= 200 && $api_status_code < 400) {
+                wp_send_json_success(__('Connection test successful! Target site is reachable and API key is valid.', 'bricks-etch-migration'));
             } else {
-                $status_code = wp_remote_retrieve_response_code($response);
-                if ($status_code >= 200 && $status_code < 400) {
-                    wp_send_json_success(__('Connection test successful! Target site is reachable.', 'bricks-etch-migration'));
-                } else {
-                    wp_send_json_error('Target site returned status code: ' . $status_code);
-                }
+                wp_send_json_error('API endpoint returned status code: ' . $api_status_code . '. Response: ' . substr($api_body, 0, 200));
             }
         } catch (Exception $e) {
             error_log('B2E Connection Test Error: ' . $e->getMessage());
