@@ -387,6 +387,7 @@ class B2E_Migration_Manager {
         // Remove Bricks global classes
         delete_option('bricks_global_classes');
         
+        // Log cleanup completion (using W002 warning code for info logging)
         $this->error_handler->log_error('W002', array(
             'meta_keys_removed' => $bricks_meta_keys,
             'action' => 'Cleanup completed'

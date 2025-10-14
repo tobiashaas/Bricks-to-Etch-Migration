@@ -379,6 +379,7 @@ class B2E_Cross_Plugin_Converter {
      * Log conversion activity
      */
     public function log_conversion($from_plugin, $to_plugin, $field_group_name, $success = true) {
+        // Log cross-plugin conversion (using W003 warning code for info logging)
         $this->error_handler->log_error('W003', array(
             'from_plugin' => $from_plugin,
             'to_plugin' => $to_plugin,
