@@ -793,6 +793,265 @@ class B2E_Admin_Interface {
                 button.textContent = originalText;
             }, 1000);
         }
+        
+        // ========================================
+        // PRE-MIGRATION REPORT & SELECTIVE SETTINGS
+        // ========================================
+        
+        // Generate Migration Report
+        document.getElementById('generate-report-btn')?.addEventListener('click', function() {
+            const button = this;
+            const originalText = button.textContent;
+            const reportDiv = document.getElementById('migration-report');
+            
+            button.disabled = true;
+            button.textContent = 'Generating Report...';
+            reportDiv.innerHTML = '<p>⏳ Analyzing your site...</p>';
+            reportDiv.style.display = 'block';
+            
+            const formData = new FormData();
+            formData.append('action', 'b2e_generate_report');
+            formData.append('nonce', '<?php echo wp_create_nonce('b2e_nonce'); ?>');
+            
+            fetch(ajaxurl, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayMigrationReport(data.data);
+                    // Update counts in selective migration checkboxes
+                    updateMigrationCounts(data.data);
+                    showToast('Migration report generated successfully!', 'success');
+                } else {
+                    reportDiv.innerHTML = '<p style="color: #dc3232;">❌ Failed to generate report: ' + (data.data || 'Unknown error') + '</p>';
+                    showToast('Failed to generate report', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Report generation error:', error);
+                reportDiv.innerHTML = '<p style="color: #dc3232;">❌ Error: ' + error.message + '</p>';
+                showToast('Error generating report', 'error');
+            })
+            .finally(() => {
+                button.disabled = false;
+                button.textContent = originalText;
+            });
+        });
+        
+        // Display Migration Report
+        function displayMigrationReport(report) {
+            const reportDiv = document.getElementById('migration-report');
+            
+            let html = '<div style="background: #fff; padding: 20px; border-radius: 4px; border: 1px solid #ccc;">';
+            
+            // Summary
+            html += '<h4 style="margin-top: 0; border-bottom: 2px solid #0073aa; padding-bottom: 10px;">📊 Migration Summary</h4>';
+            html += '<table style="width: 100%; margin-bottom: 20px;">';
+            html += '<tr><td><strong>Total Items:</strong></td><td>' + report.summary.total_items + '</td></tr>';
+            html += '<tr><td><strong>Estimated Time:</strong></td><td>' + report.estimated_time.formatted + '</td></tr>';
+            html += '<tr><td><strong>Estimated Size:</strong></td><td>' + report.estimated_size.formatted + '</td></tr>';
+            html += '</table>';
+            
+            // Posts
+            html += '<h4 style="border-bottom: 1px solid #ddd; padding-bottom: 5px;">📝 Posts (' + report.posts.total + ')</h4>';
+            html += '<ul style="margin: 10px 0 20px 20px;">';
+            for (let postType of report.summary.post_types) {
+                html += '<li>' + postType.label + ': <strong>' + postType.count + '</strong></li>';
+            }
+            html += '</ul>';
+            
+            // CSS
+            html += '<h4 style="border-bottom: 1px solid #ddd; padding-bottom: 5px;">🎨 CSS Classes (' + report.css.total_classes + ')</h4>';
+            html += '<ul style="margin: 10px 0 20px 20px;">';
+            html += '<li>Total Classes: <strong>' + report.css.total_classes + '</strong></li>';
+            html += '<li>With Media Queries: <strong>' + report.css.has_media_queries + '</strong></li>';
+            html += '<li>With Variables: <strong>' + report.css.has_variables + '</strong></li>';
+            html += '<li>Size: <strong>' + report.css.size_formatted + '</strong></li>';
+            html += '</ul>';
+            
+            // Custom Post Types
+            if (report.custom_post_types.total > 0) {
+                html += '<h4 style="border-bottom: 1px solid #ddd; padding-bottom: 5px;">📦 Custom Post Types (' + report.custom_post_types.total + ')</h4>';
+                html += '<ul style="margin: 10px 0 20px 20px;">';
+                for (let cptName in report.custom_post_types.types) {
+                    let cpt = report.custom_post_types.types[cptName];
+                    html += '<li>' + cpt.label + ': <strong>' + cpt.count + '</strong> (Published: ' + cpt.published + ', Draft: ' + cpt.draft + ')</li>';
+                }
+                html += '</ul>';
+            }
+            
+            // Custom Fields
+            html += '<h4 style="border-bottom: 1px solid #ddd; padding-bottom: 5px;">🔧 Custom Fields</h4>';
+            html += '<ul style="margin: 10px 0 20px 20px;">';
+            if (report.custom_fields.acf.active) {
+                html += '<li>ACF: <strong>' + report.custom_fields.acf.field_groups + ' field groups</strong></li>';
+            }
+            if (report.custom_fields.metabox.active) {
+                html += '<li>MetaBox: <strong>' + report.custom_fields.metabox.configs + ' configurations</strong></li>';
+            }
+            if (report.custom_fields.jetengine.active) {
+                html += '<li>JetEngine: <strong>Active</strong></li>';
+            }
+            if (!report.custom_fields.acf.active && !report.custom_fields.metabox.active && !report.custom_fields.jetengine.active) {
+                html += '<li style="color: #999;">No custom field plugins detected</li>';
+            }
+            html += '</ul>';
+            
+            // Warnings
+            if (report.warnings && report.warnings.length > 0) {
+                html += '<h4 style="border-bottom: 1px solid #ddd; padding-bottom: 5px;">⚠️ Warnings</h4>';
+                html += '<ul style="margin: 10px 0 20px 20px;">';
+                for (let warning of report.warnings) {
+                    let color = warning.level === 'error' ? '#dc3232' : (warning.level === 'warning' ? '#f0ad4e' : '#999');
+                    html += '<li style="color: ' + color + '">' + warning.message + '</li>';
+                }
+                html += '</ul>';
+            }
+            
+            html += '</div>';
+            
+            reportDiv.innerHTML = html;
+        }
+        
+        // Update Migration Counts
+        function updateMigrationCounts(report) {
+            // Posts
+            const postsCount = report.posts.by_type.post || 0;
+            document.getElementById('posts-count').textContent = postsCount > 0 ? '(' + postsCount + ' items)' : '';
+            
+            // Pages
+            const pagesCount = report.posts.by_type.page || 0;
+            document.getElementById('pages-count').textContent = pagesCount > 0 ? '(' + pagesCount + ' items)' : '';
+            
+            // CSS
+            document.getElementById('css-count').textContent = report.css.total_classes > 0 ? '(' + report.css.total_classes + ' classes)' : '';
+            
+            // CPTs
+            document.getElementById('cpts-count').textContent = report.custom_post_types.total > 0 ? '(' + report.custom_post_types.total + ' types)' : '';
+            
+            // Display CPT selection if there are any
+            if (report.custom_post_types.total > 0) {
+                const cptSelection = document.getElementById('cpt-selection');
+                let html = '<fieldset style="border: 1px solid #ddd; padding: 10px; background: #fafafa;">';
+                html += '<legend style="padding: 0 10px;">Select Custom Post Types:</legend>';
+                for (let cptName in report.custom_post_types.types) {
+                    let cpt = report.custom_post_types.types[cptName];
+                    html += '<label style="display: block; margin: 5px 0;">';
+                    html += '<input type="checkbox" name="selected_cpt[]" value="' + cpt.name + '" checked /> ';
+                    html += cpt.label + ' (' + cpt.count + ' items)';
+                    html += '</label>';
+                }
+                html += '</fieldset>';
+                cptSelection.innerHTML = html;
+                cptSelection.style.display = 'block';
+            }
+            
+            // ACF
+            if (report.custom_fields.acf.active) {
+                document.getElementById('acf-count').textContent = '(' + report.custom_fields.acf.field_groups + ' groups)';
+            }
+            
+            // MetaBox
+            if (report.custom_fields.metabox.active) {
+                document.getElementById('metabox-count').textContent = '(' + report.custom_fields.metabox.configs + ' configs)';
+            }
+        }
+        
+        // Save Migration Settings
+        document.getElementById('save-migration-settings-btn')?.addEventListener('click', function() {
+            const button = this;
+            const originalText = button.textContent;
+            
+            button.disabled = true;
+            button.textContent = 'Saving...';
+            
+            // Collect all settings
+            const formData = new FormData();
+            formData.append('action', 'b2e_save_migration_settings');
+            formData.append('nonce', '<?php echo wp_create_nonce('b2e_nonce'); ?>');
+            formData.append('migrate_posts', document.getElementById('migrate_posts').checked ? '1' : '');
+            formData.append('migrate_pages', document.getElementById('migrate_pages').checked ? '1' : '');
+            formData.append('migrate_css', document.getElementById('migrate_css').checked ? '1' : '');
+            formData.append('migrate_cpts', document.getElementById('migrate_cpts').checked ? '1' : '');
+            formData.append('migrate_acf', document.getElementById('migrate_acf').checked ? '1' : '');
+            formData.append('migrate_metabox', document.getElementById('migrate_metabox').checked ? '1' : '');
+            formData.append('migrate_jetengine', document.getElementById('migrate_jetengine').checked ? '1' : '');
+            formData.append('cleanup_bricks_meta', document.getElementById('cleanup_bricks_meta')?.checked ? '1' : '');
+            formData.append('convert_div_to_flex', document.getElementById('convert_div_to_flex')?.checked ? '1' : '');
+            
+            // Post statuses
+            const statuses = [];
+            if (document.querySelector('input[name="post_status_publish"]')?.checked) statuses.push('publish');
+            if (document.querySelector('input[name="post_status_draft"]')?.checked) statuses.push('draft');
+            if (document.querySelector('input[name="post_status_private"]')?.checked) statuses.push('private');
+            formData.append('selected_post_statuses', statuses.join(','));
+            
+            // Selected CPTs
+            const selectedCpts = [];
+            document.querySelectorAll('input[name="selected_cpt[]"]:checked').forEach(checkbox => {
+                selectedCpts.push(checkbox.value);
+            });
+            formData.append('selected_post_types', selectedCpts.join(','));
+            
+            fetch(ajaxurl, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update scope summary
+                    const scopeSummary = document.getElementById('migration-scope-summary');
+                    if (scopeSummary && data.data.scope) {
+                        scopeSummary.textContent = data.data.scope.join(', ');
+                    }
+                    showToast('Migration settings saved successfully!', 'success');
+                } else {
+                    showToast('Failed to save settings: ' + (data.data || 'Unknown error'), 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Settings save error:', error);
+                showToast('Error saving settings', 'error');
+            })
+            .finally(() => {
+                button.disabled = false;
+                button.textContent = originalText;
+            });
+        });
+        
+        // Reset Migration Settings
+        document.getElementById('reset-migration-settings-btn')?.addEventListener('click', function() {
+            if (confirm('Reset all migration settings to defaults?')) {
+                // Reset checkboxes to defaults
+                document.getElementById('migrate_posts').checked = true;
+                document.getElementById('migrate_pages').checked = true;
+                document.getElementById('migrate_css').checked = true;
+                document.getElementById('migrate_cpts').checked = true;
+                document.getElementById('migrate_acf').checked = true;
+                document.getElementById('migrate_metabox').checked = true;
+                document.getElementById('migrate_jetengine').checked = false;
+                document.querySelector('input[name="post_status_publish"]').checked = true;
+                document.querySelector('input[name="post_status_draft"]').checked = true;
+                document.querySelector('input[name="post_status_private"]').checked = true;
+                
+                showToast('Settings reset to defaults', 'info');
+            }
+        });
+        
+        // Auto-generate report on page load (if Bricks is detected)
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                const reportBtn = document.getElementById('generate-report-btn');
+                if (reportBtn) {
+                    // Auto-click to show report immediately
+                    // reportBtn.click(); // Uncomment to enable auto-generation
+                }
+            }, 1000);
+        });
+        
         </script>
         <?php
     }
@@ -847,6 +1106,138 @@ class B2E_Admin_Interface {
             
             <!-- Export Tab -->
             <div id="export-tab" class="b2e-tab-content active">
+                
+                <!-- Pre-Migration Report Section -->
+                <div class="b2e-report-section" style="margin-bottom: 30px; padding: 20px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px;">
+                    <h3 style="margin-top: 0;">
+                        📊 <?php _e('Pre-Migration Report', 'bricks-etch-migration'); ?>
+                    </h3>
+                    <p><?php _e('Analyze your site to see what will be migrated.', 'bricks-etch-migration'); ?></p>
+                    
+                    <button type="button" id="generate-report-btn" class="button button-primary">
+                        <?php _e('Generate Migration Report', 'bricks-etch-migration'); ?>
+                    </button>
+                    
+                    <div id="migration-report" style="display: none; margin-top: 20px;"></div>
+                </div>
+                
+                <!-- Selective Migration Settings -->
+                <div class="b2e-selective-migration" style="margin-bottom: 30px; padding: 20px; background: #f0f8ff; border: 1px solid #0073aa; border-radius: 4px;">
+                    <h3 style="margin-top: 0;">
+                        ⚙️ <?php _e('What to Migrate', 'bricks-etch-migration'); ?>
+                    </h3>
+                    <p><?php _e('Select which content types you want to migrate.', 'bricks-etch-migration'); ?></p>
+                    
+                    <?php
+                    $settings_manager = new B2E_Migration_Settings();
+                    $migration_settings = $settings_manager->get_settings();
+                    ?>
+                    
+                    <table class="form-table">
+                        <tr>
+                            <th scope="row"><?php _e('Content Types', 'bricks-etch-migration'); ?></th>
+                            <td>
+                                <fieldset>
+                                    <label>
+                                        <input type="checkbox" id="migrate_posts" name="migrate_posts" 
+                                               <?php checked($migration_settings['migrate_posts']); ?> />
+                                        <?php _e('Posts', 'bricks-etch-migration'); ?>
+                                        <span class="description" id="posts-count"></span>
+                                    </label><br />
+                                    
+                                    <label>
+                                        <input type="checkbox" id="migrate_pages" name="migrate_pages" 
+                                               <?php checked($migration_settings['migrate_pages']); ?> />
+                                        <?php _e('Pages', 'bricks-etch-migration'); ?>
+                                        <span class="description" id="pages-count"></span>
+                                    </label><br />
+                                    
+                                    <label>
+                                        <input type="checkbox" id="migrate_css" name="migrate_css" 
+                                               <?php checked($migration_settings['migrate_css']); ?> />
+                                        <?php _e('CSS Classes', 'bricks-etch-migration'); ?>
+                                        <span class="description" id="css-count"></span>
+                                    </label><br />
+                                    
+                                    <label>
+                                        <input type="checkbox" id="migrate_cpts" name="migrate_cpts" 
+                                               <?php checked($migration_settings['migrate_cpts']); ?> />
+                                        <?php _e('Custom Post Types', 'bricks-etch-migration'); ?>
+                                        <span class="description" id="cpts-count"></span>
+                                    </label>
+                                    <div id="cpt-selection" style="margin-left: 25px; margin-top: 10px; display: none;"></div>
+                                </fieldset>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <th scope="row"><?php _e('Custom Fields', 'bricks-etch-migration'); ?></th>
+                            <td>
+                                <fieldset>
+                                    <label>
+                                        <input type="checkbox" id="migrate_acf" name="migrate_acf" 
+                                               <?php checked($migration_settings['migrate_acf']); ?> />
+                                        <?php _e('ACF Field Groups', 'bricks-etch-migration'); ?>
+                                        <span class="description" id="acf-count"></span>
+                                    </label><br />
+                                    
+                                    <label>
+                                        <input type="checkbox" id="migrate_metabox" name="migrate_metabox" 
+                                               <?php checked($migration_settings['migrate_metabox']); ?> />
+                                        <?php _e('MetaBox Configurations', 'bricks-etch-migration'); ?>
+                                        <span class="description" id="metabox-count"></span>
+                                    </label><br />
+                                    
+                                    <label>
+                                        <input type="checkbox" id="migrate_jetengine" name="migrate_jetengine" 
+                                               <?php checked($migration_settings['migrate_jetengine']); ?> />
+                                        <?php _e('JetEngine Fields', 'bricks-etch-migration'); ?>
+                                    </label>
+                                </fieldset>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <th scope="row"><?php _e('Post Status', 'bricks-etch-migration'); ?></th>
+                            <td>
+                                <fieldset>
+                                    <label>
+                                        <input type="checkbox" name="post_status_publish" value="publish" 
+                                               <?php checked(in_array('publish', $migration_settings['selected_post_statuses'])); ?> />
+                                        <?php _e('Published', 'bricks-etch-migration'); ?>
+                                    </label>
+                                    
+                                    <label style="margin-left: 15px;">
+                                        <input type="checkbox" name="post_status_draft" value="draft" 
+                                               <?php checked(in_array('draft', $migration_settings['selected_post_statuses'])); ?> />
+                                        <?php _e('Draft', 'bricks-etch-migration'); ?>
+                                    </label>
+                                    
+                                    <label style="margin-left: 15px;">
+                                        <input type="checkbox" name="post_status_private" value="private" 
+                                               <?php checked(in_array('private', $migration_settings['selected_post_statuses'])); ?> />
+                                        <?php _e('Private', 'bricks-etch-migration'); ?>
+                                    </label>
+                                </fieldset>
+                            </td>
+                        </tr>
+                    </table>
+                    
+                    <div style="margin-top: 15px; padding: 10px; background: #fff; border-left: 4px solid #0073aa;">
+                        <strong><?php _e('Selected Scope:', 'bricks-etch-migration'); ?></strong>
+                        <span id="migration-scope-summary"><?php echo esc_html(implode(', ', $settings_manager->get_scope_summary())); ?></span>
+                    </div>
+                    
+                    <p class="submit" style="margin-top: 15px; padding-top: 0;">
+                        <button type="button" id="save-migration-settings-btn" class="button button-primary">
+                            <?php _e('Save Migration Settings', 'bricks-etch-migration'); ?>
+                        </button>
+                        <button type="button" id="reset-migration-settings-btn" class="button">
+                            <?php _e('Reset to Defaults', 'bricks-etch-migration'); ?>
+                        </button>
+                    </p>
+                </div>
+                
                 <form id="b2e-export-form">
                     <h3><?php _e('Export Settings - Source Site (Bricks)', 'bricks-etch-migration'); ?></h3>
                     
