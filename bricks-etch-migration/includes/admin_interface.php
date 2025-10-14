@@ -572,8 +572,29 @@ class B2E_Admin_Interface {
                 method: 'POST',
                 body: formData
             })
-            .then(response => response.json())
+            .then(response => {
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+                
+                // Check if response is JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Server returned non-JSON response. Status: ' + response.status);
+                }
+                
+                return response.text().then(text => {
+                    console.log('Raw response:', text);
+                    try {
+                        return JSON.parse(text);
+                    } catch (e) {
+                        console.error('JSON parse error:', e);
+                        console.error('Response text:', text);
+                        throw new Error('Invalid JSON response: ' + text.substring(0, 100) + '...');
+                    }
+                });
+            })
             .then(data => {
+                console.log('Parsed data:', data);
                 if (data.success) {
                     showToast('Connection test successful! Target site is reachable.', 'success');
                 } else {
@@ -1536,29 +1557,45 @@ class B2E_Admin_Interface {
      * AJAX: Test export connection
      */
     public function ajax_test_export_connection() {
-        check_ajax_referer('b2e_nonce', 'nonce');
-        
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error(__('Insufficient permissions.', 'bricks-etch-migration'));
-        }
-        
-        $target_url = sanitize_url($_POST['target_url']);
-        $api_key = sanitize_text_field($_POST['api_key']);
-        
-        if (empty($target_url) || empty($api_key)) {
-            wp_send_json_error(__('Target URL and API key are required.', 'bricks-etch-migration'));
-        }
-        
-        // Test connection to target site
-        $api_client = new B2E_API_Client();
-        $response = $api_client->send_data($target_url . '/wp-json/b2e/v1/validate-api-key', array(
-            'api_key' => $api_key
-        ), $api_key);
-        
-        if (is_wp_error($response)) {
-            wp_send_json_error($response->get_error_message());
-        } else {
-            wp_send_json_success(__('Connection test successful! Target site is reachable.', 'bricks-etch-migration'));
+        try {
+            check_ajax_referer('b2e_nonce', 'nonce');
+            
+            if (!current_user_can('manage_options')) {
+                wp_send_json_error(__('Insufficient permissions.', 'bricks-etch-migration'));
+                return;
+            }
+            
+            $target_url = sanitize_url($_POST['target_url']);
+            $api_key = sanitize_text_field($_POST['api_key']);
+            
+            if (empty($target_url) || empty($api_key)) {
+                wp_send_json_error(__('Target URL and API key are required.', 'bricks-etch-migration'));
+                return;
+            }
+            
+            // Simple connection test - just check if target URL is reachable
+            $test_url = rtrim($target_url, '/') . '/wp-json/';
+            
+            $response = wp_remote_get($test_url, array(
+                'timeout' => 10,
+                'headers' => array(
+                    'X-API-Key' => $api_key
+                )
+            ));
+            
+            if (is_wp_error($response)) {
+                wp_send_json_error('Cannot reach target site: ' . $response->get_error_message());
+            } else {
+                $status_code = wp_remote_retrieve_response_code($response);
+                if ($status_code >= 200 && $status_code < 400) {
+                    wp_send_json_success(__('Connection test successful! Target site is reachable.', 'bricks-etch-migration'));
+                } else {
+                    wp_send_json_error('Target site returned status code: ' . $status_code);
+                }
+            }
+        } catch (Exception $e) {
+            error_log('B2E Connection Test Error: ' . $e->getMessage());
+            wp_send_json_error('Connection test failed: ' . $e->getMessage());
         }
     }
     
