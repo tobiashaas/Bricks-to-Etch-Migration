@@ -140,6 +140,9 @@ class Bricks_Etch_Migration {
             return;
         }
         
+        // Note: JavaScript is now inline in admin_interface.php for better integration
+        // Disabling external admin.js to prevent conflicts
+        /*
         wp_enqueue_script(
             'b2e-admin',
             B2E_PLUGIN_URL . 'assets/js/admin.js',
@@ -147,6 +150,7 @@ class Bricks_Etch_Migration {
             B2E_VERSION,
             true
         );
+        */
         
         wp_enqueue_style(
             'b2e-admin',
@@ -155,7 +159,8 @@ class Bricks_Etch_Migration {
             B2E_VERSION
         );
         
-        // Localize script
+        // Note: wp_localize_script disabled since we're using inline JavaScript
+        /*
         wp_localize_script('b2e-admin', 'b2eData', array(
             'ajaxUrl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('b2e_nonce'),
@@ -165,6 +170,7 @@ class Bricks_Etch_Migration {
                 'errorOccurred' => __('An error occurred. Please check the logs.', 'bricks-etch-migration'),
             )
         ));
+        */
     }
     
     /**
