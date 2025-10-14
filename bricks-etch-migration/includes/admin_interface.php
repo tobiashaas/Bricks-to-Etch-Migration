@@ -20,10 +20,9 @@ class B2E_Admin_Interface {
         add_action('wp_ajax_b2e_get_progress', array($this, 'ajax_get_progress'));
         add_action('wp_ajax_b2e_test_export_connection', array($this, 'ajax_test_export_connection'));
         add_action('wp_ajax_b2e_test_import_connection', array($this, 'ajax_test_import_connection'));
+        add_action('wp_ajax_b2e_save_import_settings', array($this, 'ajax_save_import_settings'));
         add_action('wp_ajax_b2e_get_logs', array($this, 'ajax_get_logs'));
         add_action('wp_ajax_b2e_clear_logs', array($this, 'ajax_clear_logs'));
-        add_action('wp_ajax_b2e_validate_import_key', array($this, 'ajax_validate_import_key'));
-        add_action('wp_ajax_b2e_save_import_settings', array($this, 'ajax_save_import_settings'));
         add_action('wp_ajax_b2e_generate_report', array($this, 'ajax_generate_report'));
         add_action('wp_ajax_b2e_save_migration_settings', array($this, 'ajax_save_migration_settings'));
     }
@@ -808,12 +807,51 @@ class B2E_Admin_Interface {
                 return;
             }
             
-            // Simulate saving (placeholder)
-            setTimeout(() => {
-                showToast('Import settings saved successfully! API key and preferences have been stored.', 'success');
+            // Real AJAX save
+            const formData = new FormData();
+            formData.append('action', 'b2e_save_import_settings');
+            formData.append('nonce', '<?php echo wp_create_nonce('b2e_nonce'); ?>');
+            formData.append('import_api_key', apiKey);
+            formData.append('import_auto_accept', autoAccept ? '1' : '0');
+            
+            fetch(ajaxurl, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                console.log('Save response status:', response.status);
+                
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Server returned non-JSON response. Status: ' + response.status);
+                }
+                
+                return response.text().then(text => {
+                    console.log('Save raw response:', text);
+                    try {
+                        return JSON.parse(text);
+                    } catch (e) {
+                        console.error('JSON parse error:', e);
+                        throw new Error('Invalid JSON response: ' + text.substring(0, 100) + '...');
+                    }
+                });
+            })
+            .then(data => {
+                console.log('Save parsed data:', data);
+                if (data.success) {
+                    showToast('Import settings saved successfully! API key and preferences have been stored.', 'success');
+                } else {
+                    showToast('Save failed: ' + (data.data || 'Unknown error'), 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Save settings error:', error);
+                showToast('Save failed: ' + error.message, 'error');
+            })
+            .finally(() => {
                 button.disabled = false;
                 button.textContent = originalText;
-            }, 1000);
+            });
         }
         
         // Test import connection function
@@ -1750,28 +1788,6 @@ class B2E_Admin_Interface {
         $error_handler->clear_log();
         
         wp_send_json_success(__('Logs cleared successfully.', 'bricks-etch-migration'));
-    }
-    
-    /**
-     * AJAX: Validate import API key
-     */
-    public function ajax_validate_import_key() {
-        check_ajax_referer('b2e_nonce', 'nonce');
-        
-        if (!current_user_can('manage_options')) {
-            wp_die(__('Insufficient permissions.', 'bricks-etch-migration'));
-        }
-        
-        $api_key = sanitize_text_field($_POST['api_key']);
-        
-        if (empty($api_key)) {
-            wp_send_json_error(__('API key is required.', 'bricks-etch-migration'));
-        }
-        
-        // Store the API key for this site
-        update_option('b2e_api_key', $api_key);
-        
-        wp_send_json_success(__('API key is valid and saved.', 'bricks-etch-migration'));
     }
     
     /**
