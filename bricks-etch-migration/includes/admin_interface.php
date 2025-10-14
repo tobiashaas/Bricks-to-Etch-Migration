@@ -1598,37 +1598,44 @@ class B2E_Admin_Interface {
      * AJAX: Start migration
      */
     public function ajax_start_migration() {
-        check_ajax_referer('b2e_nonce', 'nonce');
-        
-        if (!current_user_can('manage_options')) {
-            wp_die(__('Insufficient permissions.', 'bricks-etch-migration'));
-        }
-        
-        $target_url = sanitize_url($_POST['target_url']);
-        $api_key = sanitize_text_field($_POST['api_key']);
-        $cleanup_bricks_meta = isset($_POST['cleanup_bricks_meta']);
-        $convert_div_to_flex = isset($_POST['convert_div_to_flex']);
-        
-        // Update settings
-        $settings = array(
-            'target_url' => $target_url,
-            'api_key' => $api_key,
-            'cleanup_bricks_meta' => $cleanup_bricks_meta,
-            'convert_div_to_flex' => $convert_div_to_flex,
-        );
-        update_option('b2e_settings', $settings);
-        
-        // Also store the API key for this site (target site will use this for validation)
-        update_option('b2e_api_key', $api_key);
-        
-        // Start migration immediately (simplified for now)
-        $migration_manager = new B2E_Migration_Manager();
-        $result = $migration_manager->start_migration($target_url, $api_key);
-        
-        if (is_wp_error($result)) {
-            wp_send_json_error($result->get_error_message());
-        } else {
-            wp_send_json_success(__('Migration started successfully!', 'bricks-etch-migration'));
+        try {
+            check_ajax_referer('b2e_nonce', 'nonce');
+            
+            if (!current_user_can('manage_options')) {
+                wp_send_json_error(__('Insufficient permissions.', 'bricks-etch-migration'));
+                return;
+            }
+            
+            $target_url = sanitize_url($_POST['target_url']);
+            $api_key = sanitize_text_field($_POST['api_key']);
+            $cleanup_bricks_meta = isset($_POST['cleanup_bricks_meta']);
+            $convert_div_to_flex = isset($_POST['convert_div_to_flex']);
+            
+            // Update settings
+            $settings = array(
+                'target_url' => $target_url,
+                'api_key' => $api_key,
+                'cleanup_bricks_meta' => $cleanup_bricks_meta,
+                'convert_div_to_flex' => $convert_div_to_flex,
+            );
+            update_option('b2e_settings', $settings);
+            
+            // Also store the API key for this site (target site will use this for validation)
+            update_option('b2e_api_key', $api_key);
+            
+            // Start migration immediately (simplified for now)
+            $migration_manager = new B2E_Migration_Manager();
+            $result = $migration_manager->start_migration($target_url, $api_key);
+            
+            if (is_wp_error($result)) {
+                wp_send_json_error($result->get_error_message());
+            } else {
+                wp_send_json_success(__('Migration started successfully!', 'bricks-etch-migration'));
+            }
+        } catch (Exception $e) {
+            error_log('B2E Start Migration Error: ' . $e->getMessage() . ' in ' . $e->getFile() . ' on line ' . $e->getLine());
+            error_log('B2E Stack Trace: ' . $e->getTraceAsString());
+            wp_send_json_error('Migration start failed: ' . $e->getMessage() . ' (File: ' . basename($e->getFile()) . ', Line: ' . $e->getLine() . ')');
         }
     }
     
