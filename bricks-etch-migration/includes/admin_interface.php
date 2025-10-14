@@ -1599,6 +1599,10 @@ class B2E_Admin_Interface {
      */
     public function ajax_start_migration() {
         try {
+            // Increase limits for migration
+            @ini_set('memory_limit', '512M');
+            @ini_set('max_execution_time', '300');
+            
             check_ajax_referer('b2e_nonce', 'nonce');
             
             if (!current_user_can('manage_options')) {
