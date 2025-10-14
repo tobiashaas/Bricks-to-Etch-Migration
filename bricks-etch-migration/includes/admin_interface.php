@@ -18,6 +18,7 @@ class B2E_Admin_Interface {
     public function __construct() {
         add_action('wp_ajax_b2e_start_migration', array($this, 'ajax_start_migration'));
         add_action('wp_ajax_b2e_get_progress', array($this, 'ajax_get_progress'));
+        add_action('wp_ajax_b2e_test_export_connection', array($this, 'ajax_test_export_connection'));
         add_action('wp_ajax_b2e_get_logs', array($this, 'ajax_get_logs'));
         add_action('wp_ajax_b2e_clear_logs', array($this, 'ajax_clear_logs'));
         add_action('wp_ajax_b2e_validate_import_key', array($this, 'ajax_validate_import_key'));
@@ -196,7 +197,7 @@ class B2E_Admin_Interface {
         /* Toast Notification Styles */
         .b2e-toast {
             position: fixed;
-            top: 32px;
+            bottom: 20px;
             right: 20px;
             z-index: 999999;
             min-width: 300px;
@@ -560,12 +561,33 @@ class B2E_Admin_Interface {
                 return;
             }
             
-            // Simple test - just show success for now
-            setTimeout(() => {
-                showToast('Connection test successful! (This is a placeholder - real API test will be implemented)', 'success');
+            // Real API test
+            const formData = new FormData();
+            formData.append('action', 'b2e_test_export_connection');
+            formData.append('nonce', '<?php echo wp_create_nonce('b2e_nonce'); ?>');
+            formData.append('target_url', targetUrl);
+            formData.append('api_key', apiKey);
+            
+            fetch(ajaxurl, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Connection test successful! Target site is reachable.', 'success');
+                } else {
+                    showToast('Connection test failed: ' + (data.data || 'Unknown error'), 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Connection test error:', error);
+                showToast('Connection test failed: ' + error.message, 'error');
+            })
+            .finally(() => {
                 button.disabled = false;
                 button.textContent = originalText;
-            }, 1000);
+            });
         }
         
         // Start export function
@@ -1507,6 +1529,36 @@ class B2E_Admin_Interface {
             wp_send_json_error($result->get_error_message());
         } else {
             wp_send_json_success(__('Migration started successfully!', 'bricks-etch-migration'));
+        }
+    }
+    
+    /**
+     * AJAX: Test export connection
+     */
+    public function ajax_test_export_connection() {
+        check_ajax_referer('b2e_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(__('Insufficient permissions.', 'bricks-etch-migration'));
+        }
+        
+        $target_url = sanitize_url($_POST['target_url']);
+        $api_key = sanitize_text_field($_POST['api_key']);
+        
+        if (empty($target_url) || empty($api_key)) {
+            wp_send_json_error(__('Target URL and API key are required.', 'bricks-etch-migration'));
+        }
+        
+        // Test connection to target site
+        $api_client = new B2E_API_Client();
+        $response = $api_client->send_data($target_url . '/wp-json/b2e/v1/validate-api-key', array(
+            'api_key' => $api_key
+        ), $api_key);
+        
+        if (is_wp_error($response)) {
+            wp_send_json_error($response->get_error_message());
+        } else {
+            wp_send_json_success(__('Connection test successful! Target site is reachable.', 'bricks-etch-migration'));
         }
     }
     
