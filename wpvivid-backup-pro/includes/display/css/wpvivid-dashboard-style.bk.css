@@ -1,0 +1,993 @@
+/**
+ * All of the CSS for WPvivid Plugins Dashboard should be
+ * included in this file.
+ */
+.wpvivid-canvas {
+    width:100%;
+    box-sizing: border-box;
+}
+.wpvivid-dashboard, .wpvivid-backup{
+    position: relative;
+
+    border: 1px solid #ccd0d4;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+    background: #fff;
+}
+.wpvivid-welcome-panel {
+    width:100%;
+    padding: 0px 10px 0;
+    border: 1px solid #ccd0d4;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+    background: #fff;
+    box-sizing: border-box;
+}
+.wpvivid-red {
+    background:red;
+    color:#fff;
+}
+.wpvivid-green {
+    background:#8bc34a;
+    color:#fff;
+}
+.wpvivid-blue {
+    background:#007cba;
+    color:#fff;
+}
+.wpvivid-orange {
+    background:orange;
+    color:#fff;
+}
+.wpvivid-grey {
+    background-color:grey;
+    color: #fff;
+}
+span.dashicons{
+    margin-right:2px;
+}
+.wpvivid-welcome-panel .about-description{
+    font-size: 16px;
+    margin: 0;
+}
+.wpvivid-page-title {
+    font-weight: 700;
+    font-size:1.2em;
+}
+.wpvivid-dashicons-large {
+    font-size:5em;
+    width:1.2em;
+    height:1.2em;
+    float:left;
+}
+.wpvivid-dashicons-large:hover{
+    text-shadow: 0px 0px 2px rgba(0,0,0,0.4);
+}
+.wpvivid-dashicons-middle {
+    font-size:3em;
+    width:1.2em;
+    height:1.2em;
+    float:left;
+
+}
+
+.wpvivid-welcome-bar{
+    width:100%;
+    box-sizing: border-box;
+
+}
+.wpvivid-welcome-bar-left, .wpvivid-block-left {
+    width:50%;
+    float:left;
+    padding:1em;
+    box-sizing: border-box;
+}
+.wpvivid-welcome-bar-right, .wpvivid-block-right {
+    width:50%;
+    float:left;
+    padding:1em;
+    box-sizing: border-box;
+}
+.wpvivid-features-box, .wpvivid-two-cols{
+    width:50%;
+    float:left;
+    font:14px;
+    padding:1em 1em 1em 1em;
+    box-sizing: border-box;
+}
+.wpvivid-four-cols{
+    width:25%;
+    float:left;
+    font:14px;
+
+    box-sizing: border-box;
+    border:1px solid #f1f1f1;
+}
+.wpvivid-one-coloum {
+    width:100%;
+    float:left;
+    font:14px;
+    padding:1em 1em 1em 1em;
+    box-sizing: border-box;
+}
+
+.wpvivid-dashboard .wpvivid-two-col  li {
+    border-bottom: 1px solid #eee;
+    margin: 0px;
+    padding: 10px;
+    box-sizing: border-box;
+
+}
+
+.wpvivid-dashboard .wpvivid-two-col li::after {
+    content: "";
+    clear: both;
+    display: table;
+}
+
+
+.wpvivid-dashboard .wpvivid-two-col li img {
+    padding:1em;
+    width: 5em;
+    height: 5em;
+    float: left;
+    margin: 0.5em;
+}
+.wpvivid-sidebar-main{
+    width:100%;
+    float:left;
+    font:13px;
+    box-sizing: border-box;
+
+}
+.wpvivid-sidebar-main li::after {
+    content: "";
+    clear: both;
+    display: table;
+}
+.wpvivid-sidebar-main li {
+    margin: 0px;
+    padding: 10px;
+    box-sizing: border-box;
+
+}
+.wpvivid-sidebar-main li img {
+    padding:1em;
+    width: 5em;
+    height: 5em;
+    float: left;
+    margin: 0.5em;
+}
+.wpvivid-sidebar{
+    width:100%;
+    float:left;
+    font:13px;
+    box-sizing: border-box;
+
+}
+.wpvivid-sidebar li::after {
+    content: "";
+    clear: both;
+    display: table;
+}
+.wpvivid-sidebar li {
+    border-bottom: 1px solid #eee;
+    margin: 0px;
+    padding: 10px;
+    box-sizing: border-box;
+
+}
+.wpvivid-sidebar li img {
+    padding:1em;
+    width: 5em;
+    height: 5em;
+    float: left;
+    margin: 0.5em;
+}
+.wpvivid-features-box-image-progress {
+    width:100%;
+}
+.wpvivid-features-box-image-optimiztion-details {
+    width:50%;
+}
+.wpvivid-features-box-image-optimiztion-plate {
+    width:50%;
+}
+.wpvivid-features-box-image-optimiztion-percentage{
+    margin-top:2.5em;
+}
+.wpvivid-features-box-image-optimiztion-number {
+    font-size: 5em;
+    font-family:Sans-serif;
+    font-weight:600;
+    color:orange;
+    float:left;
+    text-shadow:0 0.05em 0.05em rgba(0,0,0,0.4);
+}
+.wpvivid-features-box-image-optimiztion-percentage-unit  {
+    font-size:1em;
+    color:grey;
+    float:left;
+    font-size:1.2em;
+    padding-bottom:1em;
+}
+.wpvivid-rectangle {
+    border-radius:0.4em;
+    padding:0.5em;
+    margin-left: 0.5em;
+    margin-right:0.5em;
+    font-size:0.8em;
+}
+.wpvivid-rectangle-small {
+    border-radius:0.4em;
+    padding:0.2em;
+    margin-left: 0.5em;
+    margin-right:0.5em;
+    font-size:0.6em;
+}
+.wpvivid-span-progress {
+    display:block;
+    width:100%;
+    height:1.5em;
+    background-color:#9d9fa5;
+    border-radius:0;
+    color: #fff;
+
+}
+.wpvivid-span-processed-progress {
+    display:block;
+    height:1.5em;
+    background-color:#8bc34a;
+    border-radius:0;
+    color: #fff;
+    padding-left:0.5em;
+}
+.wpvivid-span-processed-percent-progress{
+    width:53%;
+}
+.wpvivid-clear-float {
+    content: "";
+    clear: both;
+    display: table;
+}
+.wpvivid-title {
+    font-size:1.2em;
+    color:#000;
+}
+.wpvivid-nav-bar{
+    width: 100%;
+    float: left;
+    padding: 1em;
+    background-color: #fff;
+    margin-bottom: 1em;
+    border-top:1px solid #ddd;
+    border-bottom:1px solid #ddd;
+    box-sizing: border-box;
+
+}
+
+.wpvivid-two-col{
+    width:50%;
+    float:left;
+    box-sizing: border-box;
+}
+.wpvivid-float-right{
+    float:right;
+}
+.wpvivid-float-left{
+    float:left;
+}
+.wpvivid-dashicons-green {
+    color:#8bc34a;
+}
+.wpvivid-dashicons-red {
+    color:red;
+}
+.wpvivid-dashicons-orange  {
+    color:orange;
+}
+.wpvivid-dashicons-blue {
+    color:#007cba;
+}
+.wpvivid-dashicons-grey, .wpvivid-dashicons-editor-help{
+    color:#999;
+}
+.wpvivid-nav-tab-wrapper {
+    padding-bottom:0!important;
+
+}
+.wpvivid-nav-tab {
+    background:#ffffff;
+}
+.wpvivid-nav-tab-active,.wpvivid-nav-tab-active, .wpvivid-nav-tab-active:focus:active, .wpvivid-nav-tab-active:hover {
+    border-bottom:1px solid #ffffff;
+    background:#ffffff;
+}
+.wpvivid-tabcontent {
+    display: none;
+}
+
+
+.wpvivid-workflow {
+    padding:1em;
+    border:1px solid #eee;
+    border-radius:8px;
+}
+
+
+/* tooltip */
+.wpvivid-tooltip {
+    display:inline-block;
+    position:relative;
+    text-align:left;
+}
+/* tooltip - top */
+.wpvivid-top {
+    min-width:300px;
+    top:-20px;
+    left:50%;
+    transform:translate(-50%, -100%);
+    padding:10px 20px;
+    color:#444444;
+    background-color:#FFFFFF;
+    font-weight:normal;
+    font-size:13px;
+    border-radius:8px;
+    position:absolute;
+    z-index:99999999;
+    box-sizing:border-box;
+    box-shadow:0 1px 8px rgba(0,0,0,0.5);
+    visibility:hidden; opacity:0; transition:opacity 0.8s;
+}
+
+.wpvivid-tooltip:hover .wpvivid-top {
+    visibility:visible; opacity:1;
+}
+
+.wpvivid-tooltip .wpvivid-top i {
+    position:absolute;
+    top:100%;
+    left:50%;
+    margin-left:-12px;
+    width:24px;
+    height:12px;
+    overflow:hidden;
+}
+
+.wpvivid-tooltip .wpvivid-top i::after {
+    content:'';
+    position:absolute;
+    width:12px;
+    height:12px;
+    left:50%;
+    transform:translate(-50%,-50%) rotate(45deg);
+    background-color:#FFFFFF;
+    box-shadow:0 1px 8px rgba(0,0,0,0.5);
+}
+
+/* tooltip - bottom */
+.wpvivid-bottom {
+    min-width:300px;
+    top:40px;
+    left:50%;
+    transform:translate(-50%, 0);
+    padding:10px 20px;
+    color:#444444;
+    background-color:#FFFFFF;
+    font-weight:normal;
+    font-size:13px;
+    border-radius:8px;
+    position:absolute;
+    z-index:99999999;
+    box-sizing:border-box;
+    box-shadow:0 1px 8px rgba(0,0,0,0.5);
+    visibility:hidden; opacity:0; transition:opacity 0.4s;
+}
+
+.wpvivid-dashicons-editor-help:hover .wpvivid-bottom {
+    visibility:visible; opacity:1;
+}
+
+.wpvivid-tooltip .wpvivid-bottom i {
+    position:absolute;
+    bottom:100%;
+    left:50%;
+    margin-left:-12px;
+    width:24px;
+    height:12px;
+    overflow:hidden;
+}
+
+.wpvivid-tooltip .wpvivid-bottom i::after {
+    content:'';
+    position:absolute;
+    width:12px;
+    height:12px;
+    left:50%;
+    transform:translate(-50%,50%) rotate(45deg);
+    background-color:#FFFFFF;
+    box-shadow:0 1px 8px rgba(0,0,0,0.5);
+}
+/* tooltip - left */
+.wpvivid-left {
+    min-width:300px;
+    top:50%;
+    right:100%;
+    margin-right:20px;
+    transform:translate(0, -50%);
+    padding:10px 20px;
+    color:#444444;
+    background-color:#FFFFFF;
+    font-weight:normal;
+    font-size:13px;
+    border-radius:8px;
+    position:absolute;
+    z-index:99999999;
+    box-sizing:border-box;
+    box-shadow:0 1px 8px rgba(0,0,0,0.5);
+    visibility:hidden; opacity:0; transition:opacity 0.8s;
+}
+
+.wpvivid-tooltip:hover .wpvivid-left {
+    visibility:visible; opacity:1;
+}
+
+.wpvivid-tooltip .wpvivid-left i {
+    position:absolute;
+    top:50%;
+    left:100%;
+    margin-top:-12px;
+    width:12px;
+    height:24px;
+    overflow:hidden;
+}
+
+.wpvivid-tooltip .wpvivid-left i::after {
+    content:'';
+    position:absolute;
+    width:12px;
+    height:12px;
+    left:0;
+    top:50%;
+    transform:translate(-50%,-50%) rotate(-45deg);
+    background-color:#FFFFFF;
+    box-shadow:0 1px 8px rgba(0,0,0,0.5);
+}
+/* tooltip - right */
+.wpvivid-right {
+    min-width:300px;
+    top:50%;
+    left:100%;
+    margin-left:20px;
+    transform:translate(0, -50%);
+    padding:10px 20px;
+    color:#444444;
+    background-color:#FFFFFF;
+    font-weight:normal;
+    font-size:13px;
+    border-radius:8px;
+    position:absolute;
+    z-index:99999999;
+    box-sizing:border-box;
+    box-shadow:0 1px 8px rgba(0,0,0,0.5);
+    visibility:hidden;
+    opacity:0;
+    transition:opacity 0.8s;
+}
+
+.wpvivid-tooltip:hover .wpvivid-right {
+    visibility:visible; opacity:1;
+}
+
+.wpvivid-tooltip .wpvivid-right i {
+    position:absolute;
+    top:50%;
+    right:100%;
+    margin-top:-12px;
+    width:12px;
+    height:24px;
+    overflow:hidden;
+}
+
+.wpvivid-tooltip .wpvivid-right i::after {
+    content:'';
+    position:absolute;
+    width:12px;
+    height:12px;
+    left:0;
+    top:50%;
+    transform:translate(50%,-50%) rotate(-45deg);
+    background-color:#FFFFFF;
+    box-shadow:0 1px 8px rgba(0,0,0,0.5);
+}
+
+/* radio box style */
+
+.wpvivid-radio {
+    display: block;
+    position: relative;
+    padding-left: 2em;
+    margin-bottom: 1em;
+    cursor: pointer;
+    font-size: 1em;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+/* Hide the browser's default radio button */
+.wpvivid-radio input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+}
+/* Create a custom radio button */
+.wpvivid-radio-checkmark {
+    position: absolute;
+    top: 2px;
+    left: 0;
+    height: 16px;
+    width: 16px;
+    background-color: #eee;
+    border-radius: 50%;
+}
+/* On mouse-over, add a grey background color */
+.wpvivid-radio:hover input ~ .wpvivid-radio-checkmark {
+    background-color: #ccc;
+}
+/* When the radio button is checked, add a blue background */
+.wpvivid-radio input:checked ~ .wpvivid-radio-checkmark {
+    background-color: #8bc34a;
+}
+/* Create the indicator (the dot/circle - hidden when not checked) */
+.wpvivid-radio-checkmark:after {
+    content: "✔";
+    position: absolute;
+    font-size:12px;
+    top:-1px;
+    left:3px;
+    display: none;
+    color:white;
+}
+/* Show the indicator (dot/circle) when checked */
+.wpvivid-radio input:checked ~ .wpvivid-radio-checkmark:after {
+    display: block;
+}
+
+/* custom checkbox */
+
+/* Customize the label (the container) */
+.wpvivid-checkbox {
+    display: block;
+    position: relative;
+
+    padding-left: 2em;
+    cursor: pointer;
+    font-size: 1em;
+
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+/* Hide the browser's default checkbox */
+.wpvivid-checkbox input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+}
+/* Create a custom checkbox */
+.wpvivid-checkbox-checkmark {
+    position: absolute;
+    top: 3px;
+    left: 0;
+    height: 16px;
+    width: 16px;
+    background-color: #eee;
+    border-radius: 4px;
+}
+/* On mouse-over, add a grey background color */
+.wpvivid-checkbox:hover input ~ .wpvivid-checkbox-checkmark {
+    background-color: #ccc;
+    border-radius: 4px;
+}
+/* When the checkbox is checked, add a blue background */
+.wpvivid-checkbox input:checked ~ .wpvivid-checkbox-checkmark {
+    background-color: #8bc34a;
+    border-radius: 4px;
+}
+/* Create the checkmark/indicator (hidden when not checked) */
+.wpvivid-checkbox-checkmark:after {
+    content: "";
+    position: absolute;
+    display: none;
+}
+/* Show the checkmark when checked */
+.wpvivid-checkbox input:checked ~ .wpvivid-checkbox-checkmark:after {
+    display: block;
+}
+/* Style the checkmark/indicator */
+.wpvivid-checkbox .wpvivid-checkbox-checkmark:after {
+    left: 4px;
+    top: 0px;
+    width: 5px;
+    height: 10px;
+    border: solid white;
+    border-width: 0px 3px 3px 0;
+    -webkit-transform: rotate(45deg);
+    -ms-transform: rotate(45deg);
+    transform: rotate(45deg);
+}
+/* toggle switch */
+
+/* The switch - the box around the slider */
+.wpvivid-switch {
+    position: relative;
+    display: inline-block;
+    width: 32px;
+    height: 16px;
+}
+
+/* Hide default HTML checkbox */
+.wpvivid-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+/* The slider */
+.wpvivid-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0px;
+    background-color: #ccc;
+    -webkit-transition: .4s;
+    transition: .4s;
+}
+
+.wpvivid-slider:before {
+    position: absolute;
+    content: "";
+    height: 12px;
+    width: 12px;
+    left: 2px;
+    bottom: 2px;
+    background-color: white;
+    -webkit-transition: .4s;
+    transition: .4s;
+}
+
+input:checked + .wpvivid-slider {
+    background-color: #8bc34a;
+}
+
+input:focus + .wpvivid-slider {
+    box-shadow: 0 0 1px #8bc34a;
+}
+
+
+input:checked + .wpvivid-slider:before {
+    -webkit-transform: translateX(16px);
+    -ms-transform: translateX(16px);
+    transform: translateX(16px);
+}
+
+/* Rounded sliders */
+.wpvivid-slider.wpvivid-round {
+    border-radius: 16px;
+}
+
+.wpvivid-slider.wpvivid-round:before {
+    border-radius: 50%;
+}
+
+
+/*general postion*/
+.wpvivid-tooltip-padding-top {
+    padding-top:0.2em;
+}
+.wpvivid-tooltip-padding-top-small {
+    padding-top:0.1em;
+}
+
+/*  HD computer monitor */
+
+@media only screen and (min-width: 1366px) {
+
+    .wpvivid-four-cols{
+        width:100%;
+        margin-bottom:1em;
+    }
+}
+
+/*  Tablets in landscape mode, older desktop monitors */
+
+@media only screen and (min-width: 1024px) and (max-width: 1365px) {
+
+
+    #poststuff #post-body.columns-2 {
+        margin-right: 0px;
+    }
+    #wpbody-content #post-body.columns-2 #postbox-container-1 {
+        margin-right: 0;
+        width: 100%;
+    }
+    .wpvivid-four-cols{
+        width:100%;
+        margin-bottom:1em;
+    }
+}
+
+
+
+/*  Tablets in portrait mode, large display smartphones landscape mode */
+
+@media only screen and (min-width: 768px) and (max-width: 1023px) {
+    .wpvivid-two-col {
+        width:100%;
+    }
+    .wpvivid-float-right{
+        float:left;
+    }
+    .wpvivid-four-cols{
+        width:100%;
+        margin-bottom:1em;
+    }
+    ..wpvivid-welcome-bar-left{
+        width:100%;
+
+    }
+    .wpvivid-welcome-bar-right{
+        display:none;
+    }
+    .wpvivid-ignore{
+        display:none;
+    }
+
+}
+
+/*  Smartphones in landscape mode */
+
+@media only screen and (min-width: 421px) and (max-width: 767px) {
+    .wpvivid-features-box,.wpvivid-two-col {
+        width:100%;
+    }
+    .wpvivid-float-right{
+        float:left;
+    }
+    .wpvivid-welcome-bar-left{
+        width:100%;
+    }
+    .wpvivid-welcome-bar-right{
+        display:none;
+    }
+    .wpvivid-four-cols{
+        width:100%;
+        margin-bottom:1em;
+    }
+    .wpvivid-ignore{
+        display:none;
+    }
+}
+
+/*  Smartphones in portrait mode  */
+
+@media only screen and (max-width: 420px) {
+    .wpvivid-features-box,.wpvivid-two-col {
+        width:100%;
+    }
+    .wpvivid-float-right{
+        float:left;
+    }
+    .wpvivid-welcome-bar-left{
+        width:100%;
+
+    }
+    .wpvivid-welcome-bar-right{
+        display:none;
+    }
+
+    .wpvivid-four-cols{
+        width:100%;
+        margin-bottom:1em;
+    }
+    .wpvivid-ignore{
+        display:none;
+    }
+    .wpvivid-img-opt-responsive{
+        margin-top:1em;
+        padding-top:1em;
+        border-top:1px solid #f1f1f1;
+    }
+}
+
+
+
+
+
+
+/*custom db themes plugins table*/
+.wpvivid-custom-database-wp-table-header{
+    height:30px;
+    border-left:4px solid #00a0d2;
+    padding-left:5px;
+    padding-top:5px;
+    background-color:#f5f5f5;
+}
+
+.wpvivid-custom-database-other-table-header{
+    height:30px;
+    border-left:4px solid #00a0d2;
+    padding-left:5px;
+    padding-top:5px;
+    background-color:#f5f5f5;
+    margin-top: 5px;
+}
+
+.wpvivid-custom-database-table-column{
+    width:32%;
+    float:left;
+}
+
+@media screen and (min-width: 1921px) {
+    .wpvivid-custom-database-table-column{
+        width:24%;
+        float:left;
+    }
+}
+
+@media screen and (max-width: 1920px) {
+    .wpvivid-custom-database-table-column{
+        width:24%;
+        float:left;
+    }
+}
+
+@media screen and (max-width: 1550px) {
+    .wpvivid-custom-database-table-column{
+        width:32%;
+        float:left;
+    }
+}
+
+@media screen and (max-width: 1200px) {
+    .wpvivid-custom-database-table-column{
+        width:49%;
+        float:left;
+    }
+    .wpvivid-database-table-addon{
+        padding-top: 5px;
+    }
+}
+
+@media screen and (max-width: 790px) {
+    .wpvivid-custom-database-table-column{
+        width:99%;
+        float:left;
+    }
+}
+
+/*custom tree*/
+.wpvivid-custom-tree{
+    width: 100%;
+    height: 250px;
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.wpvivid-custom-tree-left{
+    width:30%;
+    overflow:auto;
+}
+
+.wpvivid-custom-tree-right{
+    width:70%;
+    padding: 5px;
+}
+
+.wpvivid-custom-li-folder-icon{
+    background: url("../js/jstree/dist/themes/default/32px.png") -260px -4px no-repeat;
+    width: 24px;
+    height: 24px;
+    line-height: 24px;
+    margin: 0 4px 0 4px;
+    float: left;
+}
+
+.wpvivid-custom-li-file-icon{
+    background: url("../js/jstree/dist/themes/default/32px.png") -100px -68px no-repeat;
+    width: 24px;
+    height: 24px;
+    line-height: 24px;
+    margin: 0 4px 0 4px;
+    float: left;
+}
+
+.wpvivid-custom-li-font{
+    height: 24px;
+    line-height: 24px;
+    margin: 0;
+    float: left;
+}
+
+.wpvivid-custom-li-close{
+    height: 24px;
+    line-height: 24px;
+    margin: 0 10px 0 0;
+    float: right;
+}
+
+.wpvivid-custom-exclude-include-list{
+    width: 100%;
+    height: 250px;
+    overflow: auto;
+}
+
+.wpvivid-custom-theme-plugin-table{
+    border:1px solid #e5e5e5;
+    max-height: 200px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.wpvivid-custom-theme-plugin-table ul:nth-of-type(odd) {background:#f1f1f1;}
+.wpvivid-custom-theme-plugin-table ul:nth-of-type(even) {}
+.wpvivid-custom-exclude-include-list ul:nth-of-type(odd) {background:#f1f1f1;}
+.wpvivid-custom-exclude-include-list ul:nth-of-type(even) {}
+
+.wpvivid-custom-theme-plugin-table ul,
+.wpvivid-custom-theme-plugin-table ul li,
+.wpvivid-custom-exclude-include-list ul,
+.wpvivid-custom-exclude-include-list ul li{
+    width: 100%;
+    height: 24px;
+    margin: 0;
+}
+
+.wpvivid-dashicons-fix-plugin-list {
+    font-size:1em;
+}
+
+span.wpvivid-dashicons {
+    margin-right: 2px;
+}
+
+/*.wpvivid-table-checkbox-checkmark {
+    position: absolute;
+    top: 5px;
+    left: 0;
+    height: 16px;
+    width: 16px;
+    background-color: #eee;
+    border-radius: 4px;
+}*/
+
+.wpvivid-dashicons, .wpvivid-dashicons-before:before {
+    font-family: dashicons;
+    display: inline-block;
+    line-height: 1;
+    font-weight: 400;
+    font-style: normal;
+    speak: none;
+    text-decoration: inherit;
+    text-transform: none;
+    text-rendering: auto;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    width: 20px;
+    height: 20px;
+    font-size: 20px;
+    vertical-align: top;
+    text-align: center;
+    transition: color .1s ease-in;
+}
+
+.nav-tab-delete-img-addon{position: absolute;top: 2px;right: 3px;}
+
+.schedule-active
+{
+    background-color: #90ee90;
+}

@@ -1,0 +1,29 @@
+.wpvivid-canvas {
+	--color-border:#c3c4c7;
+	--color-border-light:#d8d8d8;
+	--color-border-light-2:#f1f1f1;
+	--color-bg-white:#ffffff;
+	--color-bg-hover-1:#eaf1fe;
+}
+.wpvivid-footer{
+	background-color: var(--color-bg-white);
+}
+.wpvivid-footer-two-cols{
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	gap: 0;
+}
+.wpvivid-footer-two-cols-left, .wpvivid-footer-two-cols-right{
+	padding:1rem;
+}
+.wpvivid-footer-two-cols-left-list, .wpvivid-footer-two-cols-right-list{
+	border: 1px solid var(--color-border-light);
+	border-radius: 3px;
+	padding:0 1rem;
+	margin-top: 1rem;
+}
+.wpvivid-footer-two-cols-left-list li, .wpvivid-footer-two-cols-right-list li{
+	display: flex;
+	align-items: center;
+	border-bottom: 1px solid var(--color-border-light-2);
+}

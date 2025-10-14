@@ -19,6 +19,7 @@ class B2E_Admin_Interface {
         add_action('wp_ajax_b2e_start_migration', array($this, 'ajax_start_migration'));
         add_action('wp_ajax_b2e_get_progress', array($this, 'ajax_get_progress'));
         add_action('wp_ajax_b2e_test_export_connection', array($this, 'ajax_test_export_connection'));
+        add_action('wp_ajax_b2e_test_import_connection', array($this, 'ajax_test_import_connection'));
         add_action('wp_ajax_b2e_get_logs', array($this, 'ajax_get_logs'));
         add_action('wp_ajax_b2e_clear_logs', array($this, 'ajax_clear_logs'));
         add_action('wp_ajax_b2e_validate_import_key', array($this, 'ajax_validate_import_key'));
@@ -833,12 +834,52 @@ class B2E_Admin_Interface {
                 return;
             }
             
-            // Simulate connection test (placeholder)
-            setTimeout(() => {
-                showToast('Import connection test successful! This site is ready to receive data.', 'success');
+            // Real API test - test our own API endpoint
+            const formData = new FormData();
+            formData.append('action', 'b2e_test_import_connection');
+            formData.append('nonce', '<?php echo wp_create_nonce('b2e_nonce'); ?>');
+            formData.append('api_key', apiKey);
+            
+            fetch(ajaxurl, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+                
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Server returned non-JSON response. Status: ' + response.status);
+                }
+                
+                return response.text().then(text => {
+                    console.log('Raw response:', text);
+                    try {
+                        return JSON.parse(text);
+                    } catch (e) {
+                        console.error('JSON parse error:', e);
+                        console.error('Response text:', text);
+                        throw new Error('Invalid JSON response: ' + text.substring(0, 100) + '...');
+                    }
+                });
+            })
+            .then(data => {
+                console.log('Parsed data:', data);
+                if (data.success) {
+                    showToast('Import connection test successful! This site is ready to receive data.', 'success');
+                } else {
+                    showToast('Import connection test failed: ' + (data.data || 'Unknown error'), 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Import connection test error:', error);
+                showToast('Import connection test failed: ' + error.message, 'error');
+            })
+            .finally(() => {
                 button.disabled = false;
                 button.textContent = originalText;
-            }, 1000);
+            });
         }
         
         // ========================================
@@ -1616,6 +1657,59 @@ class B2E_Admin_Interface {
         } catch (Exception $e) {
             error_log('B2E Connection Test Error: ' . $e->getMessage());
             wp_send_json_error('Connection test failed: ' . $e->getMessage());
+        }
+    }
+    
+    /**
+     * AJAX: Test import connection (tests our own API)
+     */
+    public function ajax_test_import_connection() {
+        try {
+            check_ajax_referer('b2e_nonce', 'nonce');
+            
+            if (!current_user_can('manage_options')) {
+                wp_send_json_error(__('Insufficient permissions.', 'bricks-etch-migration'));
+                return;
+            }
+            
+            $api_key = sanitize_text_field($_POST['api_key']);
+            
+            if (empty($api_key)) {
+                wp_send_json_error(__('API key is required.', 'bricks-etch-migration'));
+                return;
+            }
+            
+            // Test our own API endpoint
+            $test_url = home_url('/wp-json/b2e/v1/auth/test');
+            $response = wp_remote_get($test_url, array(
+                'timeout' => 10,
+                'headers' => array(
+                    'X-API-Key' => $api_key
+                )
+            ));
+            
+            if (is_wp_error($response)) {
+                wp_send_json_error('Cannot reach our API endpoint: ' . $response->get_error_message());
+                return;
+            }
+            
+            $status_code = wp_remote_retrieve_response_code($response);
+            $body = wp_remote_retrieve_body($response);
+            
+            if ($status_code >= 200 && $status_code < 400) {
+                // Check if API key is set correctly
+                $stored_api_key = get_option('b2e_api_key', '');
+                if ($stored_api_key === $api_key) {
+                    wp_send_json_success(__('Import connection test successful! This site is ready to receive data.', 'bricks-etch-migration'));
+                } else {
+                    wp_send_json_error('API key mismatch. Please save the API key first.');
+                }
+            } else {
+                wp_send_json_error('API endpoint returned status code: ' . $status_code . '. Response: ' . substr($body, 0, 200));
+            }
+        } catch (Exception $e) {
+            error_log('B2E Import Connection Test Error: ' . $e->getMessage());
+            wp_send_json_error('Import connection test failed: ' . $e->getMessage());
         }
     }
     
