@@ -58,13 +58,27 @@ class B2E_API_Client {
         $response_body = wp_remote_retrieve_body($response);
         
         if ($response_code >= 400) {
+            // Try to decode error message from response
+            $decoded_error = json_decode($response_body, true);
+            $error_message = 'API request failed with code: ' . $response_code;
+            
+            if (isset($decoded_error['message'])) {
+                $error_message .= ' - ' . $decoded_error['message'];
+            } elseif (isset($decoded_error['data']) && is_string($decoded_error['data'])) {
+                $error_message .= ' - ' . $decoded_error['data'];
+            } elseif (!empty($response_body) && strlen($response_body) < 500) {
+                // Include short response body if available
+                $error_message .= ' - Response: ' . substr($response_body, 0, 200);
+            }
+            
             $this->error_handler->log_error('E103', array(
                 'url' => $full_url,
                 'response_code' => $response_code,
                 'response_body' => $response_body,
                 'action' => 'API request returned error'
             ));
-            return new WP_Error('api_error', 'API request failed with code: ' . $response_code);
+            
+            return new WP_Error('api_error', $error_message);
         }
         
         $decoded_response = json_decode($response_body, true);
