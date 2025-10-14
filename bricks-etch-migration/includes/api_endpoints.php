@@ -397,46 +397,76 @@ class B2E_API_Endpoints {
      * Import ACF field groups
      */
     public static function import_acf_field_groups($request) {
-        $field_groups_data = $request->get_json_params();
-        
-        if (empty($field_groups_data)) {
-            return new WP_Error('missing_data', 'Field groups data is required', array('status' => 400));
+        try {
+            $field_groups_data = $request->get_json_params();
+            
+            if (empty($field_groups_data)) {
+                return new WP_Error('missing_data', 'Field groups data is required', array('status' => 400));
+            }
+            
+            // Check if ACF is active
+            if (!function_exists('acf_add_local_field_group')) {
+                // ACF not active - skip import but don't fail
+                return new WP_REST_Response(array(
+                    'message' => 'ACF plugin is not active - skipping field groups import',
+                    'imported_count' => 0,
+                    'skipped' => true,
+                ), 200);
+            }
+            
+            $acf_migrator = new B2E_ACF_Field_Groups_Migrator();
+            $result = $acf_migrator->import_field_groups($field_groups_data);
+            
+            if (is_wp_error($result)) {
+                return $result;
+            }
+            
+            return new WP_REST_Response(array(
+                'message' => 'ACF field groups imported successfully',
+                'imported_count' => count($field_groups_data),
+            ), 200);
+        } catch (Exception $e) {
+            error_log('B2E Import ACF Error: ' . $e->getMessage() . ' in ' . $e->getFile() . ' on line ' . $e->getLine());
+            return new WP_Error('import_error', 'ACF import failed: ' . $e->getMessage() . ' (Line: ' . $e->getLine() . ')', array('status' => 500));
         }
-        
-        $acf_migrator = new B2E_ACF_Field_Groups_Migrator();
-        $result = $acf_migrator->import_field_groups($field_groups_data);
-        
-        if (is_wp_error($result)) {
-            return $result;
-        }
-        
-        return new WP_REST_Response(array(
-            'message' => 'ACF field groups imported successfully',
-            'imported_count' => count($field_groups_data),
-        ), 200);
     }
     
     /**
      * Import MetaBox configs
      */
     public static function import_metabox_configs($request) {
-        $configs_data = $request->get_json_params();
-        
-        if (empty($configs_data)) {
-            return new WP_Error('missing_data', 'MetaBox configs data is required', array('status' => 400));
+        try {
+            $configs_data = $request->get_json_params();
+            
+            if (empty($configs_data)) {
+                return new WP_Error('missing_data', 'MetaBox configs data is required', array('status' => 400));
+            }
+            
+            // Check if Meta Box is active
+            if (!function_exists('rwmb_meta')) {
+                // Meta Box not active - skip import but don't fail
+                return new WP_REST_Response(array(
+                    'message' => 'Meta Box plugin is not active - skipping configs import',
+                    'imported_count' => 0,
+                    'skipped' => true,
+                ), 200);
+            }
+            
+            $metabox_migrator = new B2E_MetaBox_Migrator();
+            $result = $metabox_migrator->import_metabox_configs($configs_data);
+            
+            if (is_wp_error($result)) {
+                return $result;
+            }
+            
+            return new WP_REST_Response(array(
+                'message' => 'MetaBox configs imported successfully',
+                'imported_count' => count($configs_data),
+            ), 200);
+        } catch (Exception $e) {
+            error_log('B2E Import MetaBox Error: ' . $e->getMessage() . ' in ' . $e->getFile() . ' on line ' . $e->getLine());
+            return new WP_Error('import_error', 'MetaBox import failed: ' . $e->getMessage() . ' (Line: ' . $e->getLine() . ')', array('status' => 500));
         }
-        
-        $metabox_migrator = new B2E_MetaBox_Migrator();
-        $result = $metabox_migrator->import_metabox_configs($configs_data);
-        
-        if (is_wp_error($result)) {
-            return $result;
-        }
-        
-        return new WP_REST_Response(array(
-            'message' => 'MetaBox configs imported successfully',
-            'imported_count' => count($configs_data),
-        ), 200);
     }
     
     /**
