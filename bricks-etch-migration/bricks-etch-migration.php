@@ -38,6 +38,7 @@ require_once B2E_PLUGIN_DIR . 'includes/gutenberg_generator.php';
 require_once B2E_PLUGIN_DIR . 'includes/dynamic_data_converter.php';
 require_once B2E_PLUGIN_DIR . 'includes/migration_manager.php';
 require_once B2E_PLUGIN_DIR . 'includes/api_client.php';
+require_once B2E_PLUGIN_DIR . 'includes/api_endpoints.php';
 require_once B2E_PLUGIN_DIR . 'includes/custom_fields_migrator.php';
 require_once B2E_PLUGIN_DIR . 'includes/acf_field_groups_migrator.php';
 require_once B2E_PLUGIN_DIR . 'includes/metabox_migrator.php';

@@ -1587,7 +1587,7 @@ class B2E_Admin_Interface {
             }
             
             // Test 2: Our specific API endpoint with authentication
-            $api_test_url = rtrim($target_url, '/') . '/wp-json/b2e/v1/validate-api-key';
+            $api_test_url = rtrim($target_url, '/') . '/wp-json/b2e/v1/auth/validate';
             $api_response = wp_remote_post($api_test_url, array(
                 'timeout' => 10,
                 'headers' => array(
