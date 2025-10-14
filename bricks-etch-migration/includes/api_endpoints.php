@@ -377,7 +377,7 @@ class B2E_API_Endpoints {
             }
             
             $cpt_migrator = new B2E_CPT_Migrator();
-            $result = $cpt_migrator->register_custom_post_types($cpts_data);
+            $result = $cpt_migrator->import_custom_post_types($cpts_data);
             
             if (is_wp_error($result)) {
                 return $result;
