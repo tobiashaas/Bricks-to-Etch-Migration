@@ -26,10 +26,17 @@ class B2E_API_Endpoints {
     public static function register_routes() {
         $namespace = 'b2e/v1';
         
-        // Authentication endpoint
+        // Authentication endpoint (POST)
         register_rest_route($namespace, '/auth/validate', array(
             'methods' => 'POST',
             'callback' => array(__CLASS__, 'validate_api_key'),
+            'permission_callback' => '__return_true',
+        ));
+        
+        // Authentication endpoint (GET) - for easier testing
+        register_rest_route($namespace, '/auth/test', array(
+            'methods' => 'GET',
+            'callback' => array(__CLASS__, 'test_auth'),
             'permission_callback' => '__return_true',
         ));
         
@@ -119,6 +126,22 @@ class B2E_API_Endpoints {
             'callback' => array(__CLASS__, 'import_post_meta'),
             'permission_callback' => array(__CLASS__, 'check_api_key'),
         ));
+    }
+    
+    /**
+     * Test authentication endpoint
+     */
+    public static function test_auth($request) {
+        return new WP_REST_Response(array(
+            'success' => true,
+            'message' => 'Bricks to Etch Migration API is working!',
+            'timestamp' => current_time('mysql'),
+            'endpoints' => array(
+                'auth/validate' => 'POST - Validate API key',
+                'validate/plugins' => 'GET - Check plugin status',
+                'export/posts' => 'GET - Export posts list'
+            )
+        ), 200);
     }
     
     /**
