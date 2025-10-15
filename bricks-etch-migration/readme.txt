@@ -29,8 +29,9 @@ One-time migration tool for converting Bricks Builder websites to Etch PageBuild
 = What Gets Migrated =
 
 * **Posts & Pages** - All Bricks content converted to Etch Gutenberg blocks
+* **Media Files** - Images, videos, documents with proper associations
 * **CSS Classes** - Global classes converted to Etch format
-* **Custom Fields** - ACF, MetaBox, JetEngine field values
+* **Custom Fields** - ACF, MetaBox field values
 * **Custom Post Types** - Automatic detection and registration
 * **Dynamic Data** - Bricks tags converted to Etch format
 * **Post Meta** - All relevant meta data preserved
@@ -41,9 +42,10 @@ One-time migration tool for converting Bricks Builder websites to Etch PageBuild
 2. **Custom Post Types** - Export and register CPTs
 3. **ACF Field Groups** - Export and import field groups
 4. **MetaBox Configurations** - Export and import configs
-5. **CSS Classes** - Convert and import styles
-6. **Posts & Content** - Convert and create posts
-7. **Finalization** - Complete migration and cleanup
+5. **Media Files** - Download and upload all media with associations
+6. **CSS Classes** - Convert and import styles
+7. **Posts & Content** - Convert and create posts
+8. **Finalization** - Complete migration and cleanup
 
 = Requirements =
 

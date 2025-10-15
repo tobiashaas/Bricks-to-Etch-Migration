@@ -198,6 +198,13 @@ class B2E_API_Client {
     }
     
     /**
+     * Send media file to target site
+     */
+    public function send_media_file($url, $api_key, $media_data) {
+        return $this->send_request($url, $api_key, '/import/media', 'POST', $media_data);
+    }
+    
+    /**
      * Get custom post types from target site
      */
     public function get_custom_post_types($url, $api_key) {

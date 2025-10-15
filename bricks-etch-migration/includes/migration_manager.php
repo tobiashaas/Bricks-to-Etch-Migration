@@ -109,24 +109,32 @@ class B2E_Migration_Manager {
                 return $metabox_result;
             }
             
-            // Step 5: CSS Classes
-            $this->update_progress('css_classes', 50, __('Converting CSS classes...', 'bricks-etch-migration'));
+            // Step 5: Media Files
+            $this->update_progress('media', 50, __('Migrating media files...', 'bricks-etch-migration'));
+            $media_result = $this->migrate_media_files($target_url, $api_key);
+            
+            if (is_wp_error($media_result)) {
+                return $media_result;
+            }
+            
+            // Step 6: CSS Classes
+            $this->update_progress('css_classes', 60, __('Converting CSS classes...', 'bricks-etch-migration'));
             $css_result = $this->migrate_css_classes($target_url, $api_key);
             
             if (is_wp_error($css_result)) {
                 return $css_result;
             }
             
-            // Step 6: Posts & Content
-            $this->update_progress('posts', 70, __('Migrating posts and content...', 'bricks-etch-migration'));
+            // Step 7: Posts & Content
+            $this->update_progress('posts', 80, __('Migrating posts and content...', 'bricks-etch-migration'));
             $posts_result = $this->migrate_posts($target_url, $api_key);
             
             if (is_wp_error($posts_result)) {
                 return $posts_result;
             }
             
-            // Step 7: Finalization
-            $this->update_progress('finalization', 90, __('Finalizing migration...', 'bricks-etch-migration'));
+            // Step 8: Finalization
+            $this->update_progress('finalization', 95, __('Finalizing migration...', 'bricks-etch-migration'));
             $finalization_result = $this->finalize_migration();
             
             if (is_wp_error($finalization_result)) {
@@ -253,6 +261,28 @@ class B2E_Migration_Manager {
         if (is_wp_error($result)) {
             return $result;
         }
+        
+        return true;
+    }
+    
+    /**
+     * Migrate media files
+     */
+    private function migrate_media_files($target_url, $api_key) {
+        $media_migrator = new B2E_Media_Migrator();
+        $result = $media_migrator->migrate_media($target_url, $api_key);
+        
+        if (is_wp_error($result)) {
+            return $result;
+        }
+        
+        // Log media migration results
+        $this->error_handler->log_error('W004', array(
+            'total_media' => $result['total_media'],
+            'migrated_media' => $result['migrated_media'],
+            'failed_media' => $result['failed_media'],
+            'action' => 'Media migration completed'
+        ));
         
         return true;
     }

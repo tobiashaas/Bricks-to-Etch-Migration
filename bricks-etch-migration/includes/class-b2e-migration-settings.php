@@ -26,6 +26,7 @@ class B2E_Migration_Settings {
             'migrate_posts' => true,
             'migrate_pages' => true,
             'migrate_css' => true,
+            'migrate_media' => true,
             
             // Advanced features - enabled by default
             'migrate_cpts' => true,

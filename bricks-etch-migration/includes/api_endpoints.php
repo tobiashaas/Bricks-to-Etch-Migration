@@ -126,6 +126,12 @@ class B2E_API_Endpoints {
             'callback' => array(__CLASS__, 'import_post_meta'),
             'permission_callback' => array(__CLASS__, 'check_api_key'),
         ));
+        
+        register_rest_route($namespace, '/import/media', array(
+            'methods' => 'POST',
+            'callback' => array(__CLASS__, 'import_media_file'),
+            'permission_callback' => array(__CLASS__, 'check_api_key'),
+        ));
     }
     
     /**
@@ -491,5 +497,102 @@ class B2E_API_Endpoints {
             'message' => 'Post meta imported successfully',
             'imported_count' => count($meta),
         ), 200);
+    }
+    
+    /**
+     * Import media file
+     */
+    public static function import_media_file($request) {
+        try {
+            $media_data = $request->get_json_params();
+            
+            if (empty($media_data)) {
+                return new WP_Error('missing_data', 'Media data is required', array('status' => 400));
+            }
+            
+            // Validate required fields
+            $required_fields = array('filename', 'mime_type', 'file_content');
+            foreach ($required_fields as $field) {
+                if (!isset($media_data[$field])) {
+                    return new WP_Error('missing_field', "Required field '{$field}' is missing", array('status' => 400));
+                }
+            }
+            
+            // Decode file content
+            $file_content = base64_decode($media_data['file_content']);
+            if ($file_content === false) {
+                return new WP_Error('invalid_file_content', 'Invalid base64 file content', array('status' => 400));
+            }
+            
+            // Create temporary file
+            $temp_file = wp_tempnam($media_data['filename']);
+            file_put_contents($temp_file, $file_content);
+            
+            // Prepare file array for wp_handle_sideload
+            $file_array = array(
+                'name' => $media_data['filename'],
+                'type' => $media_data['mime_type'],
+                'tmp_name' => $temp_file,
+                'error' => 0,
+                'size' => strlen($file_content),
+            );
+            
+            // Upload file
+            $upload = wp_handle_sideload($file_array, array('test_form' => false));
+            
+            if (isset($upload['error'])) {
+                return new WP_Error('upload_failed', 'File upload failed: ' . $upload['error'], array('status' => 500));
+            }
+            
+            // Create attachment post
+            $attachment = array(
+                'post_mime_type' => $media_data['mime_type'],
+                'post_title' => $media_data['title'] ?? sanitize_file_name($media_data['filename']),
+                'post_content' => $media_data['description'] ?? '',
+                'post_excerpt' => $media_data['caption'] ?? '',
+                'post_status' => 'inherit',
+                'post_parent' => $media_data['post_parent'] ?? 0,
+            );
+            
+            $attachment_id = wp_insert_attachment($attachment, $upload['file']);
+            
+            if (is_wp_error($attachment_id)) {
+                return $attachment_id;
+            }
+            
+            // Generate attachment metadata
+            require_once(ABSPATH . 'wp-admin/includes/image.php');
+            $attachment_metadata = wp_generate_attachment_metadata($attachment_id, $upload['file']);
+            wp_update_attachment_metadata($attachment_id, $attachment_metadata);
+            
+            // Set alt text
+            if (!empty($media_data['alt_text'])) {
+                update_post_meta($attachment_id, '_wp_attachment_image_alt', $media_data['alt_text']);
+            }
+            
+            // Set upload date if provided
+            if (!empty($media_data['upload_date'])) {
+                wp_update_post(array(
+                    'ID' => $attachment_id,
+                    'post_date' => $media_data['upload_date'],
+                    'post_date_gmt' => get_gmt_from_date($media_data['upload_date']),
+                ));
+            }
+            
+            // Store original metadata if provided
+            if (!empty($media_data['metadata'])) {
+                update_post_meta($attachment_id, '_wp_attachment_metadata', $media_data['metadata']);
+            }
+            
+            return new WP_REST_Response(array(
+                'message' => 'Media file imported successfully',
+                'media_id' => $attachment_id,
+                'file_url' => wp_get_attachment_url($attachment_id),
+            ), 200);
+            
+        } catch (Exception $e) {
+            error_log('B2E Import Media Error: ' . $e->getMessage() . ' in ' . $e->getFile() . ' on line ' . $e->getLine());
+            return new WP_Error('import_error', 'Media import failed: ' . $e->getMessage() . ' (Line: ' . $e->getLine() . ')', array('status' => 500));
+        }
     }
 }

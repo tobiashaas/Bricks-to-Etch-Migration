@@ -98,6 +98,23 @@ class B2E_Error_Handler {
             'description' => 'Failed to import ACF field group configuration',
             'solution' => 'Verify ACF plugin is active and field group data is valid'
         ),
+        
+        // Media Migration Errors
+        'E401' => array(
+            'title' => 'Media File Migration Failed',
+            'description' => 'Failed to migrate media file to target site',
+            'solution' => 'Check file permissions and target site storage capacity'
+        ),
+        'E402' => array(
+            'title' => 'Media File Download Failed',
+            'description' => 'Failed to download media file from source site',
+            'solution' => 'Check file URL accessibility and network connectivity'
+        ),
+        'E403' => array(
+            'title' => 'Media File Upload Failed',
+            'description' => 'Failed to upload media file to target site',
+            'solution' => 'Check target site upload permissions and file size limits'
+        ),
     );
     
     /**
@@ -118,6 +135,11 @@ class B2E_Error_Handler {
             'title' => 'Custom Post Type Not Registered',
             'description' => 'Custom post type not found on target site',
             'solution' => 'Register custom post type on target site before migration'
+        ),
+        'W004' => array(
+            'title' => 'Media Migration Completed',
+            'description' => 'Media files migration process completed',
+            'solution' => 'Review migration results for any failed files'
         ),
     );
     
