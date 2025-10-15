@@ -289,7 +289,12 @@ class B2E_Migration_Manager {
         $total_posts = count($bricks_posts);
         $migrated_posts = 0;
         
-        foreach ($bricks_posts as $post) {
+        // Memory optimization for large migrations
+        $batch_size = 10; // Process 10 posts at a time
+        $batches = array_chunk($bricks_posts, $batch_size);
+        
+        foreach ($batches as $batch_index => $batch) {
+            foreach ($batch as $post) {
             // Parse Bricks content
             $bricks_content = $this->content_parser->parse_bricks_content($post->ID);
             
@@ -336,6 +341,15 @@ class B2E_Migration_Manager {
             $progress_percentage = 70 + (($migrated_posts / $total_posts) * 20);
             $this->update_progress('posts', $progress_percentage, 
                 sprintf(__('Migrating posts... %d/%d', 'bricks-etch-migration'), $migrated_posts, $total_posts));
+            }
+            
+            // Memory cleanup after each batch
+            if (function_exists('gc_collect_cycles')) {
+                gc_collect_cycles();
+            }
+            
+            // Small delay to prevent server overload
+            usleep(100000); // 0.1 second
         }
         
         return true;

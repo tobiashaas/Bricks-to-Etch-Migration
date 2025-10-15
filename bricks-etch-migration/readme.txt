@@ -49,7 +49,7 @@ One-time migration tool for converting Bricks Builder websites to Etch PageBuild
 
 * **Source Site** - WordPress with Bricks Builder
 * **Target Site** - WordPress with Etch PageBuilder
-* **Custom Field Plugins** - ACF, MetaBox, or JetEngine (optional)
+* **Custom Field Plugins** - ACF, MetaBox (JetEngine not supported in V0.2.0)
 * **PHP 7.4+** - Required for modern WordPress features
 * **WordPress 5.0+** - Required for Gutenberg support
 

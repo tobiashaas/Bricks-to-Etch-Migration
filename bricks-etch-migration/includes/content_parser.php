@@ -33,28 +33,14 @@ class B2E_Content_Parser {
      * - Additional meta: _bricks_template_type, _bricks_editor_mode
      */
     public function parse_bricks_content($post_id) {
-        // Check if this is actually a Bricks page
-        $template_type = get_post_meta($post_id, '_bricks_template_type', true);
-        $editor_mode = get_post_meta($post_id, '_bricks_editor_mode', true);
-        
-        if ($template_type !== 'content' || $editor_mode !== 'bricks') {
-            // Not a Bricks page, skip
-            $this->error_handler->log_warning('W001', array(
-                'post_id' => $post_id,
-                'template_type' => $template_type,
-                'editor_mode' => $editor_mode,
-                'action' => 'Skipping non-Bricks page'
-            ));
-            return false;
-        }
-        
         // Get the actual Bricks content (serialized array)
         $bricks_content = get_post_meta($post_id, '_bricks_page_content_2', true);
         
         if (empty($bricks_content)) {
-            $this->error_handler->log_error('E003', array(
+            // No Bricks content found, skip
+            $this->error_handler->log_warning('W001', array(
                 'post_id' => $post_id,
-                'message' => 'No Bricks content found for this post'
+                'action' => 'No Bricks content found - skipping'
             ));
             return false;
         }

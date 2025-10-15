@@ -132,11 +132,12 @@ class B2E_Dynamic_Data_Converter {
      * Convert basic dynamic data tags
      */
     private function convert_basic_tags($content) {
-        return str_replace(
-            array_keys($this->mapping),
-            array_values($this->mapping),
-            $content
-        );
+        // Convert basic dynamic data tags using simple string replacement
+        foreach ($this->mapping as $bricks_tag => $etch_key) {
+            $content = str_replace('{' . $bricks_tag . '}', '{' . $etch_key . '}', $content);
+        }
+        
+        return $content;
     }
     
     /**
