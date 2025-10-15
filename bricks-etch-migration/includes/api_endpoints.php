@@ -40,10 +40,10 @@ class B2E_API_Endpoints {
             'permission_callback' => '__return_true',
         ));
         
-        // WPvivid-style migration endpoint
+        // Key-based migration endpoint
         register_rest_route($namespace, '/migrate', array(
             'methods' => 'GET',
-            'callback' => array(__CLASS__, 'handle_wpvivid_migration'),
+            'callback' => array(__CLASS__, 'handle_key_migration'),
             'permission_callback' => '__return_true',
         ));
         
@@ -604,9 +604,9 @@ class B2E_API_Endpoints {
     }
     
     /**
-     * Handle WPvivid-style migration request
+     * Handle key-based migration request
      */
-    public static function handle_wpvivid_migration($request) {
+    public static function handle_key_migration($request) {
         try {
             $params = $request->get_params();
             
@@ -636,17 +636,17 @@ class B2E_API_Endpoints {
             }
             
             // Return success response with migration details
-            return new WP_REST_Response(array(
-                'success' => true,
-                'message' => 'WPvivid-style migration started successfully!',
-                'migration_url' => $request->get_link(),
-                'source_domain' => $domain,
-                'target_domain' => home_url(),
-                'started_at' => current_time('mysql'),
-            ), 200);
+                return new WP_REST_Response(array(
+                    'success' => true,
+                    'message' => 'Key-based migration started successfully!',
+                    'migration_url' => $request->get_link(),
+                    'source_domain' => $domain,
+                    'target_domain' => home_url(),
+                    'started_at' => current_time('mysql'),
+                ), 200);
             
         } catch (Exception $e) {
-            error_log('B2E WPvivid Migration Error: ' . $e->getMessage() . ' in ' . $e->getFile() . ' on line ' . $e->getLine());
+            error_log('B2E Key Migration Error: ' . $e->getMessage() . ' in ' . $e->getFile() . ' on line ' . $e->getLine());
             return new WP_Error('migration_error', 'Migration failed: ' . $e->getMessage() . ' (Line: ' . $e->getLine() . ')', array('status' => 500));
         }
     }

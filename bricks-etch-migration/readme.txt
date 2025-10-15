@@ -18,7 +18,7 @@ One-time migration tool for converting Bricks Builder websites to Etch PageBuild
 
 * **Complete Automation** - No manual steps required
 * **One-time Use** - Install, use, uninstall
-* **WPvivid-Style Migration** - Elegant migration URLs with embedded authentication
+* **Key-Based Migration** - Elegant migration URLs with embedded authentication
 * **Full Dynamic Data Conversion** - All Bricks tags converted to Etch format
 * **Zero Data Loss** - Everything migrates automatically
 * **Custom Fields Support** - ACF, MetaBox integration

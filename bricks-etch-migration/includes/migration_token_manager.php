@@ -2,7 +2,7 @@
 /**
  * Migration Token Manager for Bricks to Etch Migration Plugin
  * 
- * Inspired by WPvivid's elegant migration system with domain-embedded tokens
+ * Elegant migration system with domain-embedded tokens
  * Generates secure migration URLs with embedded authentication
  */
 
