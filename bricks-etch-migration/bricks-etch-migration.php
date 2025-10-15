@@ -1,10 +1,10 @@
 <?php
 /**
  * Plugin Name: Bricks to Etch Migration
- * Plugin URI: https://github.com/your-username/bricks-etch-migration
+ * Plugin URI: https://github.com/tobiashaas/Bricks-to-Etch-Migration
  * Description: One-time migration tool for converting Bricks Builder websites to Etch PageBuilder with complete automation.
- * Version: 0.1.0
- * Author: Your Name
+ * Version: 0.2.0
+ * Author: Tobias Haas
  * License: GPL v2 or later
  * Text Domain: bricks-etch-migration
  * Domain Path: /languages
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('B2E_VERSION', '0.1.0');
+define('B2E_VERSION', '0.2.0');
 define('B2E_PLUGIN_FILE', __FILE__);
 define('B2E_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('B2E_PLUGIN_URL', plugin_dir_url(__FILE__));

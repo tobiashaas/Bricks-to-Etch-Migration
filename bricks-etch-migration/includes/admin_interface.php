@@ -1589,9 +1589,33 @@ class B2E_Admin_Interface {
                 return;
             }
             
+            // Validate and sanitize input
             $target_url = sanitize_url($_POST['target_url']);
             $api_key = sanitize_text_field($_POST['api_key']);
             $convert_div_to_flex = isset($_POST['convert_div_to_flex']);
+            
+            // Validate required fields
+            if (empty($target_url)) {
+                wp_send_json_error(__('Target URL is required.', 'bricks-etch-migration'));
+                return;
+            }
+            
+            if (empty($api_key)) {
+                wp_send_json_error(__('API key is required.', 'bricks-etch-migration'));
+                return;
+            }
+            
+            // Validate URL format
+            if (!filter_var($target_url, FILTER_VALIDATE_URL)) {
+                wp_send_json_error(__('Invalid target URL format.', 'bricks-etch-migration'));
+                return;
+            }
+            
+            // Validate API key format (should start with b2e_)
+            if (!preg_match('/^b2e_[a-zA-Z0-9]{32}$/', $api_key)) {
+                wp_send_json_error(__('Invalid API key format. Should start with b2e_ followed by 32 characters.', 'bricks-etch-migration'));
+                return;
+            }
             
             // Update settings
             $settings = array(

@@ -3,7 +3,9 @@
  * Cross-Plugin Converter for Bricks to Etch Migration Plugin
  * 
  * Handles conversion between different custom field plugins (ACF, MetaBox, JetEngine)
- * This is a V1.1 feature for advanced users
+ * 
+ * NOTE: This feature is currently disabled in V0.2.0 for stability
+ * Will be enabled in future versions after core migration is rock-solid
  */
 
 // Prevent direct access
