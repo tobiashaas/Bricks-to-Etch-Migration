@@ -22,16 +22,22 @@ class B2E_Migration_Settings {
      */
     public function get_defaults() {
         return array(
+            // Core migration - always enabled
             'migrate_posts' => true,
             'migrate_pages' => true,
             'migrate_css' => true,
+            
+            // Advanced features - enabled by default
             'migrate_cpts' => true,
             'migrate_acf' => true,
             'migrate_metabox' => true,
-            'migrate_jetengine' => false,
+            
+            
+            // Advanced settings - use defaults
             'selected_post_types' => array(),
-            'selected_post_statuses' => array('publish', 'draft', 'private'),
-            'cleanup_bricks_meta' => false,
+            'selected_post_statuses' => array('publish'),
+            
+            // Conversion options - enabled by default
             'convert_div_to_flex' => true
         );
     }

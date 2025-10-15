@@ -347,10 +347,6 @@ class B2E_Migration_Manager {
     private function finalize_migration() {
         $settings = get_option('b2e_settings', array());
         
-        // Cleanup Bricks meta if requested
-        if (!empty($settings['cleanup_bricks_meta'])) {
-            $this->cleanup_bricks_meta();
-        }
         
         // Update migration log
         $this->error_handler->log_error('W001', array(
@@ -361,38 +357,6 @@ class B2E_Migration_Manager {
         return true;
     }
     
-    /**
-     * Cleanup Bricks meta data
-     */
-    private function cleanup_bricks_meta() {
-        global $wpdb;
-        
-        // Remove Bricks meta keys
-        $bricks_meta_keys = array(
-            '_bricks_template_type',
-            '_bricks_editor_mode',
-            '_bricks_page_content_2',
-            '_bricks_page_content',
-            '_bricks_page_content_1',
-        );
-        
-        foreach ($bricks_meta_keys as $meta_key) {
-            $wpdb->delete(
-                $wpdb->postmeta,
-                array('meta_key' => $meta_key),
-                array('%s')
-            );
-        }
-        
-        // Remove Bricks global classes
-        delete_option('bricks_global_classes');
-        
-        // Log cleanup completion (using W002 warning code for info logging)
-        $this->error_handler->log_error('W002', array(
-            'meta_keys_removed' => $bricks_meta_keys,
-            'action' => 'Cleanup completed'
-        ));
-    }
     
     /**
      * Get migration status

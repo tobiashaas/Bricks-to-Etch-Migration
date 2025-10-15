@@ -660,7 +660,6 @@ class B2E_Admin_Interface {
             formData.append('nonce', '<?php echo wp_create_nonce('b2e_nonce'); ?>');
             formData.append('target_url', targetUrl);
             formData.append('api_key', apiKey);
-            formData.append('cleanup_bricks_meta', document.getElementById('cleanup_bricks_meta').checked);
             formData.append('convert_div_to_flex', document.getElementById('convert_div_to_flex').checked);
             
             console.log('Sending AJAX request...');
@@ -1103,8 +1102,6 @@ class B2E_Admin_Interface {
             formData.append('migrate_cpts', document.getElementById('migrate_cpts').checked ? '1' : '');
             formData.append('migrate_acf', document.getElementById('migrate_acf').checked ? '1' : '');
             formData.append('migrate_metabox', document.getElementById('migrate_metabox').checked ? '1' : '');
-            formData.append('migrate_jetengine', document.getElementById('migrate_jetengine').checked ? '1' : '');
-            formData.append('cleanup_bricks_meta', document.getElementById('cleanup_bricks_meta')?.checked ? '1' : '');
             formData.append('convert_div_to_flex', document.getElementById('convert_div_to_flex')?.checked ? '1' : '');
             
             // Post statuses
@@ -1158,7 +1155,6 @@ class B2E_Admin_Interface {
                 document.getElementById('migrate_cpts').checked = true;
                 document.getElementById('migrate_acf').checked = true;
                 document.getElementById('migrate_metabox').checked = true;
-                document.getElementById('migrate_jetengine').checked = false;
                 document.querySelector('input[name="post_status_publish"]').checked = true;
                 document.querySelector('input[name="post_status_draft"]').checked = true;
                 document.querySelector('input[name="post_status_private"]').checked = true;
@@ -1314,11 +1310,6 @@ class B2E_Admin_Interface {
                                         <span class="description" id="metabox-count"></span>
                                     </label><br />
                                     
-                                    <label>
-                                        <input type="checkbox" id="migrate_jetengine" name="migrate_jetengine" 
-                                               <?php checked($migration_settings['migrate_jetengine']); ?> />
-                                        <?php _e('JetEngine Fields', 'bricks-etch-migration'); ?>
-                                    </label>
                                 </fieldset>
                             </td>
                         </tr>
@@ -1408,18 +1399,6 @@ class B2E_Admin_Interface {
                             </td>
                         </tr>
                         
-                        <tr>
-                            <th scope="row">
-                                <label for="cleanup_bricks_meta"><?php _e('Cleanup Options', 'bricks-etch-migration'); ?></label>
-                            </th>
-                            <td>
-                                <label>
-                                    <input type="checkbox" id="cleanup_bricks_meta" name="cleanup_bricks_meta" 
-                                           <?php checked($settings['cleanup_bricks_meta'] ?? false); ?> />
-                                    <?php _e('Remove Bricks meta data after migration', 'bricks-etch-migration'); ?>
-                                </label>
-                            </td>
-                        </tr>
                         
                         <tr>
                             <th scope="row">
@@ -1612,14 +1591,12 @@ class B2E_Admin_Interface {
             
             $target_url = sanitize_url($_POST['target_url']);
             $api_key = sanitize_text_field($_POST['api_key']);
-            $cleanup_bricks_meta = isset($_POST['cleanup_bricks_meta']);
             $convert_div_to_flex = isset($_POST['convert_div_to_flex']);
             
             // Update settings
             $settings = array(
                 'target_url' => $target_url,
                 'api_key' => $api_key,
-                'cleanup_bricks_meta' => $cleanup_bricks_meta,
                 'convert_div_to_flex' => $convert_div_to_flex,
             );
             update_option('b2e_settings', $settings);
@@ -1908,10 +1885,8 @@ class B2E_Admin_Interface {
             'migrate_cpts' => isset($_POST['migrate_cpts']),
             'migrate_acf' => isset($_POST['migrate_acf']),
             'migrate_metabox' => isset($_POST['migrate_metabox']),
-            'migrate_jetengine' => isset($_POST['migrate_jetengine']),
             'selected_post_types' => isset($_POST['selected_post_types']) ? (array) $_POST['selected_post_types'] : array(),
             'selected_post_statuses' => $this->parse_post_statuses($_POST['selected_post_statuses'] ?? 'publish'),
-            'cleanup_bricks_meta' => isset($_POST['cleanup_bricks_meta']),
             'convert_div_to_flex' => isset($_POST['convert_div_to_flex'])
         );
         
