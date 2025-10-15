@@ -48,6 +48,8 @@ require_once B2E_PLUGIN_DIR . 'includes/class-b2e-transfer-manager.php';
 require_once B2E_PLUGIN_DIR . 'includes/class-b2e-migration-analyzer.php';
 require_once B2E_PLUGIN_DIR . 'includes/class-b2e-migration-settings.php';
 require_once B2E_PLUGIN_DIR . 'includes/media_migrator.php';
+require_once B2E_PLUGIN_DIR . 'includes/migration_token_manager.php';
+require_once B2E_PLUGIN_DIR . 'includes/wpvivid_migration_interface.php';
 
 // Main plugin class
 class Bricks_Etch_Migration {

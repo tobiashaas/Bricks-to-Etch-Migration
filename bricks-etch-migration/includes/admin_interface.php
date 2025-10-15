@@ -16,6 +16,7 @@ class B2E_Admin_Interface {
      * Constructor
      */
     public function __construct() {
+        add_action('admin_menu', array($this, 'add_admin_menu'));
         add_action('wp_ajax_b2e_start_migration', array($this, 'ajax_start_migration'));
         add_action('wp_ajax_b2e_get_progress', array($this, 'ajax_get_progress'));
         add_action('wp_ajax_b2e_test_export_connection', array($this, 'ajax_test_export_connection'));
@@ -25,6 +26,38 @@ class B2E_Admin_Interface {
         add_action('wp_ajax_b2e_clear_logs', array($this, 'ajax_clear_logs'));
         add_action('wp_ajax_b2e_generate_report', array($this, 'ajax_generate_report'));
         add_action('wp_ajax_b2e_save_migration_settings', array($this, 'ajax_save_migration_settings'));
+    }
+    
+    /**
+     * Add admin menu
+     */
+    public function add_admin_menu() {
+        add_menu_page(
+            __('Bricks to Etch Migration', 'bricks-etch-migration'),
+            __('Bricks to Etch', 'bricks-etch-migration'),
+            'manage_options',
+            'bricks-etch-migration',
+            array($this, 'render_dashboard'),
+            'dashicons-migrate',
+            30
+        );
+        
+        add_submenu_page(
+            'bricks-etch-migration',
+            __('WPvivid Style Migration', 'bricks-etch-migration'),
+            __('WPvivid Style', 'bricks-etch-migration'),
+            'manage_options',
+            'bricks-etch-migration-wpvivid',
+            array($this, 'render_wpvivid_dashboard')
+        );
+    }
+    
+    /**
+     * Render WPvivid-style dashboard
+     */
+    public function render_wpvivid_dashboard() {
+        $wpvivid_interface = new B2E_WPvivid_Migration_Interface();
+        $wpvivid_interface->render_wpvivid_interface();
     }
     
     /**

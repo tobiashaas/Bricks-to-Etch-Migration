@@ -40,6 +40,13 @@ class B2E_API_Endpoints {
             'permission_callback' => '__return_true',
         ));
         
+        // WPvivid-style migration endpoint
+        register_rest_route($namespace, '/migrate', array(
+            'methods' => 'GET',
+            'callback' => array(__CLASS__, 'handle_wpvivid_migration'),
+            'permission_callback' => '__return_true',
+        ));
+        
         // Plugin status endpoint
         register_rest_route($namespace, '/validate/plugins', array(
             'methods' => 'GET',
@@ -593,6 +600,54 @@ class B2E_API_Endpoints {
         } catch (Exception $e) {
             error_log('B2E Import Media Error: ' . $e->getMessage() . ' in ' . $e->getFile() . ' on line ' . $e->getLine());
             return new WP_Error('import_error', 'Media import failed: ' . $e->getMessage() . ' (Line: ' . $e->getLine() . ')', array('status' => 500));
+        }
+    }
+    
+    /**
+     * Handle WPvivid-style migration request
+     */
+    public static function handle_wpvivid_migration($request) {
+        try {
+            $params = $request->get_params();
+            
+            // Extract migration parameters
+            $domain = $params['domain'] ?? null;
+            $token = $params['token'] ?? null;
+            $expires = isset($params['expires']) ? (int) $params['expires'] : null;
+            
+            if (empty($domain) || empty($token) || empty($expires)) {
+                return new WP_Error('missing_params', 'Missing required migration parameters', array('status' => 400));
+            }
+            
+            // Validate migration token
+            $token_manager = new B2E_Migration_Token_Manager();
+            $validation = $token_manager->validate_migration_token($token, $domain, $expires);
+            
+            if (is_wp_error($validation)) {
+                return new WP_Error('invalid_token', $validation->get_error_message(), array('status' => 401));
+            }
+            
+            // Start migration process
+            $migration_manager = new B2E_Migration_Manager();
+            $result = $migration_manager->start_migration($domain, $token);
+            
+            if (is_wp_error($result)) {
+                return new WP_Error('migration_failed', $result->get_error_message(), array('status' => 500));
+            }
+            
+            // Return success response with migration details
+            return new WP_REST_Response(array(
+                'success' => true,
+                'message' => 'WPvivid-style migration started successfully!',
+                'migration_url' => $request->get_link(),
+                'source_domain' => $domain,
+                'target_domain' => home_url(),
+                'started_at' => current_time('mysql'),
+            ), 200);
+            
+        } catch (Exception $e) {
+            error_log('B2E WPvivid Migration Error: ' . $e->getMessage() . ' in ' . $e->getFile() . ' on line ' . $e->getLine());
+            return new WP_Error('migration_error', 'Migration failed: ' . $e->getMessage() . ' (Line: ' . $e->getLine() . ')', array('status' => 500));
         }
     }
 }
