@@ -1,0 +1,24 @@
+# WordPress-Dateien
+wordpress-bricks/
+wordpress-etch/
+
+# Docker-Volumes
+mysql-bricks-data/
+mysql-etch-data/
+
+# Logs
+*.log
+
+# Temporäre Dateien
+*.tmp
+*.temp
+
+# OS-Dateien
+.DS_Store
+Thumbs.db
+
+# IDE-Dateien
+.vscode/
+.idea/
+*.swp
+*.swo

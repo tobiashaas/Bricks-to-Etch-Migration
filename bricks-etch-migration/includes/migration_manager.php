@@ -68,16 +68,16 @@ class B2E_Migration_Manager {
             // Initialize progress
             $this->init_progress();
             
-            // Step 1: Validation
+            // Step 1: Basic validation (target site only)
             $this->update_progress('validation', 10, __('Validating migration requirements...', 'bricks-etch-migration'));
-            $validation_result = $this->validate_migration_requirements();
+            $validation_result = $this->validate_target_site_requirements();
             
             if (!$validation_result['valid']) {
                 $error_message = 'Migration validation failed: ' . implode(', ', $validation_result['errors']);
                 
                 $this->error_handler->log_error('E103', array(
                     'validation_errors' => $validation_result['errors'],
-                    'action' => 'Migration validation failed'
+                    'action' => 'Target site validation failed'
                 ));
                 
                 $this->update_progress('error', 0, $error_message);
@@ -443,6 +443,96 @@ class B2E_Migration_Manager {
                 return $this->finalize_migration();
             default:
                 return new WP_Error('invalid_step', 'Invalid migration step');
+        }
+    }
+    
+    /**
+     * Validate target site requirements only
+     * This runs on the TARGET site (Etch), not the source site (Bricks)
+     */
+    private function validate_target_site_requirements() {
+        $validation_results = array(
+            'valid' => true,
+            'errors' => array(),
+            'warnings' => array()
+        );
+        
+        // Check if WordPress is properly configured
+        if (!function_exists('wp_get_current_user')) {
+            $validation_results['errors'][] = 'WordPress is not properly loaded';
+            $validation_results['valid'] = false;
+        }
+        
+        // Check if we have write permissions
+        if (!is_writable(WP_CONTENT_DIR)) {
+            $validation_results['errors'][] = 'WordPress content directory is not writable';
+            $validation_results['valid'] = false;
+        }
+        
+        // Check PHP memory limit
+        $memory_limit = ini_get('memory_limit');
+        if ($memory_limit && intval($memory_limit) < 256) {
+            $validation_results['warnings'][] = 'PHP memory limit is low (' . $memory_limit . '). Consider increasing it to 512M or higher.';
+        }
+        
+        // Check if Etch is available (optional check)
+        if (!defined('ETCH_VERSION') && !class_exists('Etch\\Core\\Etch')) {
+            $validation_results['warnings'][] = 'Etch plugin may not be active. Migration will proceed but content may not render properly.';
+        }
+        
+        return $validation_results;
+    }
+    
+    /**
+     * Start import process (runs on TARGET site - Etch)
+     * This method receives data from the source site and imports it
+     */
+    public function start_import_process($source_domain, $token) {
+        try {
+            // Initialize progress
+            $this->init_progress();
+            
+            // Step 1: Validate target site requirements
+            $this->update_progress('validation', 10, __('Validating target site requirements...', 'bricks-etch-migration'));
+            $validation_result = $this->validate_target_site_requirements();
+            
+            if (!$validation_result['valid']) {
+                $error_message = 'Target site validation failed: ' . implode(', ', $validation_result['errors']);
+                
+                $this->error_handler->log_error('E103', array(
+                    'validation_errors' => $validation_result['errors'],
+                    'action' => 'Target site validation failed'
+                ));
+                
+                $this->update_progress('error', 0, $error_message);
+                
+                return new WP_Error('validation_failed', $error_message);
+            }
+            
+            // Step 2: Import process (this will be implemented later)
+            $this->update_progress('import', 50, __('Starting import process...', 'bricks-etch-migration'));
+            
+            // For now, just return success - the actual import will be implemented
+            // when we have the export functionality working from the source site
+            $this->update_progress('completed', 100, __('Import process ready. Waiting for source site data...', 'bricks-etch-migration'));
+            
+            return array(
+                'success' => true,
+                'message' => 'Target site ready for import',
+                'source_domain' => $source_domain,
+                'target_domain' => home_url(),
+                'progress' => get_transient('b2e_migration_progress')
+            );
+            
+        } catch (Exception $e) {
+            $this->error_handler->log_error('E101', array(
+                'error' => $e->getMessage(),
+                'action' => 'Import process failed'
+            ));
+            
+            $this->update_progress('error', 0, $e->getMessage());
+            
+            return new WP_Error('import_failed', $e->getMessage());
         }
     }
 }

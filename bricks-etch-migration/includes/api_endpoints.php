@@ -47,6 +47,13 @@ class B2E_API_Endpoints {
             'permission_callback' => '__return_true',
         ));
         
+        // Token validation endpoint for key validation
+        register_rest_route($namespace, '/validate', array(
+            'methods' => 'POST',
+            'callback' => array(__CLASS__, 'validate_migration_token'),
+            'permission_callback' => '__return_true',
+        ));
+        
         // Plugin status endpoint
         register_rest_route($namespace, '/validate/plugins', array(
             'methods' => 'GET',
@@ -615,7 +622,17 @@ class B2E_API_Endpoints {
             $token = $params['token'] ?? null;
             $expires = isset($params['expires']) ? (int) $params['expires'] : null;
             
+            // Debug logging
+            error_log('=== B2E API Debug Start ===');
+            error_log('B2E Debug - Received params: ' . print_r($params, true));
+            error_log('B2E Debug - Domain: ' . $domain);
+            error_log('B2E Debug - Token: ' . substr($token, 0, 20) . '...');
+            error_log('B2E Debug - Expires: ' . $expires);
+            error_log('B2E Debug - Current time: ' . time());
+            error_log('B2E Debug - Expires date: ' . date('Y-m-d H:i:s', $expires));
+            
             if (empty($domain) || empty($token) || empty($expires)) {
+                error_log('B2E Debug - Missing parameters');
                 return new WP_Error('missing_params', 'Missing required migration parameters', array('status' => 400));
             }
             
@@ -624,12 +641,17 @@ class B2E_API_Endpoints {
             $validation = $token_manager->validate_migration_token($token, $domain, $expires);
             
             if (is_wp_error($validation)) {
+                error_log('B2E Debug - Token validation failed: ' . $validation->get_error_message());
+                error_log('B2E Debug - Validation error code: ' . $validation->get_error_code());
+                error_log('B2E Debug - Validation error data: ' . print_r($validation->get_error_data(), true));
                 return new WP_Error('invalid_token', $validation->get_error_message(), array('status' => 401));
             }
             
-            // Start migration process
+            error_log('B2E Debug - Token validation successful');
+            
+            // Start import process (this runs on TARGET site)
             $migration_manager = new B2E_Migration_Manager();
-            $result = $migration_manager->start_migration($domain, $token);
+            $result = $migration_manager->start_import_process($domain, $token);
             
             if (is_wp_error($result)) {
                 return new WP_Error('migration_failed', $result->get_error_message(), array('status' => 500));
@@ -639,7 +661,7 @@ class B2E_API_Endpoints {
                 return new WP_REST_Response(array(
                     'success' => true,
                     'message' => 'Key-based migration started successfully!',
-                    'migration_url' => $request->get_link(),
+                    'migration_url' => $request->get_route(),
                     'source_domain' => $domain,
                     'target_domain' => home_url(),
                     'started_at' => current_time('mysql'),
@@ -648,6 +670,47 @@ class B2E_API_Endpoints {
         } catch (Exception $e) {
             error_log('B2E Key Migration Error: ' . $e->getMessage() . ' in ' . $e->getFile() . ' on line ' . $e->getLine());
             return new WP_Error('migration_error', 'Migration failed: ' . $e->getMessage() . ' (Line: ' . $e->getLine() . ')', array('status' => 500));
+        }
+    }
+    
+    /**
+     * Validate migration token endpoint
+     * Used by the "Validate Key" button to test API connection
+     */
+    public static function validate_migration_token($request) {
+        try {
+            // Get request body
+            $body = $request->get_json_params();
+            
+            if (empty($body['token']) || empty($body['expires'])) {
+                return new WP_Error('missing_parameters', 'Token and expires parameters are required', array('status' => 400));
+            }
+            
+            $token = sanitize_text_field($body['token']);
+            $expires = intval($body['expires']);
+            
+            // Validate token using token manager
+            $token_manager = new B2E_Migration_Token_Manager();
+            $validation_result = $token_manager->validate_migration_token($token, $expires);
+            
+            if (is_wp_error($validation_result)) {
+                return new WP_Error('token_validation_failed', $validation_result->get_error_message(), array('status' => 401));
+            }
+            
+            // Return success response
+            return new WP_REST_Response(array(
+                'success' => true,
+                'message' => 'Token validation successful',
+                'target_domain' => home_url(),
+                'site_name' => get_bloginfo('name'),
+                'wordpress_version' => get_bloginfo('version'),
+                'etch_active' => class_exists('Etch') || function_exists('etch_init'),
+                'validated_at' => current_time('mysql'),
+            ), 200);
+            
+        } catch (Exception $e) {
+            error_log('B2E Token Validation Error: ' . $e->getMessage() . ' in ' . $e->getFile() . ' on line ' . $e->getLine());
+            return new WP_Error('validation_error', 'Token validation failed: ' . $e->getMessage(), array('status' => 500));
         }
     }
 }

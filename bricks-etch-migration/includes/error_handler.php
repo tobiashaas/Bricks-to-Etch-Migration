@@ -264,4 +264,30 @@ class B2E_Error_Handler {
     public function get_warning_info($code) {
         return isset(self::WARNING_CODES[$code]) ? self::WARNING_CODES[$code] : null;
     }
+    
+    /**
+     * Development debug helper - logs detailed information when WP_DEBUG is enabled
+     * 
+     * @param string $message Debug message
+     * @param mixed $data Optional data to log
+     * @param string $context Context identifier (default: B2E_DEBUG)
+     */
+    public function debug_log($message, $data = null, $context = 'B2E_DEBUG') {
+        if (!WP_DEBUG || !WP_DEBUG_LOG) {
+            return;
+        }
+        
+        $log_message = sprintf(
+            '[%s] %s: %s',
+            $context,
+            current_time('Y-m-d H:i:s'),
+            $message
+        );
+        
+        if ($data !== null) {
+            $log_message .= ' | Data: ' . print_r($data, true);
+        }
+        
+        error_log($log_message);
+    }
 }

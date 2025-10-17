@@ -34,24 +34,29 @@ class B2E_Migration_Token_Manager {
      * Generate migration URL with embedded token
      * 
      * @param string $target_domain Target domain
+     * @param int $expiration_seconds Token expiration time in seconds
      * @return string Migration URL
      */
-    public function generate_migration_url($target_domain = null) {
+    public function generate_migration_url($target_domain = null, $expiration_seconds = null) {
         if (empty($target_domain)) {
             $target_domain = home_url();
+        }
+        
+        if (empty($expiration_seconds)) {
+            $expiration_seconds = self::TOKEN_EXPIRATION;
         }
         
         // Generate secure token
         $token = $this->generate_secure_token();
         
         // Store token with expiration
-        $this->store_token($token);
+        $this->store_token($token, $expiration_seconds);
         
         // Build migration URL
         $migration_url = add_query_arg(array(
             'domain' => $target_domain,
             'token' => $token,
-            'expires' => time() + self::TOKEN_EXPIRATION,
+            'expires' => time() + $expiration_seconds,
         ), $target_domain);
         
         return $migration_url;
@@ -61,59 +66,37 @@ class B2E_Migration_Token_Manager {
      * Generate secure migration token
      */
     private function generate_secure_token() {
-        // Generate RSA key pair for this migration session
-        $key_pair = $this->generate_rsa_key_pair();
+        // Generate a simple secure token (not RSA key pair)
+        $token = wp_generate_password(64, false);
         
-        // Store private key for this site
-        update_option('b2e_private_key', $key_pair['private']);
-        
-        // Return public key as token (base64 encoded)
-        return base64_encode($key_pair['public']);
+        // Token will be stored by store_token() method - don't store it here
+        return $token;
     }
     
-    /**
-     * Generate RSA key pair
-     */
-    private function generate_rsa_key_pair() {
-        $config = array(
-            "digest_alg" => "sha256",
-            "private_key_bits" => 2048,
-            "private_key_type" => OPENSSL_KEYTYPE_RSA,
-        );
-        
-        $res = openssl_pkey_new($config);
-        if (!$res) {
-            throw new Exception('Failed to generate RSA key pair');
-        }
-        
-        // Extract private key
-        openssl_pkey_export($res, $private_key);
-        
-        // Extract public key
-        $key_details = openssl_pkey_get_details($res);
-        $public_key = $key_details['key'];
-        
-        return array(
-            'private' => $private_key,
-            'public' => $public_key,
-        );
-    }
     
     /**
      * Store token with expiration
      */
-    private function store_token($token) {
+    private function store_token($token, $expiration_seconds = null) {
+        if (empty($expiration_seconds)) {
+            $expiration_seconds = self::TOKEN_EXPIRATION;
+        }
+        
+        // Store simple token data
         $token_data = array(
             'token' => $token,
             'created_at' => current_time('mysql'),
-            'expires_at' => date('Y-m-d H:i:s', time() + self::TOKEN_EXPIRATION),
+            'expires_at' => date('Y-m-d H:i:s', time() + $expiration_seconds),
             'domain' => home_url(),
         );
         
         update_option('b2e_migration_token', $token_data);
         
+        // Store token value for validation
+        update_option('b2e_migration_token_value', $token);
+        
         // Also store in transients for faster access
-        set_transient('b2e_token_' . substr($token, 0, 16), $token_data, self::TOKEN_EXPIRATION);
+        set_transient('b2e_token_' . substr($token, 0, 16), $token_data, $expiration_seconds);
     }
     
     /**
@@ -125,23 +108,36 @@ class B2E_Migration_Token_Manager {
      * @return bool|WP_Error
      */
     public function validate_migration_token($token, $source_domain, $expires) {
+        // Debug logging
+        error_log('B2E Token Validation Debug:');
+        error_log('- Received token: ' . substr($token, 0, 20) . '...');
+        error_log('- Source domain: ' . $source_domain);
+        error_log('- Expires: ' . $expires . ' (' . date('Y-m-d H:i:s', $expires) . ')');
+        error_log('- Current time: ' . time() . ' (' . date('Y-m-d H:i:s') . ')');
+        
         // Check expiration
         if (time() > $expires) {
+            error_log('- Token expired!');
             return new WP_Error('token_expired', 'Migration token has expired');
         }
         
-        // Get stored token data
-        $token_data = get_option('b2e_migration_token', array());
+        // Get stored token value
+        $stored_token = get_option('b2e_migration_token_value', '');
+        error_log('- Stored token: ' . ($stored_token ? substr($stored_token, 0, 20) . '...' : 'NOT_FOUND'));
         
-        if (empty($token_data) || $token_data['token'] !== $token) {
-            return new WP_Error('invalid_token', 'Invalid migration token');
+        if (empty($stored_token)) {
+            error_log('- No stored token found!');
+            return new WP_Error('invalid_token', 'No migration token found. Please generate a new key.');
         }
         
-        // Validate domain (optional - for security)
-        if (!empty($source_domain) && $token_data['domain'] !== $source_domain) {
-            return new WP_Error('domain_mismatch', 'Source domain does not match token');
+        if ($stored_token !== $token) {
+            error_log('- Token mismatch!');
+            error_log('- Expected: ' . substr($stored_token, 0, 20) . '...');
+            error_log('- Received: ' . substr($token, 0, 20) . '...');
+            return new WP_Error('invalid_token', 'Invalid migration token. Tokens do not match.');
         }
         
+        error_log('- Token validation successful!');
         return true;
     }
     
@@ -227,4 +223,5 @@ class B2E_Migration_Token_Manager {
             'qr_data' => $migration_url,
         );
     }
+    
 }

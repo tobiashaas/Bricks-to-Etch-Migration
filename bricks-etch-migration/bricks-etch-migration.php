@@ -3,7 +3,7 @@
  * Plugin Name: Bricks to Etch Migration
  * Plugin URI: https://github.com/tobiashaas/Bricks-to-Etch-Migration
  * Description: One-time migration tool for converting Bricks Builder websites to Etch PageBuilder with complete automation.
- * Version: 0.2.0
+ * Version: 0.3.7
  * Author: Tobias Haas
  * License: GPL v2 or later
  * Text Domain: bricks-etch-migration
@@ -20,14 +20,13 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('B2E_VERSION', '0.2.0');
+define('B2E_VERSION', '0.3.7');
 define('B2E_PLUGIN_FILE', __FILE__);
 define('B2E_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('B2E_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('B2E_PLUGIN_BASENAME', plugin_basename(__FILE__));
 
 // Load all required classes
-require_once B2E_PLUGIN_DIR . 'includes/class-b2e-autoloader.php';
 require_once B2E_PLUGIN_DIR . 'includes/error_handler.php';
 require_once B2E_PLUGIN_DIR . 'includes/admin_interface.php';
 require_once B2E_PLUGIN_DIR . 'includes/api_endpoints.php';
@@ -38,15 +37,10 @@ require_once B2E_PLUGIN_DIR . 'includes/gutenberg_generator.php';
 require_once B2E_PLUGIN_DIR . 'includes/dynamic_data_converter.php';
 require_once B2E_PLUGIN_DIR . 'includes/migration_manager.php';
 require_once B2E_PLUGIN_DIR . 'includes/api_client.php';
-require_once B2E_PLUGIN_DIR . 'includes/api_endpoints.php';
 require_once B2E_PLUGIN_DIR . 'includes/custom_fields_migrator.php';
 require_once B2E_PLUGIN_DIR . 'includes/acf_field_groups_migrator.php';
 require_once B2E_PLUGIN_DIR . 'includes/metabox_migrator.php';
 require_once B2E_PLUGIN_DIR . 'includes/cpt_migrator.php';
-require_once B2E_PLUGIN_DIR . 'includes/cross_plugin_converter.php';
-require_once B2E_PLUGIN_DIR . 'includes/class-b2e-transfer-manager.php';
-require_once B2E_PLUGIN_DIR . 'includes/class-b2e-migration-analyzer.php';
-require_once B2E_PLUGIN_DIR . 'includes/class-b2e-migration-settings.php';
 require_once B2E_PLUGIN_DIR . 'includes/media_migrator.php';
 require_once B2E_PLUGIN_DIR . 'includes/migration_token_manager.php';
 
@@ -57,6 +51,11 @@ class Bricks_Etch_Migration {
      * Single instance of the plugin
      */
     private static $instance = null;
+    
+    /**
+     * Admin interface instance
+     */
+    private $admin_interface = null;
     
     /**
      * Get single instance
@@ -80,12 +79,10 @@ class Bricks_Etch_Migration {
      */
     private function init_hooks() {
         add_action('init', array($this, 'init'));
-        add_action('admin_menu', array($this, 'add_admin_menu'));
+        // Admin menu is now handled by B2E_Admin_Interface class only
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
         
-        // Activation/Deactivation hooks
-        register_activation_hook(__FILE__, array($this, 'activate'));
-        register_deactivation_hook(__FILE__, array($this, 'deactivate'));
+        // Activation/Deactivation hooks are registered at the end of the file
     }
     
     /**
@@ -103,9 +100,9 @@ class Bricks_Etch_Migration {
      * Initialize plugin components
      */
     private function init_components() {
-        // Initialize admin interface
+        // Initialize admin interface with menu registration
         if (is_admin()) {
-            new B2E_Admin_Interface();
+            $this->admin_interface = new B2E_Admin_Interface(true);
         }
         
         // Initialize API endpoints (static registration)
@@ -116,26 +113,67 @@ class Bricks_Etch_Migration {
     }
     
     /**
-     * Add admin menu
+     * Add admin menu - REMOVED: This was causing duplicate menus
+     * Admin menu is now handled by B2E_Admin_Interface class only
      */
-    public function add_admin_menu() {
-        add_menu_page(
-            __('Bricks to Etch Migration', 'bricks-etch-migration'),
-            __('B2E Migration', 'bricks-etch-migration'),
-            'manage_options',
-            'bricks-etch-migration',
-            array($this, 'admin_page'),
-            'dashicons-migrate',
-            30
-        );
+    
+    /**
+     * Admin page callback - REMOVED: This was causing duplicate dashboards
+     * Dashboard rendering is now handled by B2E_Admin_Interface class only
+     */
+    
+    /**
+     * Plugin activation
+     */
+    public static function activate() {
+        // Plugin activation tasks
+        flush_rewrite_rules();
     }
     
     /**
-     * Admin page callback
+     * Plugin deactivation with complete cleanup
      */
-    public function admin_page() {
-        $admin_interface = new B2E_Admin_Interface();
-        $admin_interface->render_dashboard();
+    public static function deactivate() {
+        // Clear ALL plugin data on deactivation
+        global $wpdb;
+        
+        // Clear transients
+        $wpdb->query(
+            "DELETE FROM {$wpdb->options} 
+             WHERE option_name LIKE '_transient_b2e_%' 
+             OR option_name LIKE '_transient_timeout_b2e_%'"
+        );
+        
+        // Clear all B2E options
+        $b2e_options = [
+            'b2e_settings',
+            'b2e_migration_progress', 
+            'b2e_migration_token',
+            'b2e_migration_token_value',
+            'b2e_private_key',
+            'b2e_error_log',
+            'b2e_api_key',
+            'b2e_import_api_key',
+            'b2e_export_api_key',
+            'b2e_migration_settings'
+        ];
+        
+        foreach ($b2e_options as $option) {
+            delete_option($option);
+        }
+        
+        // Clear user meta
+        $wpdb->query(
+            "DELETE FROM {$wpdb->usermeta} WHERE meta_key LIKE '%b2e%'"
+        );
+        
+        // Clear WordPress object cache
+        if (function_exists('wp_cache_flush')) {
+            wp_cache_flush();
+        }
+        
+        // Flush rewrite rules
+        flush_rewrite_rules();
     }
     
     /**
@@ -180,69 +218,50 @@ class Bricks_Etch_Migration {
     }
     
     /**
-     * Plugin activation
+     * Plugin activation - DUPLICATE REMOVED
+     * Using static version instead
      */
-    public function activate() {
-        // Set default options
-        $default_options = array(
-            'api_key' => '',
-            'target_url' => '',
-            'cleanup_bricks_meta' => false,
-            'convert_div_to_flex' => true,
-            'migration_status' => 'idle',
-            'last_migration_date' => null,
-        );
-        
-        add_option('b2e_settings', $default_options);
-        
-        // Create necessary database tables or options
-        $this->create_migration_tables();
-        
-        // Flush rewrite rules
-        flush_rewrite_rules();
-    }
     
     /**
-     * Plugin deactivation
+     * Plugin deactivation - DUPLICATE REMOVED  
+     * Using static version instead
      */
-    public function deactivate() {
-        // Clean up transients
-        $this->cleanup_transients();
-        
-        // Flush rewrite rules
-        flush_rewrite_rules();
-    }
     
     /**
-     * Create migration tables/options
+     * Create migration tables/options - REMOVED
+     * No longer needed with static activation
      */
-    private function create_migration_tables() {
-        // Create migration log option
-        add_option('b2e_migration_log', array());
-        
-        // Create progress tracking option
-        add_option('b2e_migration_progress', array(
-            'status' => 'idle',
-            'current_step' => '',
-            'percentage' => 0,
-            'started_at' => null,
-            'completed_at' => null,
-        ));
-    }
     
     /**
-     * Clean up transients
+     * Clean up transients - REMOVED
+     * No longer needed with static deactivation
      */
-    private function cleanup_transients() {
-        global $wpdb;
-        
-        // Delete all b2e transients
-        $wpdb->query(
-            "DELETE FROM {$wpdb->options} 
-             WHERE option_name LIKE '_transient_b2e_%' 
-             OR option_name LIKE '_transient_timeout_b2e_%'"
-        );
+}
+
+/**
+ * Global debug helper function for development
+ * 
+ * @param string $message Debug message
+ * @param mixed $data Optional data to log
+ * @param string $context Context identifier (default: B2E_DEBUG)
+ */
+function b2e_debug_log($message, $data = null, $context = 'B2E_DEBUG') {
+    if (!WP_DEBUG || !WP_DEBUG_LOG) {
+        return;
     }
+    
+    $log_message = sprintf(
+        '[%s] %s: %s',
+        $context,
+        current_time('Y-m-d H:i:s'),
+        $message
+    );
+    
+    if ($data !== null) {
+        $log_message .= ' | Data: ' . print_r($data, true);
+    }
+    
+    error_log($log_message);
 }
 
 // Initialize the plugin
@@ -252,3 +271,7 @@ function bricks_etch_migration() {
 
 // Start the plugin
 bricks_etch_migration();
+
+// Plugin activation/deactivation hooks
+register_activation_hook(__FILE__, array('Bricks_Etch_Migration', 'activate'));
+register_deactivation_hook(__FILE__, array('Bricks_Etch_Migration', 'deactivate'));
