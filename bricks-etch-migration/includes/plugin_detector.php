@@ -48,7 +48,7 @@ class B2E_Plugin_Detector {
      * Check if Etch PageBuilder is active
      */
     public function is_etch_active() {
-        return class_exists('Etch\Etch') || function_exists('etch_is_active');
+        return class_exists('Etch\Plugin') || function_exists('etch_run_plugin') || defined('ETCH_VERSION');
     }
     
     /**

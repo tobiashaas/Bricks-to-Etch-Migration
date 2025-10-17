@@ -29,19 +29,21 @@ class B2E_Content_Parser {
      * 
      * REAL DB STRUCTURE:
      * - post_content is EMPTY!
-     * - All content stored in _bricks_page_content_2 (serialized array)
+     * - All content stored in _bricks_page_content (our test data)
      * - Additional meta: _bricks_template_type, _bricks_editor_mode
      */
     public function parse_bricks_content($post_id) {
-        // Get the actual Bricks content (serialized array)
+        // Get the actual Bricks content
+        // Try _bricks_page_content_2 first (newer Bricks versions), then _bricks_page_content
         $bricks_content = get_post_meta($post_id, '_bricks_page_content_2', true);
         
         if (empty($bricks_content)) {
-            // No Bricks content found, skip
-            $this->error_handler->log_warning('W001', array(
-                'post_id' => $post_id,
-                'action' => 'No Bricks content found - skipping'
-            ));
+            $bricks_content = get_post_meta($post_id, '_bricks_page_content', true);
+        }
+        
+        if (empty($bricks_content) || $bricks_content === '[]' || $bricks_content === array()) {
+            // No Bricks content found - this is a normal WordPress post
+            // Return false so the migration uses the original post_content
             return false;
         }
         
@@ -60,7 +62,11 @@ class B2E_Content_Parser {
             return false;
         }
         
-        return $this->process_bricks_elements($bricks_content, $post_id);
+        $processed_elements = $this->process_bricks_elements($bricks_content, $post_id);
+        
+        return array(
+            'elements' => $processed_elements
+        );
     }
     
     /**
@@ -81,6 +87,7 @@ class B2E_Content_Parser {
                 'children' => $element['children'] ?? array(),
                 'settings' => $element['settings'] ?? array(),
                 'content' => $element['content'] ?? '',
+                'label' => $element['label'] ?? '', // Custom element name from Structure Panel
             );
             
             // Process element based on type
@@ -105,6 +112,10 @@ class B2E_Content_Parser {
             case 'container':
                 return $this->process_container_element($element, $post_id);
                 
+            case 'block':
+                // Bricks block element (brxe-block) - treat as container
+                return $this->process_container_element($element, $post_id);
+                
             case 'div':
                 return $this->process_div_element($element, $post_id);
                 
@@ -112,6 +123,7 @@ class B2E_Content_Parser {
                 return $this->process_heading_element($element, $post_id);
                 
             case 'text':
+            case 'text-basic':
                 return $this->process_text_element($element, $post_id);
                 
             case 'image':
@@ -126,6 +138,9 @@ class B2E_Content_Parser {
                 
             case 'iframe':
                 return $this->process_iframe_element($element, $post_id);
+                
+            case 'gutenberg':
+                return $this->process_gutenberg_element($element, $post_id);
                 
             default:
                 // Log unsupported element
@@ -195,6 +210,7 @@ class B2E_Content_Parser {
         $element['etch_type'] = 'heading';
         $element['etch_data'] = array(
             'level' => $element['settings']['tag'] ?? 'h2',
+            'content' => $element['settings']['text'] ?? '',
             'class' => $this->extract_css_classes($element['settings']),
         );
         
@@ -207,6 +223,7 @@ class B2E_Content_Parser {
     private function process_text_element($element, $post_id) {
         $element['etch_type'] = 'paragraph';
         $element['etch_data'] = array(
+            'content' => $element['settings']['text'] ?? '',
             'class' => $this->extract_css_classes($element['settings']),
         );
         
@@ -269,6 +286,19 @@ class B2E_Content_Parser {
     }
     
     /**
+     * Process Gutenberg element (regular WordPress content)
+     */
+    private function process_gutenberg_element($element, $post_id) {
+        $element['etch_type'] = 'gutenberg';
+        $element['etch_data'] = array(
+            'content' => $element['settings']['content'] ?? '',
+            'is_gutenberg' => true
+        );
+        
+        return $element;
+    }
+    
+    /**
      * Process generic element (fallback)
      */
     private function process_generic_element($element, $post_id) {
@@ -291,9 +321,32 @@ class B2E_Content_Parser {
             $classes[] = $settings['_cssClasses'];
         }
         
-        // Extract global CSS classes
+        // Extract global CSS classes and convert Bricks IDs to class names
         if (!empty($settings['_cssGlobalClasses']) && is_array($settings['_cssGlobalClasses'])) {
-            $classes = array_merge($classes, $settings['_cssGlobalClasses']);
+            // Get Bricks global classes
+            $bricks_classes = get_option('bricks_global_classes', array());
+            
+            foreach ($settings['_cssGlobalClasses'] as $bricks_id) {
+                // Find the class by ID
+                $found_class = null;
+                foreach ($bricks_classes as $bricks_class) {
+                    if ($bricks_class['id'] === $bricks_id) {
+                        $found_class = $bricks_class;
+                        break;
+                    }
+                }
+                
+                // Use the name if found, otherwise use the ID
+                if ($found_class && !empty($found_class['name'])) {
+                    $class_name = $found_class['name'];
+                } else {
+                    $class_name = $bricks_id;
+                }
+                
+                // Remove ACSS import prefix from class names
+                $class_name = preg_replace('/^acss_import_/', '', $class_name);
+                $classes[] = $class_name;
+            }
         }
         
         return implode(' ', array_filter($classes));
@@ -303,9 +356,15 @@ class B2E_Content_Parser {
      * Get all Bricks posts
      */
     public function get_bricks_posts() {
-        // Get migration settings
-        $settings_manager = new B2E_Migration_Settings();
-        $settings = $settings_manager->get_settings();
+        // Get migration settings (simplified)
+        $settings = array(
+            'post_types' => array('post', 'page'),
+            'include_drafts' => false,
+            'batch_size' => 10,
+            'migrate_posts' => true,
+            'migrate_pages' => true,
+            'migrate_cpts' => true
+        );
         
         // Determine which post types to migrate
         $post_types = array();
@@ -337,17 +396,12 @@ class B2E_Content_Parser {
             $post_statuses = $settings['selected_post_statuses'];
         }
         
-        // Query for Bricks posts with the key that contains actual content
+        // Query for ALL posts (not just Bricks posts)
+        // We migrate everything - Bricks content gets converted, Gutenberg stays Gutenberg
         $posts = get_posts(array(
             'post_type' => $post_types,
             'post_status' => $post_statuses,
-            'numberposts' => -1,
-            'meta_query' => array(
-                array(
-                    'key' => '_bricks_page_content_2',
-                    'compare' => 'EXISTS'
-                )
-            )
+            'numberposts' => -1
         ));
         
         return $posts;
@@ -380,5 +434,252 @@ class B2E_Content_Parser {
         $validation_results['bricks_global_classes'] = count($global_classes);
         
         return $validation_results;
+    }
+    
+    /**
+     * Convert Bricks elements to Etch-compatible format (REAL CONVERSION!)
+     */
+    public function convert_to_etch_format($bricks_content) {
+        if (empty($bricks_content) || !is_array($bricks_content)) {
+            return false;
+        }
+        
+        $etch_content = array();
+        
+        // Handle Bricks elements structure
+        if (isset($bricks_content['elements']) && is_array($bricks_content['elements'])) {
+            foreach ($bricks_content['elements'] as $element) {
+                $converted_element = $this->convert_bricks_element($element);
+                
+                if ($converted_element) {
+                    $etch_content[] = $converted_element;
+                }
+            }
+        }
+        
+        return $etch_content;
+    }
+    
+    /**
+     * Convert individual Bricks element to Etch format
+     */
+    private function convert_bricks_element($element) {
+        if (empty($element['name'])) {
+            return false;
+        }
+        
+        $element_type = $element['name'];
+        $settings = $element['settings'] ?? array();
+        
+        // Convert based on element type
+        switch ($element_type) {
+            case 'text':
+                return $this->convert_text_element($settings);
+                
+            case 'heading':
+                return $this->convert_heading_element($settings);
+                
+            case 'container':
+                return $this->convert_container_element($element);
+                
+            case 'section':
+                return $this->convert_section_element($element);
+                
+            case 'div':
+                return $this->convert_div_element($element);
+                
+            case 'button':
+                return $this->convert_button_element($settings);
+                
+            case 'image':
+                return $this->convert_image_element($settings);
+                
+            case 'gutenberg':
+                return $this->convert_gutenberg_element($settings);
+                
+            default:
+                // Log unsupported element
+                $this->error_handler->log_error('E003', array(
+                    'element_type' => $element_type,
+                    'element_id' => $element['id'] ?? 'unknown',
+                    'action' => 'Unsupported Bricks Element - Bricks-specific element cannot be automatically migrated'
+                ));
+                return false;
+        }
+    }
+    
+    /**
+     * Convert Bricks text element to Gutenberg paragraph
+     */
+    private function convert_text_element($settings) {
+        $text = $settings['text'] ?? '';
+        
+        if (empty($text)) {
+            return false;
+        }
+        
+        // Generate proper Gutenberg block HTML
+        $block_html = '<!-- wp:paragraph -->' . "\n";
+        $block_html .= '<p>' . wp_kses_post($text) . '</p>' . "\n";
+        $block_html .= '<!-- /wp:paragraph -->';
+        
+        return array(
+            'blockName' => 'core/paragraph',
+            'attrs' => array(),
+            'innerHTML' => $block_html,
+            'innerContent' => array($block_html)
+        );
+    }
+    
+    /**
+     * Convert Bricks heading element to Gutenberg heading
+     */
+    private function convert_heading_element($settings) {
+        $text = $settings['text'] ?? '';
+        $tag = $settings['tag'] ?? 'h2';
+        $level = intval(str_replace('h', '', $tag));
+        
+        if (empty($text)) {
+            return false;
+        }
+        
+        // Generate proper Gutenberg block HTML
+        $block_html = '<!-- wp:heading {"level":' . $level . '} -->' . "\n";
+        $block_html .= '<' . $tag . '>' . wp_kses_post($text) . '</' . $tag . '>' . "\n";
+        $block_html .= '<!-- /wp:heading -->';
+        
+        return array(
+            'blockName' => 'core/heading',
+            'attrs' => array(
+                'level' => $level
+            ),
+            'innerHTML' => $block_html,
+            'innerContent' => array($block_html)
+        );
+    }
+    
+    /**
+     * Convert Bricks container element to Etch group
+     */
+    private function convert_container_element($element) {
+        $settings = $element['settings'] ?? array();
+        $children = $element['children'] ?? array();
+        
+        $inner_blocks = array();
+        
+        // Convert children recursively
+        foreach ($children as $child) {
+            $converted_child = $this->convert_bricks_element($child);
+            if ($converted_child) {
+                $inner_blocks[] = $converted_child;
+            }
+        }
+        
+        // Build container attributes
+        $attrs = array();
+        
+        // Handle background color
+        if (isset($settings['background']['color'])) {
+            $attrs['backgroundColor'] = $settings['background']['color'];
+        }
+        
+        return array(
+            'blockName' => 'core/group',
+            'attrs' => $attrs,
+            'innerBlocks' => $inner_blocks,
+            'innerHTML' => '',
+            'innerContent' => array()
+        );
+    }
+    
+    /**
+     * Convert Bricks section element to Etch cover
+     */
+    private function convert_section_element($element) {
+        $settings = $element['settings'] ?? array();
+        $children = $element['children'] ?? array();
+        
+        $inner_blocks = array();
+        
+        // Convert children recursively
+        foreach ($children as $child) {
+            $converted_child = $this->convert_bricks_element($child);
+            if ($converted_child) {
+                $inner_blocks[] = $converted_child;
+            }
+        }
+        
+        return array(
+            'blockName' => 'core/cover',
+            'attrs' => array(),
+            'innerBlocks' => $inner_blocks,
+            'innerHTML' => '',
+            'innerContent' => array()
+        );
+    }
+    
+    /**
+     * Convert Bricks div element to Etch group
+     */
+    private function convert_div_element($element) {
+        return $this->convert_container_element($element);
+    }
+    
+    /**
+     * Convert Bricks button element to Etch button
+     */
+    private function convert_button_element($settings) {
+        $text = $settings['text'] ?? 'Button';
+        $link = $settings['link'] ?? '#';
+        
+        return array(
+            'blockName' => 'core/button',
+            'attrs' => array(
+                'url' => esc_url($link)
+            ),
+            'innerHTML' => '<div class="wp-block-button"><a class="wp-block-button__link" href="' . esc_url($link) . '">' . wp_kses_post($text) . '</a></div>',
+            'innerContent' => array('<div class="wp-block-button"><a class="wp-block-button__link" href="' . esc_url($link) . '">' . wp_kses_post($text) . '</a></div>')
+        );
+    }
+    
+    /**
+     * Convert Bricks image element to Etch image
+     */
+    private function convert_image_element($settings) {
+        $src = $settings['image']['url'] ?? '';
+        $alt = $settings['image']['alt'] ?? '';
+        
+        if (empty($src)) {
+            return false;
+        }
+        
+        return array(
+            'blockName' => 'core/image',
+            'attrs' => array(
+                'url' => esc_url($src),
+                'alt' => sanitize_text_field($alt)
+            ),
+            'innerHTML' => '<figure class="wp-block-image"><img src="' . esc_url($src) . '" alt="' . esc_attr($alt) . '"/></figure>',
+            'innerContent' => array('<figure class="wp-block-image"><img src="' . esc_url($src) . '" alt="' . esc_attr($alt) . '"/></figure>')
+        );
+    }
+    
+    /**
+     * Convert Gutenberg element (just return the content as-is)
+     */
+    private function convert_gutenberg_element($settings) {
+        $content = $settings['content'] ?? '';
+        
+        if (empty($content)) {
+            return false;
+        }
+        
+        // Gutenberg content is already in the right format, just return it
+        return array(
+            'blockName' => 'core/html',
+            'attrs' => array(),
+            'innerHTML' => $content,
+            'innerContent' => array($content)
+        );
     }
 }

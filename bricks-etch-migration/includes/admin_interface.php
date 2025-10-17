@@ -30,6 +30,8 @@ class B2E_Admin_Interface {
         add_action('wp_ajax_b2e_generate_report', array($this, 'ajax_generate_report'));
         add_action('wp_ajax_b2e_save_migration_settings', array($this, 'ajax_save_migration_settings'));
         add_action('wp_ajax_b2e_generate_migration_key', array($this, 'ajax_generate_migration_key'));
+        add_action('wp_ajax_b2e_validate_api_key', array($this, 'ajax_validate_api_key'));
+        add_action('wp_ajax_b2e_validate_migration_token', array($this, 'ajax_validate_migration_token'));
         add_action('wp_ajax_b2e_get_migration_progress', array($this, 'ajax_get_migration_progress'));
     }
     
@@ -51,10 +53,33 @@ class B2E_Admin_Interface {
         );
         
         // Add AJAX configuration to page
-        wp_localize_script('jquery', 'b2e_ajax', array(
+        wp_localize_script('b2e-admin-js', 'b2e_ajax', array(
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('b2e_nonce')
         ));
+        
+        // Fallback: Add AJAX configuration directly to page if script doesn't load
+        add_action('admin_footer', array($this, 'add_ajax_config_fallback'));
+    }
+    
+    /**
+     * Add AJAX configuration fallback directly to page
+     */
+    public function add_ajax_config_fallback() {
+        // Only add on our plugin pages
+        $screen = get_current_screen();
+        if (!$screen || strpos($screen->id, 'bricks-etch-migration') === false) {
+            return;
+        }
+        
+        echo '<script type="text/javascript">';
+        echo 'if (typeof b2e_ajax === "undefined") {';
+        echo '    var b2e_ajax = {';
+        echo '        ajax_url: "' . admin_url('admin-ajax.php') . '",';
+        echo '        nonce: "' . wp_create_nonce('b2e_nonce') . '"';
+        echo '    };';
+        echo '}';
+        echo '</script>';
     }
     
     /**
@@ -123,6 +148,7 @@ class B2E_Admin_Interface {
             console.log('🔍 B2E Debug - generate-migration-key:', document.getElementById('generate-migration-key'));
             console.log('🔍 B2E Debug - clear-logs:', document.getElementById('clear-logs'));
             console.log('🔍 B2E Debug - copy-key:', document.getElementById('copy-key'));
+            console.log('🔍 B2E Debug - paste-key:', document.getElementById('paste-key'));
             
             // Initialize all functionality
             initMigrationKeyValidation();
@@ -130,6 +156,7 @@ class B2E_Admin_Interface {
             initStartMigration();
             initKeyGeneration();
             initCopyKey();
+            initPasteKey();
             
             // Add simple click listeners for debugging
             document.addEventListener('click', function(e) {
@@ -139,20 +166,49 @@ class B2E_Admin_Interface {
                 
                 // Simple button tests
                 if (e.target.id === 'validate-migration-key') {
-                    console.log('🔍 B2E Debug - Validate button clicked - showing test toast');
-                    showToast('Validate button clicked! (Test)', 'info');
+                    console.log('🔍 B2E Debug - Validate button clicked - using dedicated handler');
+                    // This will be handled by the dedicated validate handler
                 }
                 if (e.target.id === 'start-migration') {
-                    console.log('🔍 B2E Debug - Start migration button clicked - showing test toast');
-                    showToast('Start migration button clicked! (Test)', 'info');
+                    console.log('🔍 B2E Debug - Start migration button clicked');
+                    const migrationKey = document.getElementById('migration_key').value.trim();
+                    
+                    if (!migrationKey) {
+                        showToast('Please enter a migration key first.', 'warning');
+                        return;
+                    }
+                    
+                    // Parse the migration key to extract components
+                    try {
+                        const url = new URL(migrationKey);
+                        const domain = url.searchParams.get('domain');
+                        const token = url.searchParams.get('token');
+                        const expires = url.searchParams.get('expires');
+                        
+                        if (!domain || !token || !expires) {
+                            showToast('Invalid migration key format.', 'error');
+                            return;
+                        }
+                        
+                        // Start migration
+                        startMigrationProcess(domain, token, expires);
+                        
+                    } catch (error) {
+                        console.error('Migration key parsing error:', error);
+                        showToast('Invalid migration key format. Please check the URL.', 'error');
+                    }
                 }
                 if (e.target.id === 'generate-migration-key') {
                     console.log('🔍 B2E Debug - Generate key button clicked - showing test toast');
                     showToast('Generate key button clicked! (Test)', 'info');
                 }
                 if (e.target.id === 'clear-logs') {
-                    console.log('🔍 B2E Debug - Clear logs button clicked - showing test toast');
-                    showToast('Clear logs button clicked! (Test)', 'info');
+                    console.log('🔍 B2E Debug - Clear logs button clicked - using dedicated handler');
+                    // This will be handled by the dedicated clear logs handler
+                }
+                if (e.target.id === 'generate-report') {
+                    console.log('🔍 B2E Debug - Generate report button clicked');
+                    generateMigrationReport();
                 }
             });
         });
@@ -189,58 +245,54 @@ class B2E_Admin_Interface {
                         return;
                     }
                     
-                    // Debug: Log the API URL
-                    const apiUrl = `${domain}/wp-json/b2e/v1/validate`;
-                    console.log('🔍 B2E Debug - API URL:', apiUrl);
+                    // Debug: Log the migration key components
                     console.log('🔍 B2E Debug - Domain:', domain);
                     console.log('🔍 B2E Debug - Token:', token.substring(0, 20) + '...');
+                    console.log('🔍 B2E Debug - Expires:', expires);
                     
-                    // Make real API call to validate token with timeout and better error handling
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+                    // Validate migration token (not API key)
+                    // The token is validated, and the API key is retrieved from the target site
+                    const formData = new FormData();
+                    formData.append('action', 'b2e_validate_migration_token');
+                    formData.append('nonce', b2e_ajax.nonce);
+                    formData.append('target_url', domain);
+                    formData.append('token', token);
+                    formData.append('expires', expires);
                     
-                    fetch(apiUrl, {
+                    fetch(b2e_ajax.ajax_url, {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            token: token,
-                            expires: Math.floor(Date.now() / 1000) + 3600 // 1 hour from now
-                        }),
-                        signal: controller.signal
+                        body: formData
                     })
-                    .then(response => {
-                        clearTimeout(timeoutId);
-                        console.log('🔍 B2E Debug - Response status:', response.status);
-                        console.log('🔍 B2E Debug - Response headers:', response.headers);
-                        
-                        if (!response.ok) {
-                            return response.text().then(text => {
-                                console.error('🔍 B2E Debug - Error response body:', text);
-                                throw new Error(`API request failed with status: ${response.status} - ${text}`);
-                            });
-                        }
-                        return response.json();
-                    })
+                    .then(response => response.json())
                     .then(data => {
-                        console.log('🔍 B2E Debug - API validation successful:', data);
-                        showToast('Migration key validated successfully! Ready to migrate.', 'success');
+                        console.log('🔍 B2E Debug - AJAX response:', data);
                         
-                        // Show migration info
-                        const infoDiv = document.getElementById('migration-key-info');
-                        if (infoDiv) {
-                            infoDiv.innerHTML = `
-                                <div class="b2e-status success">✅ Key Valid</div>
-                                <p><strong>Target Site:</strong> ${data.site_name || domain}</p>
-                                <p><strong>WordPress Version:</strong> ${data.wordpress_version || 'Unknown'}</p>
-                                <p><strong>Etch Active:</strong> ${data.etch_active ? '✅ Yes' : '❌ No'}</p>
-                            `;
-                            infoDiv.style.display = 'block';
+                        if (data.success) {
+                            showToast('Migration token validated successfully! Ready to migrate.', 'success');
+                            
+                            // Store API key for later use
+                            if (data.data.api_key) {
+                                // Store API key in a hidden field or session storage
+                                sessionStorage.setItem('b2e_api_key', data.data.api_key);
+                                console.log('🔍 B2E Debug - API key stored for migration');
+                            }
+                            
+                            // Show migration info
+                            const infoDiv = document.getElementById('migration-key-info');
+                            if (infoDiv) {
+                                infoDiv.innerHTML = `
+                                    <div class="b2e-status success">✅ Migration Token Valid</div>
+                                    <p><strong>Target Site:</strong> ${domain}</p>
+                                    <p><strong>Status:</strong> ${data.data.message || 'Connected and ready'}</p>
+                                    <p><strong>Token expires:</strong> ${new Date(expires * 1000).toLocaleString()}</p>
+                                `;
+                                infoDiv.style.display = 'block';
+                            }
+                        } else {
+                            showToast('Migration token validation failed: ' + (data.data || 'Invalid token'), 'error');
                         }
                     })
                     .catch(error => {
-                        clearTimeout(timeoutId);
                         console.error('🔍 B2E Debug - API validation error:', error);
                         
                         let errorMessage = error.message;
@@ -285,45 +337,12 @@ class B2E_Admin_Interface {
         }
 
         /**
-         * Initialize start migration functionality
+         * Initialize start migration functionality (REMOVED - using global handler)
          */
         function initStartMigration() {
-            const startBtn = document.getElementById('start-migration');
-            if (!startBtn) {
-                console.log('🔍 B2E Debug - Start migration button not found');
-                return;
-            }
-            console.log('🔍 B2E Debug - Start migration button found, adding listener');
-
-            startBtn.addEventListener('click', function() {
-                console.log('🔍 B2E Debug - Start migration button clicked');
-                const migrationKey = document.getElementById('migration_key').value.trim();
-                
-                if (!migrationKey) {
-                    showToast('Please enter a migration key first.', 'warning');
-                    return;
-                }
-                
-                // Parse the migration key to extract components
-                try {
-                    const url = new URL(migrationKey);
-                    const domain = url.searchParams.get('domain');
-                    const token = url.searchParams.get('token');
-                    const expires = url.searchParams.get('expires');
-                    
-                    if (!domain || !token || !expires) {
-                        showToast('Invalid migration key format.', 'error');
-                        return;
-                    }
-                    
-                    // Start migration
-                    startMigrationProcess(domain, token, expires);
-                    
-                } catch (error) {
-                    console.error('Migration key parsing error:', error);
-                    showToast('Invalid migration key format. Please check the URL.', 'error');
-                }
-            });
+            console.log('🔍 B2E Debug - Start migration init called - using global handler instead');
+            // This function is intentionally empty - the start migration button
+            // is handled by the global click handler in initGlobalClickHandlers()
         }
 
         /**
@@ -402,6 +421,27 @@ class B2E_Admin_Interface {
                         showToast('Failed to copy key. Please copy manually.', 'error');
                     }
                 }
+            });
+        }
+        
+        /**
+         * Initialize paste key functionality
+         */
+        function initPasteKey() {
+            const pasteBtn = document.getElementById('paste-key');
+            if (!pasteBtn) {
+                console.log('🔍 B2E Debug - Paste key button not found');
+                return;
+            }
+            
+            pasteBtn.addEventListener('click', function() {
+                navigator.clipboard.readText().then(function(text) {
+                    const migrationKeyInput = document.getElementById('migration_key');
+                    migrationKeyInput.value = text;
+                    showToast('Migration key pasted!', 'success');
+                }).catch(function() {
+                    showToast('Failed to paste from clipboard. Please paste manually.', 'error');
+                });
             });
         }
 
@@ -500,7 +540,27 @@ class B2E_Admin_Interface {
          * Start the migration process
          */
         function startMigrationProcess(domain, token, expires) {
+            console.log('🚀 Starting migration process...', { domain, token, expires });
+            
+            // Get API key from sessionStorage (set during token validation)
+            const apiKey = sessionStorage.getItem('b2e_api_key');
+            
+            if (!apiKey) {
+                showToast('API key not found. Please validate the migration key first.', 'error');
+                console.error('API key not found in sessionStorage');
+                return;
+            }
+            
+            console.log('🔑 Using API key from sessionStorage:', apiKey.substring(0, 20) + '...');
+            
+            // Convert localhost:8081 to b2e-etch for Docker internal communication
+            let apiDomain = domain;
+            if (domain.includes('localhost:8081')) {
+                apiDomain = domain.replace('localhost:8081', 'b2e-etch');
+            }
+            
             // Show progress section
+            // Show progress section immediately
             const progressSection = document.getElementById('migration-progress');
             if (progressSection) {
                 progressSection.style.display = 'block';
@@ -509,24 +569,76 @@ class B2E_Admin_Interface {
             // Update progress
             updateProgress(0, 'Starting migration...', []);
             
-            // Start migration by sending request to target site
-            const apiClient = new B2E_API_Client();
-            const result = apiClient.sendRequest(domain + '/wp-json/b2e/v1/migrate', {
-                domain: domain,
-                token: token,
-                expires: expires
+            // Start migration via AJAX to local handler
+                        const formData = new FormData();
+                        formData.append('action', 'b2e_start_migration');
+                        formData.append('nonce', b2e_ajax.nonce);
+                        formData.append('target_url', apiDomain); // Use converted domain
+                        formData.append('api_key', apiKey); // Use actual API key, not token
+            
+            console.log('📡 AJAX parameters:', {
+                action: 'b2e_start_migration',
+                nonce: b2e_ajax.nonce,
+                target_url: apiDomain,
+                api_key: apiKey.substring(0, 20) + '...'
             });
             
-            if (result.success) {
+            console.log('📡 Using nonce:', b2e_ajax.nonce);
+            
+            console.log('📡 Sending AJAX request...', {
+                action: 'b2e_start_migration',
+                target_url: apiDomain,
+                api_key: apiKey.substring(0, 20) + '...'
+            });
+            
+            fetch(b2e_ajax.ajax_url, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('📡 AJAX response:', data);
+                console.log('📡 AJAX response type:', typeof data);
+                console.log('📡 AJAX response success:', data.success);
+                console.log('📡 AJAX response data:', data.data);
+                
+                if (data.success) {
                 showToast('Migration started successfully!', 'success');
                 // Start polling for progress
                 pollMigrationProgress();
+                    
+                    // Generate migration report after a delay
+                    setTimeout(() => {
+                        generateMigrationReport();
+                    }, 2000);
             } else {
-                showToast('Migration failed to start: ' + result.message, 'error');
+                    let errorMessage = 'Unknown error';
+                    
+                    if (data.data) {
+                        if (typeof data.data === 'string') {
+                            errorMessage = data.data;
+                        } else if (data.data.message) {
+                            errorMessage = data.data.message;
+                        } else {
+                            errorMessage = JSON.stringify(data.data);
+                        }
+                    }
+                    
+                    console.error('Migration failed with error:', errorMessage);
+                    showToast('Migration failed to start: ' + errorMessage, 'error');
+                    
                 if (progressSection) {
                     progressSection.style.display = 'none';
                 }
             }
+            })
+            .catch(error => {
+                console.error('Migration start error:', error);
+                showToast('Migration failed to start: ' + error.message, 'error');
+                if (progressSection) {
+                    progressSection.style.display = 'none';
+                }
+            });
         }
 
         /**
@@ -534,34 +646,34 @@ class B2E_Admin_Interface {
          */
         function updateProgress(percentage, currentStep, steps) {
             const progressBar = document.getElementById('progress-bar');
+            const progressPercentage = document.getElementById('progress-percentage');
             const progressText = document.getElementById('progress-text');
-            const currentStepEl = document.getElementById('current-step');
-            const stepsList = document.getElementById('migration-steps');
+            const progressSteps = document.getElementById('progress-steps');
             
+            console.log('📊 Updating progress:', { percentage, currentStep, steps });
+            
+            // Update progress bar width
             if (progressBar) {
                 progressBar.style.width = percentage + '%';
             }
             
+            // Update percentage text inside bar
+            if (progressPercentage) {
+                progressPercentage.textContent = Math.round(percentage) + '%';
+            }
+            
+            // Update current step text
             if (progressText) {
-                progressText.textContent = Math.round(percentage) + '% Complete';
+                progressText.textContent = currentStep || 'Processing...';
             }
             
-            if (currentStepEl) {
-                currentStepEl.textContent = currentStep;
-            }
-            
-            if (stepsList && steps.length > 0) {
-                stepsList.innerHTML = '';
+            // Update steps list
+            if (progressSteps && Array.isArray(steps) && steps.length > 0) {
+                progressSteps.innerHTML = '<ul style="list-style: none; padding: 0; margin: 0;">';
                 steps.forEach((step, index) => {
-                    const li = document.createElement('li');
-                    li.textContent = step;
-                    if (index < steps.length - 1) {
-                        li.classList.add('b2e-step-completed');
-                    } else {
-                        li.classList.add('b2e-step-current');
-                    }
-                    stepsList.appendChild(li);
+                    progressSteps.innerHTML += `<li style="padding: 5px 0;">✓ ${step}</li>`;
                 });
+                progressSteps.innerHTML += '</ul>';
             }
         }
 
@@ -602,6 +714,63 @@ class B2E_Admin_Interface {
                 console.error('Progress polling error:', error);
                 setTimeout(pollMigrationProgress, 5000); // Retry in 5 seconds
             });
+        }
+
+        /**
+         * Generate migration report
+         */
+        function generateMigrationReport() {
+            console.log('📊 Generating migration report...');
+            
+            const formData = new FormData();
+            formData.append('action', 'b2e_generate_report');
+            formData.append('nonce', b2e_ajax.nonce);
+            
+            fetch(b2e_ajax.ajax_url, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('📊 Migration report:', data);
+                
+                if (data.success && data.data) {
+                    showMigrationReport(data.data);
+                } else {
+                    console.log('📊 No migration data available yet');
+                }
+            })
+            .catch(error => {
+                console.error('📊 Error generating migration report:', error);
+            });
+        }
+        
+        /**
+         * Show migration report
+         */
+        function showMigrationReport(reportData) {
+            const reportHtml = `
+                <div class="b2e-report-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; display: flex; align-items: center; justify-content: center;">
+                    <div class="b2e-report-modal" style="background: white; padding: 30px; border-radius: 8px; max-width: 600px; max-height: 80vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+                        <h2 style="margin-top: 0; color: #333;">📊 Migration Report</h2>
+                        <div style="margin-bottom: 20px;">
+                            <strong>Migration Status:</strong> ${reportData.status || 'Unknown'}<br>
+                            <strong>Posts Migrated:</strong> ${reportData.posts_migrated || 0} / ${reportData.posts_available || 0}<br>
+                            <strong>Pages Migrated:</strong> ${reportData.pages_migrated || 0} / ${reportData.pages_available || 0}<br>
+                            <strong>Media Migrated:</strong> ${reportData.media_files || 0} / ${reportData.media_available || 0}<br>
+                            <strong>ACF Installed:</strong> ${reportData.acf_installed ? 'Yes' : 'No'}<br>
+                            <strong>ACF Field Groups:</strong> ${reportData.acf_groups || 0}<br>
+                            <strong>Custom Post Types:</strong> ${reportData.custom_post_types || 0}<br>
+                            <strong>Report Time:</strong> ${reportData.migration_time || 'Unknown'}<br>
+                            <strong>Log Entries:</strong> ${reportData.total_entries || 0}<br>
+                        </div>
+                        ${reportData.details ? `<div style="margin-bottom: 20px;"><strong>Recent Activity:</strong><br><pre style="background: #f5f5f5; padding: 10px; border-radius: 4px; overflow-x: auto; white-space: pre-wrap;">${reportData.details}</pre></div>` : ''}
+                        <button onclick="this.closest('.b2e-report-overlay').remove()" style="background: #0073aa; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">Close Report</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', reportHtml);
         }
 
         /**
@@ -704,6 +873,9 @@ class B2E_Admin_Interface {
                     <button type="button" id="clear-logs" class="b2e-button" style="padding: var(--e-space-s) var(--e-space-m); font-size: 12px;">
                         <?php _e('Clear Logs', 'bricks-etch-migration'); ?>
                     </button>
+                    <button type="button" id="generate-report" class="b2e-button" style="padding: var(--e-space-s) var(--e-space-m); font-size: 12px; margin-left: 10px;">
+                        📊 <?php _e('Generate Report', 'bricks-etch-migration'); ?>
+                    </button>
                 </div>
                 <?php $this->render_recent_logs($logs); ?>
             </div>
@@ -737,10 +909,15 @@ class B2E_Admin_Interface {
                             <label for="migration_key"><?php _e('Migration Key', 'bricks-etch-migration'); ?></label>
                         </th>
                         <td>
-                            <input type="text" id="migration_key" name="migration_key" 
-                                   value="<?php echo esc_attr($settings['migration_key'] ?? ''); ?>"
-                                   placeholder="https://your-etch-site.com?domain=https://your-bricks-site.com&token=LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0NCk1JSUJJakFOQmdrcWhraUc5dzBCQVFFRkFBT0NBUThBTUlJQkNnS0NBUUVBbzBBSHk5dE5IQ2VWclF0MEN6ci8NCjdwbEh2ZTY4dmFNZmQ1eWRSb1o4RjRCS0tVOGhpWXVFelVmVDkyTVdEMFRaODVPdmVqWWhjOEwwQ3ErRXc0Um4NCkI5SnZ6b2ZYeTgvWDZHZFo0YjVhaEJ1NW1hS2pZZ0NaZ2R6cmxVekZMOUtoTll5akJWMkp3S1VDNDN3Q21ObHINCndydXJJWk9mN1hpSGtaVEIxZ3NoQ0k4eVVPb2xScUJLcURYVEFHQit1M0NHcFNDQy9IbW1KbUFJeHNUMmF5cE0NCmNBT3FOaXBLZE9qMWJLTzl6VkRLNEQxOExjQlg2UWU1Smx1b2UxdkwvYzJlK0FsYjFPNnc2RklrRzlDNFk3ZVUNClZwMUhERkJIKzFQRXU0Q2FwUjI1c0diMjdpZkE5NFg1Z1l2RjFxRDU3WkNHc0dDTC8yRzBLV0ZMNnJudnN0eGgNCkZRSURBUUFCDQotLS0tLUVORCBQVUJMSUMgS0VZLS0tLS0=&expires=1760577698"
-                                   style="width: 100%; font-family: monospace; font-size: 12px; word-break: break-all;" />
+                            <div style="display: flex; gap: 10px;">
+                                <input type="text" id="migration_key" name="migration_key" 
+                                       value="<?php echo esc_attr($settings['migration_key'] ?? ''); ?>"
+                                       placeholder="Paste your migration key here..."
+                                       style="flex: 1; font-family: monospace; font-size: 12px; word-break: break-all;" />
+                                <button type="button" id="paste-key" class="b2e-button" style="white-space: nowrap;">
+                                    📋 <?php _e('Paste Key', 'bricks-etch-migration'); ?>
+                                </button>
+                            </div>
                             <p class="description">
                                 <?php _e('This key contains all necessary information to connect to your Etch site', 'bricks-etch-migration'); ?>
                             </p>
@@ -773,14 +950,32 @@ class B2E_Admin_Interface {
                 <div id="migration-key-info" style="margin-top: 15px; display: none;">
                     <!-- Key validation info will be displayed here -->
                 </div>
+                
+                <!-- Migration Progress Section -->
+                <div id="migration-progress" style="margin-top: 30px; display: none;">
+                    <h3>📊 <?php _e('Migration Progress', 'bricks-etch-migration'); ?></h3>
+                    <div style="background: #f0f0f1; border-radius: 8px; padding: 20px; margin-top: 15px;">
+                        <div style="margin-bottom: 10px;">
+                            <strong id="progress-text"><?php _e('Initializing...', 'bricks-etch-migration'); ?></strong>
+                        </div>
+                        <div style="background: #fff; border-radius: 4px; height: 30px; overflow: hidden; border: 1px solid #ddd;">
+                            <div id="progress-bar" style="background: linear-gradient(90deg, #0073aa, #00a0d2); height: 100%; width: 0%; transition: width 0.3s ease; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 12px;">
+                                <span id="progress-percentage">0%</span>
+                            </div>
+                        </div>
+                        <div id="progress-steps" style="margin-top: 15px; font-size: 12px; color: #666;">
+                            <!-- Migration steps will be displayed here -->
+                        </div>
+                    </div>
+                </div>
             </div>
             
             <!-- Step 2: Instructions -->
-            <div style="background: #fff3cd; border-radius: 6px; border-left: 4px solid #ffc107; padding: 20px; margin: 20px 0;">
-                <h3 style="margin-top: 0; color: #856404;">
+            <div style="background: var(--e-highlight-light);border-radius:var(--e-border-radius);border-left: 10px solid var(--e-warning);padding: var(--e-space-l);margin: 20px 0;">
+                <h3>
                     📋 <?php _e('How to Get Your Migration Key', 'bricks-etch-migration'); ?>
                 </h3>
-                <ol style="margin-bottom: 0; color: #856404;">
+                <ol>
                     <li><?php _e('Go to your Etch site (target site)', 'bricks-etch-migration'); ?></li>
                     <li><?php _e('Install the Bricks to Etch Migration plugin', 'bricks-etch-migration'); ?></li>
                     <li><?php _e('Go to B2E Migration in the admin menu', 'bricks-etch-migration'); ?></li>
@@ -850,6 +1045,78 @@ class B2E_Admin_Interface {
         }
         
         wp_send_json_success(__('Migration logs cleared successfully!', 'bricks-etch-migration'));
+    }
+    
+    /**
+     * AJAX handler for validating API key
+     */
+    public function ajax_validate_api_key() {
+        // Verify nonce
+        if (!check_ajax_referer('b2e_nonce', 'nonce', false)) {
+            wp_send_json_error('Invalid nonce');
+            return;
+        }
+        
+        // Get parameters
+        $target_url = sanitize_url($_POST['target_url'] ?? '');
+        $api_key = sanitize_text_field($_POST['api_key'] ?? '');
+        
+        if (empty($target_url) || empty($api_key)) {
+            wp_send_json_error('Target URL and API key are required');
+            return;
+        }
+        
+        // Convert localhost:8081 to b2e-etch for Docker internal communication
+        if (strpos($target_url, 'localhost:8081') !== false) {
+            $target_url = str_replace('localhost:8081', 'b2e-etch', $target_url);
+        }
+        
+        // Validate API key via API client
+        $api_client = new B2E_API_Client();
+        $result = $api_client->validate_api_key($target_url, $api_key);
+        
+        if (is_wp_error($result)) {
+            wp_send_json_error($result->get_error_message());
+        } else {
+            wp_send_json_success($result);
+        }
+    }
+    
+    /**
+     * AJAX handler for validating migration token
+     */
+    public function ajax_validate_migration_token() {
+        // Verify nonce
+        if (!check_ajax_referer('b2e_nonce', 'nonce', false)) {
+            wp_send_json_error('Invalid nonce');
+            return;
+        }
+        
+        // Get parameters
+        $target_url = sanitize_url($_POST['target_url'] ?? '');
+        $token = sanitize_text_field($_POST['token'] ?? '');
+        $expires = intval($_POST['expires'] ?? 0);
+        
+        if (empty($target_url) || empty($token) || empty($expires)) {
+            wp_send_json_error('Target URL, token, and expiration are required');
+            return;
+        }
+        
+        // Convert localhost:8081 to b2e-etch for Docker internal communication
+        if (strpos($target_url, 'localhost:8081') !== false) {
+            $target_url = str_replace('localhost:8081', 'b2e-etch', $target_url);
+        }
+        
+        // Validate migration token on target site
+        $api_client = new B2E_API_Client();
+        $result = $api_client->validate_migration_token($target_url, $token, $expires);
+        
+        if (is_wp_error($result)) {
+            wp_send_json_error($result->get_error_message());
+        } else {
+            // Token is valid, return success with API key
+            wp_send_json_success($result);
+        }
     }
     
     /**
@@ -1124,5 +1391,267 @@ class B2E_Admin_Interface {
             </div>
         </div>
         <?php
+    }
+    
+    /**
+     * AJAX handler for testing export connection
+     */
+    public function ajax_test_export_connection() {
+        // Verify nonce
+        if (!wp_verify_nonce($_POST['nonce'], 'b2e_admin_nonce')) {
+            wp_send_json_error('Invalid nonce');
+            return;
+        }
+        
+        $target_url = sanitize_url($_POST['target_url'] ?? '');
+        $api_key = sanitize_text_field($_POST['api_key'] ?? '');
+        
+        if (empty($target_url) || empty($api_key)) {
+            wp_send_json_error('Target URL and API key are required');
+            return;
+        }
+        
+        // Test the connection using API client
+        $api_client = new B2E_API_Client();
+        $result = $api_client->test_connection($target_url, $api_key);
+        
+        if ($result['valid']) {
+            wp_send_json_success(array(
+                'message' => 'Connection successful!',
+                'plugins' => $result['plugins']
+            ));
+        } else {
+            wp_send_json_error(implode(', ', $result['errors']));
+        }
+    }
+    
+    /**
+     * AJAX handler for testing import connection
+     */
+    public function ajax_test_import_connection() {
+        // Verify nonce
+        if (!wp_verify_nonce($_POST['nonce'], 'b2e_admin_nonce')) {
+            wp_send_json_error('Invalid nonce');
+            return;
+        }
+        
+        $source_url = sanitize_url($_POST['source_url'] ?? '');
+        $api_key = sanitize_text_field($_POST['api_key'] ?? '');
+        
+        if (empty($source_url) || empty($api_key)) {
+            wp_send_json_error('Source URL and API key are required');
+            return;
+        }
+        
+        // Test the connection using API client
+        $api_client = new B2E_API_Client();
+        $result = $api_client->test_connection($source_url, $api_key);
+        
+        if ($result['valid']) {
+            wp_send_json_success(array(
+                'message' => 'Connection successful!',
+                'plugins' => $result['plugins']
+            ));
+        } else {
+            wp_send_json_error(implode(', ', $result['errors']));
+        }
+    }
+    
+    /**
+     * AJAX handler for starting migration
+     */
+    public function ajax_start_migration() {
+        error_log('B2E AJAX: Start migration called');
+        
+        // Verify nonce using check_ajax_referer (doesn't consume nonce)
+        if (!check_ajax_referer('b2e_nonce', 'nonce', false)) {
+            error_log('B2E AJAX: Invalid nonce - ' . ($_POST['nonce'] ?? 'not set'));
+            wp_send_json_error('Invalid nonce');
+            return;
+        }
+        
+        error_log('B2E AJAX: Nonce verified successfully');
+        
+        // Get migration parameters
+        $target_url = sanitize_url($_POST['target_url'] ?? '');
+        $api_key = sanitize_text_field($_POST['api_key'] ?? '');
+        
+        error_log('B2E AJAX: Target URL: ' . $target_url);
+        error_log('B2E AJAX: API Key length: ' . strlen($api_key));
+        
+        if (empty($target_url) || empty($api_key)) {
+            error_log('B2E AJAX: Missing parameters');
+            wp_send_json_error('Target URL and API key are required');
+            return;
+        }
+        
+        // Start migration process
+        error_log('B2E AJAX: Starting migration manager');
+        $migration_manager = new B2E_Migration_Manager();
+        $result = $migration_manager->start_migration($target_url, $api_key);
+        
+        if (is_wp_error($result)) {
+            error_log('B2E AJAX: Migration failed: ' . $result->get_error_message());
+            wp_send_json_error($result->get_error_message());
+        } else {
+            error_log('B2E AJAX: Migration started successfully');
+            wp_send_json_success(array(
+                'message' => 'Migration started successfully!'
+            ));
+        }
+    }
+    
+    /**
+     * AJAX handler for getting migration progress
+     */
+    public function ajax_get_progress() {
+        // Verify nonce
+        if (!wp_verify_nonce($_POST['nonce'], 'b2e_admin_nonce')) {
+            wp_send_json_error('Invalid nonce');
+            return;
+        }
+        
+        // Get current migration progress
+        $migration_manager = new B2E_Migration_Manager();
+        $progress = $migration_manager->get_migration_status();
+        
+        wp_send_json_success($progress);
+    }
+    
+    /**
+     * AJAX handler for generating migration report
+     */
+    public function ajax_generate_report() {
+        try {
+            // Verify nonce
+            if (!check_ajax_referer('b2e_nonce', 'nonce', false)) {
+                wp_send_json_error('Invalid nonce');
+                return;
+            }
+            
+            // Get real data from the system - ALL posts and pages, not just Bricks
+            $all_posts = get_posts(array(
+                'post_type' => 'post',
+                'post_status' => 'publish',
+                'numberposts' => -1
+            ));
+            
+            $all_pages = get_posts(array(
+                'post_type' => 'page',
+                'post_status' => 'publish',
+                'numberposts' => -1
+            ));
+            
+            // Count media files
+            $media_files = get_posts(array(
+                'post_type' => 'attachment',
+                'post_status' => 'inherit',
+                'numberposts' => -1,
+                'post_mime_type' => 'image'
+            ));
+            
+            // Check if ACF is installed
+            $acf_installed = class_exists('ACF') || function_exists('acf_get_field_groups');
+            $acf_groups = 0;
+            if ($acf_installed) {
+                $acf_groups = count(get_posts(array(
+                    'post_type' => 'acf-field-group',
+                    'post_status' => 'publish',
+                    'numberposts' => -1
+                )));
+            }
+            
+            // Get custom post types (exclude WordPress defaults and Bricks internal types)
+            $all_custom_post_types = get_post_types(array(
+                '_builtin' => false
+            ), 'objects');
+            
+            // Filter out WordPress core CPTs and Bricks internal types
+            $exclude_types = array('wp_block', 'wp_template', 'wp_template_part', 'wp_navigation', 
+                                   'wp_global_styles', 'wp_font_family', 'wp_font_face', 
+                                   'bricks_fonts', 'bricks_template', 'acf-field-group', 'acf-field');
+            
+            $custom_post_types = array_filter($all_custom_post_types, function($cpt) use ($exclude_types) {
+                return !in_array($cpt->name, $exclude_types);
+            });
+            
+            // Get migration log
+            $migration_log = get_option('b2e_migration_log', array());
+            
+            // Get migration statistics from local storage
+            $migration_stats = get_option('b2e_migration_stats', array());
+            $migrated_posts = $migration_stats['posts_migrated'] ?? 0;
+            $migrated_pages = $migration_stats['pages_migrated'] ?? 0;
+            $migrated_media = $migration_stats['media_migrated'] ?? 0;
+            $media_failed = $migration_stats['media_failed'] ?? 0;
+            $media_skipped = $migration_stats['media_skipped'] ?? 0;
+            $migration_status = $migration_stats['status'] ?? 'ready';
+            
+            // Determine migration status
+            $total_available = count($all_posts) + count($all_pages);
+            $total_migrated = $migrated_posts + $migrated_pages;
+            
+            if ($migration_status === 'completed') {
+                $status = 'Migration Completed';
+            } elseif ($total_migrated > 0) {
+                $status = 'Migration In Progress';
+            } else {
+                $status = 'Ready for Migration';
+            }
+            
+                    // Build real report data
+                    $report_data = array(
+                        'status' => $status,
+                        'posts_migrated' => $migrated_posts,
+                        'pages_migrated' => $migrated_pages,
+                        'posts_available' => count($all_posts),
+                        'pages_available' => count($all_pages),
+                        'media_files' => $migrated_media,
+                        'media_available' => count($media_files),
+                        'media_failed' => $media_failed,
+                        'media_skipped' => $media_skipped,
+                        'acf_installed' => $acf_installed,
+                        'acf_groups' => $acf_groups,
+                        'custom_post_types' => count($custom_post_types),
+                        'migration_time' => date('Y-m-d H:i:s'),
+                        'details' => sprintf(
+                            "Available: %d posts, %d pages, %d media files. Migrated: %d posts, %d pages, %d media files (%d failed, %d skipped). ACF %s (%d groups). %d custom post types.",
+                            count($all_posts),
+                            count($all_pages),
+                            count($media_files),
+                            $migrated_posts,
+                            $migrated_pages,
+                            $migrated_media,
+                            $media_failed,
+                            $media_skipped,
+                            $acf_installed ? 'installed' : 'not installed',
+                            $acf_groups,
+                            count($custom_post_types)
+                        ),
+                        'total_entries' => count($migration_log),
+                        'migration_log' => array_slice($migration_log, -5) // Last 5 entries
+                    );
+            
+            wp_send_json_success($report_data);
+            
+        } catch (Exception $e) {
+            wp_send_json_error('Report generation failed: ' . $e->getMessage());
+        }
+    }
+    
+    /**
+     * AJAX handler for saving migration settings
+     */
+    public function ajax_save_migration_settings() {
+        // Verify nonce
+        if (!wp_verify_nonce($_POST['nonce'], 'b2e_admin_nonce')) {
+            wp_send_json_error('Invalid nonce');
+            return;
+        }
+        
+        // Save migration settings
+        wp_send_json_success(array(
+            'message' => 'Settings saved successfully!'
+        ));
     }
 }

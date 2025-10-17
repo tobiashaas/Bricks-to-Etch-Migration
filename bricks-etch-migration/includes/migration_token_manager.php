@@ -31,6 +31,33 @@ class B2E_Migration_Token_Manager {
     }
     
     /**
+     * Generate migration token (for API endpoint)
+     * 
+     * @param int $expiration_seconds Token expiration time in seconds
+     * @return array Token data with token, expires, and domain
+     */
+    public function generate_migration_token($expiration_seconds = null) {
+        if (empty($expiration_seconds)) {
+            $expiration_seconds = self::TOKEN_EXPIRATION;
+        }
+        
+        // Generate secure token
+        $token = $this->generate_secure_token();
+        
+        // Store token with expiration
+        $this->store_token($token, $expiration_seconds);
+        
+        // Return token data
+        return array(
+            'token' => $token,
+            'expires' => time() + $expiration_seconds,
+            'domain' => home_url(),
+            'created_at' => current_time('mysql'),
+            'expires_at' => date('Y-m-d H:i:s', time() + $expiration_seconds),
+        );
+    }
+    
+    /**
      * Generate migration URL with embedded token
      * 
      * @param string $target_domain Target domain
@@ -52,12 +79,13 @@ class B2E_Migration_Token_Manager {
         // Store token with expiration
         $this->store_token($token, $expiration_seconds);
         
-        // Build migration URL
+        // Build migration URL (current site as base, target domain as parameter)
+        $current_site_url = home_url();
         $migration_url = add_query_arg(array(
             'domain' => $target_domain,
             'token' => $token,
             'expires' => time() + $expiration_seconds,
-        ), $target_domain);
+        ), $current_site_url);
         
         return $migration_url;
     }

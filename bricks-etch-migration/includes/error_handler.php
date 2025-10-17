@@ -115,6 +115,80 @@ class B2E_Error_Handler {
             'description' => 'Failed to upload media file to target site',
             'solution' => 'Check target site upload permissions and file size limits'
         ),
+        
+        // Info codes (I0xx) - Success messages
+        'I020' => array(
+            'title' => 'No Bricks Content Found',
+            'description' => 'No Bricks content found for conversion',
+            'solution' => 'Skip this post - no conversion needed'
+        ),
+        'I021' => array(
+            'title' => 'Failed to Parse Bricks Elements',
+            'description' => 'Failed to parse Bricks elements',
+            'solution' => 'Check Bricks content structure'
+        ),
+        'I022' => array(
+            'title' => 'Failed to Generate Gutenberg Blocks',
+            'description' => 'Failed to generate Gutenberg blocks',
+            'solution' => 'Check element conversion logic'
+        ),
+        'I023' => array(
+            'title' => 'Bricks to Gutenberg Conversion Successful',
+            'description' => 'Bricks converted to Gutenberg and saved to database',
+            'solution' => 'Etch will process the blocks automatically'
+        ),
+        'I024' => array(
+            'title' => 'Failed to Save Gutenberg Content',
+            'description' => 'Failed to save Gutenberg content to database',
+            'solution' => 'Check database permissions and post ID'
+        ),
+        
+        // Migration Manager Info Codes
+        'I001' => array(
+            'title' => 'Migration Initialized',
+            'description' => 'Migration process initialized successfully',
+            'solution' => 'Migration is ready to start'
+        ),
+        'I002' => array(
+            'title' => 'Target Site Validated',
+            'description' => 'Target site requirements validated successfully',
+            'solution' => 'Target site is ready for migration'
+        ),
+        'I003' => array(
+            'title' => 'Bricks Content Analyzed',
+            'description' => 'Bricks content analyzed successfully',
+            'solution' => 'Content is ready for migration'
+        ),
+        'I004' => array(
+            'title' => 'Custom Post Types Migrated',
+            'description' => 'Custom post types migrated successfully',
+            'solution' => 'Post types are ready on target site'
+        ),
+        'I005' => array(
+            'title' => 'ACF Field Groups Migrated',
+            'description' => 'ACF field groups migrated successfully',
+            'solution' => 'Field groups are ready on target site'
+        ),
+        'I006' => array(
+            'title' => 'MetaBox Configurations Migrated',
+            'description' => 'MetaBox configurations migrated successfully',
+            'solution' => 'MetaBox configs are ready on target site'
+        ),
+        'I007' => array(
+            'title' => 'Media Files Migrated',
+            'description' => 'Media files migrated successfully',
+            'solution' => 'Media files are ready on target site'
+        ),
+        'I008' => array(
+            'title' => 'CSS Classes Converted',
+            'description' => 'CSS classes converted successfully',
+            'solution' => 'CSS classes are ready for Etch'
+        ),
+        'I009' => array(
+            'title' => 'Posts and Content Migrated',
+            'description' => 'Posts and content migrated successfully',
+            'solution' => 'Content is ready for Etch processing'
+        ),
     );
     
     /**
@@ -127,14 +201,14 @@ class B2E_Error_Handler {
             'solution' => 'Verify page was created with Bricks Builder'
         ),
         'W002' => array(
-            'title' => 'Custom Field Plugin Missing',
-            'description' => 'Custom field plugin not detected on target site',
-            'solution' => 'Install required custom field plugin on target site'
+            'title' => 'Plugin Not Active',
+            'description' => 'Required plugin is not active on target site',
+            'solution' => 'Install and activate the required plugin'
         ),
         'W003' => array(
-            'title' => 'Custom Post Type Not Registered',
-            'description' => 'Custom post type not found on target site',
-            'solution' => 'Register custom post type on target site before migration'
+            'title' => 'Post Type Already Exists',
+            'description' => 'Custom post type already exists on target site',
+            'solution' => 'Post type will be skipped or updated'
         ),
         'W004' => array(
             'title' => 'Media Migration Completed',
@@ -150,11 +224,16 @@ class B2E_Error_Handler {
      * @param array $context Additional context data
      */
     public function log_error($code, $context = array()) {
+        // Handle missing error codes gracefully
         if (!isset(self::ERROR_CODES[$code])) {
-            $code = 'E000'; // Unknown error
+            $error_info = array(
+                'title' => 'Unknown Error',
+                'description' => 'An unknown error occurred',
+                'solution' => 'Please check the logs for more details'
+            );
+        } else {
+            $error_info = self::ERROR_CODES[$code];
         }
-        
-        $error_info = self::ERROR_CODES[$code];
         
         $log_entry = array(
             'timestamp' => current_time('mysql'),
@@ -184,11 +263,16 @@ class B2E_Error_Handler {
      * @param array $context Additional context data
      */
     public function log_warning($code, $context = array()) {
+        // Handle missing warning codes gracefully
         if (!isset(self::WARNING_CODES[$code])) {
-            $code = 'W000'; // Unknown warning
+            $warning_info = array(
+                'title' => 'Unknown Warning',
+                'description' => 'An unknown warning occurred',
+                'solution' => 'Please check the logs for more details'
+            );
+        } else {
+            $warning_info = self::WARNING_CODES[$code];
         }
-        
-        $warning_info = self::WARNING_CODES[$code];
         
         $log_entry = array(
             'timestamp' => current_time('mysql'),
@@ -242,7 +326,15 @@ class B2E_Error_Handler {
      * Clear migration log
      */
     public function clear_log() {
+        // Clear WordPress debug log
+        if (file_exists('/var/www/html/wp-content/debug.log')) {
+            file_put_contents('/var/www/html/wp-content/debug.log', '');
+        }
+        
+        // Clear migration log option
         delete_option('b2e_migration_log');
+        
+        return true;
     }
     
     /**

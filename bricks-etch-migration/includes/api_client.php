@@ -161,7 +161,7 @@ class B2E_API_Client {
             'etch_content' => $etch_content,
         );
         
-        return $this->send_request($url, $api_key, '/import/post', 'POST', $post_data);
+        return $this->send_request($url, $api_key, '/receive-post', 'POST', $post_data);
     }
     
     /**
@@ -174,6 +174,27 @@ class B2E_API_Client {
         );
         
         return $this->send_request($url, $api_key, '/import/post-meta', 'POST', $data);
+    }
+    
+    /**
+     * Send media data to target site
+     */
+    public function send_media_data($url, $api_key, $media_data) {
+        return $this->send_request($url, $api_key, '/receive-media', 'POST', $media_data);
+    }
+    
+    /**
+     * Send CSS styles to target site
+     */
+    public function send_css_styles($url, $api_key, $etch_styles) {
+        return $this->send_request($url, $api_key, '/import/css-classes', 'POST', $etch_styles);
+    }
+    
+    /**
+     * Get migrated content count from target site
+     */
+    public function get_migrated_content_count($url, $api_key) {
+        return $this->send_request($url, $api_key, '/migrated-count');
     }
     
     /**
@@ -359,5 +380,86 @@ class B2E_API_Client {
         }
         
         return $expired_keys;
+    }
+    
+    /**
+     * Validate API key on target site
+     */
+    public function validate_api_key($url, $api_key) {
+        return $this->send_request($url, $api_key, '/validate-api-key');
+    }
+    
+    /**
+     * Validate migration token on target site
+     * 
+     * @param string $url Target site URL
+     * @param string $token Migration token
+     * @param int $expires Token expiration timestamp
+     * @return array|WP_Error Validation result with API key
+     */
+    public function validate_migration_token($url, $token, $expires) {
+        // Send token validation request to target site
+        $full_url = rtrim($url, '/') . '/wp-json/b2e/v1/validate';
+        
+        $args = array(
+            'method' => 'POST',
+            'timeout' => 30,
+            'headers' => array(
+                'Content-Type' => 'application/json',
+            ),
+            'body' => json_encode(array(
+                'token' => $token,
+                'source_domain' => home_url(),
+                'expires' => $expires,
+            )),
+        );
+        
+        $response = wp_remote_request($full_url, $args);
+        
+        if (is_wp_error($response)) {
+            $this->error_handler->log_error('E103', array(
+                'url' => $full_url,
+                'error' => $response->get_error_message(),
+                'action' => 'Token validation request failed'
+            ));
+            return $response;
+        }
+        
+        $response_code = wp_remote_retrieve_response_code($response);
+        $response_body = wp_remote_retrieve_body($response);
+        
+        if ($response_code >= 400) {
+            $decoded_error = json_decode($response_body, true);
+            $error_message = 'Token validation failed with code: ' . $response_code;
+            
+            if (isset($decoded_error['message'])) {
+                $error_message .= ' - ' . $decoded_error['message'];
+            } elseif (isset($decoded_error['data']) && is_string($decoded_error['data'])) {
+                $error_message .= ' - ' . $decoded_error['data'];
+            }
+            
+            $this->error_handler->log_error('E103', array(
+                'url' => $full_url,
+                'response_code' => $response_code,
+                'response_body' => $response_body,
+                'action' => 'Token validation returned error'
+            ));
+            
+            return new WP_Error('token_validation_error', $error_message);
+        }
+        
+        $decoded_response = json_decode($response_body, true);
+        
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            $this->error_handler->log_error('E103', array(
+                'url' => $full_url,
+                'json_error' => json_last_error_msg(),
+                'response_body' => $response_body,
+                'action' => 'Failed to decode token validation response'
+            ));
+            return new WP_Error('json_decode_error', 'Failed to decode token validation response');
+        }
+        
+        return $decoded_response;
     }
 }

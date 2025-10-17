@@ -54,6 +54,41 @@ class B2E_API_Endpoints {
             'permission_callback' => '__return_true',
         ));
         
+        // Generate migration key endpoint
+        register_rest_route($namespace, '/generate-key', array(
+            'methods' => 'POST',
+            'callback' => array(__CLASS__, 'generate_migration_key'),
+            'permission_callback' => '__return_true',
+        ));
+        
+        // Receive migrated post endpoint
+        register_rest_route($namespace, '/receive-post', array(
+            'methods' => 'POST',
+            'callback' => array(__CLASS__, 'receive_migrated_post'),
+            'permission_callback' => array(__CLASS__, 'check_api_key'),
+        ));
+        
+        // Receive migrated media endpoint
+        register_rest_route($namespace, '/receive-media', array(
+            'methods' => 'POST',
+            'callback' => array(__CLASS__, 'receive_migrated_media'),
+            'permission_callback' => array(__CLASS__, 'check_api_key'),
+        ));
+        
+        // API key validation endpoint
+        register_rest_route($namespace, '/validate-api-key', array(
+            'methods' => 'GET',
+            'callback' => array(__CLASS__, 'validate_api_key'),
+            'permission_callback' => '__return_true',
+        ));
+        
+        // Get migrated content count endpoint
+        register_rest_route($namespace, '/migrated-count', array(
+            'methods' => 'GET',
+            'callback' => array(__CLASS__, 'get_migrated_content_count'),
+            'permission_callback' => array(__CLASS__, 'check_api_key'),
+        ));
+        
         // Plugin status endpoint
         register_rest_route($namespace, '/validate/plugins', array(
             'methods' => 'GET',
@@ -168,13 +203,27 @@ class B2E_API_Endpoints {
      * Validate API key
      */
     public static function validate_api_key($request) {
-        $api_key = $request->get_param('api_key');
+        // Debug: Log all headers and parameters
+        error_log('B2E API Key Debug - Headers: ' . print_r($request->get_headers(), true));
+        error_log('B2E API Key Debug - Params: ' . print_r($request->get_params(), true));
+        
+        // Try to get API key from header first, then from parameter
+        $api_key = $request->get_header('X-API-Key');
+        if (empty($api_key)) {
+            $api_key = $request->get_header('x_api_key');
+        }
+        if (empty($api_key)) {
+            $api_key = $request->get_param('api_key');
+        }
+        
+        error_log('B2E API Key Debug - Extracted key: ' . $api_key);
         
         if (empty($api_key)) {
             return new WP_Error('missing_api_key', 'API key is required', array('status' => 400));
         }
         
         $valid_key = get_option('b2e_api_key');
+        error_log('B2E API Key Debug - Stored key: ' . $valid_key);
         
         if ($api_key !== $valid_key) {
             return new WP_Error('invalid_api_key', 'Invalid API key', array('status' => 401));
@@ -218,6 +267,202 @@ class B2E_API_Endpoints {
         ), 200);
     }
     
+    /**
+     * Receive migrated post from Bricks site
+     */
+    public static function receive_migrated_post($request) {
+        try {
+            $post_data = $request->get_json_params();
+            
+            if (empty($post_data)) {
+                return new WP_Error('no_data', 'No post data received', array('status' => 400));
+            }
+            
+            // Extract data from API client format
+            $post_info = $post_data['post'];
+            $etch_content = $post_data['etch_content'];
+            
+            // Prepare post data for WordPress
+            $wp_post_data = array(
+                'post_title' => sanitize_text_field($post_info['post_title']),
+                'post_content' => wp_kses_post($etch_content),
+                'post_status' => sanitize_text_field($post_info['post_status']),
+                'post_type' => sanitize_text_field($post_info['post_type']),
+                'post_date' => sanitize_text_field($post_info['post_date']),
+                'meta_input' => array(
+                    '_b2e_migrated_from_bricks' => true,
+                    '_b2e_original_post_id' => intval($post_info['ID']),
+                    '_b2e_migration_date' => current_time('mysql')
+                )
+            );
+            
+            // Insert post into WordPress
+            $post_id = wp_insert_post($wp_post_data);
+            
+            if (is_wp_error($post_id)) {
+                return new WP_Error('insert_failed', 'Failed to insert post: ' . $post_id->get_error_message(), array('status' => 500));
+            }
+            
+            // Log successful migration
+            error_log("B2E: Successfully migrated post '{$post_info['post_title']}' (ID: {$post_id}) from Bricks");
+            
+            return new WP_REST_Response(array(
+                'success' => true,
+                'message' => 'Post migrated successfully',
+                'post_id' => $post_id,
+                'post_title' => $post_info['post_title']
+            ), 200);
+            
+        } catch (Exception $e) {
+            error_log("B2E: Error receiving migrated post: " . $e->getMessage());
+            return new WP_Error('receive_failed', 'Failed to receive migrated post: ' . $e->getMessage(), array('status' => 500));
+        }
+    }
+
+    /**
+     * Receive migrated media from Bricks site
+     */
+    public static function receive_migrated_media($request) {
+        try {
+            $media_data = $request->get_json_params();
+            
+            if (empty($media_data)) {
+                return new WP_Error('no_data', 'No media data received', array('status' => 400));
+            }
+            
+            // Decode file content
+            $file_content = base64_decode($media_data['file_content']);
+            
+            if (!$file_content) {
+                return new WP_Error('invalid_file', 'Invalid file content', array('status' => 400));
+            }
+            
+            // Upload file to WordPress
+            $upload_dir = wp_upload_dir();
+            $file_name = sanitize_file_name($media_data['file_name']);
+            $file_path = $upload_dir['path'] . '/' . $file_name;
+            
+            // Ensure unique filename
+            $counter = 1;
+            $original_name = pathinfo($file_name, PATHINFO_FILENAME);
+            $extension = pathinfo($file_name, PATHINFO_EXTENSION);
+            
+            while (file_exists($file_path)) {
+                $file_name = $original_name . '-' . $counter . '.' . $extension;
+                $file_path = $upload_dir['path'] . '/' . $file_name;
+                $counter++;
+            }
+            
+            // Write file
+            if (file_put_contents($file_path, $file_content) === false) {
+                return new WP_Error('write_failed', 'Failed to write file', array('status' => 500));
+            }
+            
+            // Create attachment post
+            $attachment_data = array(
+                'post_title' => sanitize_text_field($media_data['post_title'] ?? ''),
+                'post_content' => wp_kses_post($media_data['post_content'] ?? ''),
+                'post_excerpt' => wp_kses_post($media_data['post_excerpt'] ?? ''),
+                'post_mime_type' => sanitize_text_field($media_data['post_mime_type']),
+                'post_status' => 'inherit',
+                'post_type' => 'attachment',
+                'meta_input' => array(
+                    '_b2e_migrated_from_bricks' => true,
+                    '_b2e_original_media_id' => intval($media_data['meta_input']['_b2e_original_media_id'] ?? 0),
+                    '_b2e_migration_date' => sanitize_text_field($media_data['meta_input']['_b2e_migration_date'] ?? current_time('mysql'))
+                )
+            );
+            
+            $attachment_id = wp_insert_post($attachment_data);
+            
+            if (is_wp_error($attachment_id)) {
+                unlink($file_path); // Clean up file
+                return new WP_Error('insert_failed', 'Failed to insert attachment: ' . $attachment_id->get_error_message(), array('status' => 500));
+            }
+            
+            // Update attachment metadata
+            $file_url = $upload_dir['url'] . '/' . $file_name;
+            update_post_meta($attachment_id, '_wp_attached_file', $upload_dir['subdir'] . '/' . $file_name);
+            
+            // Generate attachment metadata (require image.php for image processing)
+            require_once(ABSPATH . 'wp-admin/includes/image.php');
+            $attachment_metadata = wp_generate_attachment_metadata($attachment_id, $file_path);
+            wp_update_attachment_metadata($attachment_id, $attachment_metadata);
+            
+            // Log successful migration
+            error_log("B2E: Successfully migrated media '{$media_data['file_name']}' (ID: {$attachment_id}) from Bricks");
+            
+            return new WP_REST_Response(array(
+                'success' => true,
+                'message' => 'Media migrated successfully',
+                'attachment_id' => $attachment_id,
+                'file_name' => $media_data['file_name'],
+                'file_url' => wp_get_attachment_url($attachment_id)
+            ), 200);
+            
+        } catch (Exception $e) {
+            error_log("B2E: Error receiving migrated media: " . $e->getMessage());
+            return new WP_Error('receive_failed', 'Failed to receive migrated media: ' . $e->getMessage(), array('status' => 500));
+        }
+    }
+
+    /**
+     * Get migrated content count
+     */
+    public static function get_migrated_content_count($request) {
+        try {
+            $migrated_posts = get_posts(array(
+                'post_type' => 'post',
+                'post_status' => 'publish',
+                'numberposts' => -1,
+                'meta_query' => array(
+                    array(
+                        'key' => '_b2e_migrated_from_bricks',
+                        'value' => true,
+                        'compare' => '='
+                    )
+                )
+            ));
+            
+            $migrated_pages = get_posts(array(
+                'post_type' => 'page',
+                'post_status' => 'publish',
+                'numberposts' => -1,
+                'meta_query' => array(
+                    array(
+                        'key' => '_b2e_migrated_from_bricks',
+                        'value' => true,
+                        'compare' => '='
+                    )
+                )
+            ));
+            
+            $migrated_media = get_posts(array(
+                'post_type' => 'attachment',
+                'post_status' => 'inherit',
+                'numberposts' => -1,
+                'meta_query' => array(
+                    array(
+                        'key' => '_b2e_migrated_from_bricks',
+                        'value' => true,
+                        'compare' => '='
+                    )
+                )
+            ));
+            
+            return new WP_REST_Response(array(
+                'success' => true,
+                'posts' => count($migrated_posts),
+                'pages' => count($migrated_pages),
+                'media' => count($migrated_media),
+                'total' => count($migrated_posts) + count($migrated_pages) + count($migrated_media)
+            ), 200);
+            
+        } catch (Exception $e) {
+            return new WP_Error('count_failed', 'Failed to get migrated content count: ' . $e->getMessage(), array('status' => 500));
+        }
+    }
+
     /**
      * Export posts list
      */
@@ -674,6 +919,47 @@ class B2E_API_Endpoints {
     }
     
     /**
+     * Generate migration key endpoint
+     * Creates a new migration token and returns the migration key URL
+     */
+    public static function generate_migration_key($request) {
+        try {
+            // Create token manager
+            $token_manager = new B2E_Migration_Token_Manager();
+            
+            // Generate migration token
+            $token_data = $token_manager->generate_migration_token();
+            
+            if (is_wp_error($token_data)) {
+                return new WP_Error('token_generation_failed', $token_data->get_error_message(), array('status' => 500));
+            }
+            
+            // Build migration key URL
+            $migration_key = add_query_arg(array(
+                'domain' => home_url(),
+                'token' => $token_data['token'],
+                'expires' => $token_data['expires']
+            ), home_url());
+            
+            // Return response
+            return new WP_REST_Response(array(
+                'success' => true,
+                'migration_key' => $migration_key,
+                'token' => $token_data['token'],
+                'domain' => home_url(),
+                'expires' => $token_data['expires'],
+                'expires_at' => date('Y-m-d H:i:s', $token_data['expires']),
+                'valid_for' => '24 hours',
+                'generated_at' => current_time('mysql'),
+            ), 200);
+            
+        } catch (Exception $e) {
+            error_log('B2E Generate Key Error: ' . $e->getMessage() . ' in ' . $e->getFile() . ' on line ' . $e->getLine());
+            return new WP_Error('generation_error', 'Failed to generate migration key: ' . $e->getMessage(), array('status' => 500));
+        }
+    }
+    
+    /**
      * Validate migration token endpoint
      * Used by the "Validate Key" button to test API connection
      */
@@ -691,20 +977,33 @@ class B2E_API_Endpoints {
             
             // Validate token using token manager
             $token_manager = new B2E_Migration_Token_Manager();
-            $validation_result = $token_manager->validate_migration_token($token, $expires);
+            $validation_result = $token_manager->validate_migration_token($token, '', $expires);
             
             if (is_wp_error($validation_result)) {
                 return new WP_Error('token_validation_failed', $validation_result->get_error_message(), array('status' => 401));
             }
             
-            // Return success response
+            // Token is valid - generate or retrieve API key
+            $api_key = get_option('b2e_api_key');
+            
+            // If no API key exists, generate one
+            if (empty($api_key)) {
+                $api_client = new B2E_API_Client();
+                $api_key = $api_client->create_api_key();
+                error_log('B2E: Generated new API key for migration: ' . substr($api_key, 0, 10) . '...');
+            } else {
+                error_log('B2E: Using existing API key for migration: ' . substr($api_key, 0, 10) . '...');
+            }
+            
+            // Return success response with API key
             return new WP_REST_Response(array(
                 'success' => true,
                 'message' => 'Token validation successful',
+                'api_key' => $api_key,
                 'target_domain' => home_url(),
                 'site_name' => get_bloginfo('name'),
                 'wordpress_version' => get_bloginfo('version'),
-                'etch_active' => class_exists('Etch') || function_exists('etch_init'),
+                'etch_active' => class_exists('Etch\Plugin') || function_exists('etch_run_plugin'),
                 'validated_at' => current_time('mysql'),
             ), 200);
             

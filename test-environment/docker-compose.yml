@@ -16,7 +16,6 @@ services:
       WORDPRESS_DEBUG_LOG: 1
     volumes:
       - ./wordpress-bricks:/var/www/html
-      - ./bricks-etch-migration:/var/www/html/wp-content/plugins/bricks-etch-migration
       - ./php.ini:/usr/local/etc/php/conf.d/99-custom.ini
     depends_on:
       - mysql-bricks
@@ -38,7 +37,6 @@ services:
       WORDPRESS_DEBUG_LOG: 1
     volumes:
       - ./wordpress-etch:/var/www/html
-      - ./bricks-etch-migration:/var/www/html/wp-content/plugins/bricks-etch-migration
       - ./php.ini:/usr/local/etc/php/conf.d/99-custom.ini
     depends_on:
       - mysql-etch

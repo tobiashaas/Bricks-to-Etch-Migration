@@ -4,7 +4,7 @@
 
  @font-face {
 	font-family: 'MonoLisa';
-	src: url('/wp-content/plugins/etch/assets/fonts/MonoLisa-Regular.woff')
+	src: url('/wp-content/plugins/bricks-etch-migration/assets/fonts/MonoLisa-Regular.woff')
 		format('woff');
 	font-weight: normal;
 	font-style: normal;
@@ -12,7 +12,7 @@
 
 @font-face {
 	font-family: 'MonoLisa';
-	src: url('/wp-content/plugins/etch/assets/fonts/MonoLisa-Variable-Italic.woff')
+	src: url('/wp-content/plugins/bricks-etch-migration/assets/fonts/MonoLisa-Variable-Italic.woff')
 		format('woff');
 	font-weight: 100 900;
 	font-style: italic;
@@ -21,7 +21,7 @@
 
 @font-face {
 	font-family: 'Inter';
-	src: url('/wp-content/plugins/etch/assets/fonts/Inter-Variable.woff2')
+	src: url('/wp-content/plugins/bricks-etch-migration/assets/fonts/Inter-Variable.woff2')
 		format('woff2-variations');
 	font-weight: 100 900;
 	font-style: normal;
@@ -30,7 +30,7 @@
 
 @font-face {
 	font-family: 'Inter';
-	src: url('/wp-content/plugins/etch/assets/fonts/Inter-Variable-Italic.woff2')
+	src: url('/wp-content/plugins/bricks-etch-migration/assets/fonts/Inter-Variable-Italic.woff2')
 		format('woff2-variations');
 	font-weight: 100 900;
 	font-style: italic;

@@ -31,17 +31,32 @@ class B2E_Gutenberg_Generator {
     }
     
     /**
-     * Generate Gutenberg blocks from Bricks elements
+     * Generate Gutenberg blocks from Bricks elements (REAL CONVERSION!)
      */
     public function generate_gutenberg_blocks($bricks_elements) {
         if (empty($bricks_elements) || !is_array($bricks_elements)) {
             return '';
         }
         
-        $gutenberg_blocks = array();
-        
+        // Build element lookup map (id => element)
+        $element_map = array();
         foreach ($bricks_elements as $element) {
-            $block_html = $this->generate_block_html($element);
+            $element_map[$element['id']] = $element;
+        }
+        
+        // Find top-level elements (parent = 0 or parent not in map)
+        $top_level_elements = array();
+        foreach ($bricks_elements as $element) {
+            $parent_id = $element['parent'] ?? 0;
+            if ($parent_id === 0 || $parent_id === '0' || !isset($element_map[$parent_id])) {
+                $top_level_elements[] = $element;
+            }
+        }
+        
+        // Generate blocks for top-level elements (recursively includes children)
+        $gutenberg_blocks = array();
+        foreach ($top_level_elements as $element) {
+            $block_html = $this->generate_block_html($element, $element_map);
             if ($block_html) {
                 $gutenberg_blocks[] = $block_html;
             }
@@ -51,9 +66,84 @@ class B2E_Gutenberg_Generator {
     }
     
     /**
+     * Convert Bricks to Gutenberg and save to database (FOR ECH PROCESSING!)
+     */
+    public function convert_bricks_to_gutenberg($post) {
+        if (empty($post)) {
+            return false;
+        }
+        
+        // Get Bricks content
+        $bricks_content = get_post_meta($post->ID, '_bricks_page_content', true);
+        
+        if (empty($bricks_content)) {
+            $this->error_handler->log_error('I020', array(
+                'post_id' => $post->ID,
+                'action' => 'No Bricks content found for conversion'
+            ));
+            return false;
+        }
+        
+        // Parse and convert Bricks elements to Gutenberg format
+        $content_parser = new B2E_Content_Parser();
+        $parsed_elements = $content_parser->convert_to_etch_format($bricks_content);
+        
+        if (empty($parsed_elements)) {
+            $this->error_handler->log_error('I021', array(
+                'post_id' => $post->ID,
+                'action' => 'Failed to parse Bricks elements'
+            ));
+            return false;
+        }
+        
+        // Generate Gutenberg blocks HTML
+        $gutenberg_content = $this->generate_gutenberg_blocks($parsed_elements);
+        
+        if (empty($gutenberg_content)) {
+            $this->error_handler->log_error('I022', array(
+                'post_id' => $post->ID,
+                'action' => 'Failed to generate Gutenberg blocks'
+            ));
+            return false;
+        }
+        
+        // Save Gutenberg content to database (Etch will process it automatically)
+        $update_result = wp_update_post(array(
+            'ID' => $post->ID,
+            'post_content' => $gutenberg_content
+        ));
+        
+        if (is_wp_error($update_result)) {
+            $this->error_handler->log_error('I024', array(
+                'post_id' => $post->ID,
+                'error' => $update_result->get_error_message(),
+                'action' => 'Failed to save Gutenberg content to database'
+            ));
+            return false;
+        }
+        
+        // Remove Bricks meta (cleanup)
+        delete_post_meta($post->ID, '_bricks_page_content');
+        delete_post_meta($post->ID, '_bricks_page_settings');
+        
+        // Log successful conversion and database save
+        $this->error_handler->log_error('I023', array(
+            'post_id' => $post->ID,
+            'post_title' => $post->post_title,
+            'elements_converted' => count($parsed_elements),
+            'gutenberg_length' => strlen($gutenberg_content),
+            'database_updated' => true,
+            'bricks_meta_cleaned' => true,
+            'action' => 'Bricks converted to Gutenberg and saved to database - Etch will process automatically'
+        ));
+        
+        return $gutenberg_content;
+    }
+    
+    /**
      * Generate HTML for a single block
      */
-    private function generate_block_html($element) {
+    private function generate_block_html($element, $element_map = array()) {
         $etch_type = $element['etch_type'] ?? 'generic';
         
         switch ($etch_type) {
@@ -61,7 +151,7 @@ class B2E_Gutenberg_Generator {
             case 'container':
             case 'flex-div':
             case 'iframe':
-                return $this->generate_etch_group_block($element);
+                return $this->generate_etch_group_block($element, $element_map);
                 
             case 'heading':
             case 'paragraph':
@@ -80,7 +170,7 @@ class B2E_Gutenberg_Generator {
     /**
      * Generate Etch group block (wp:group with etchData)
      */
-    private function generate_etch_group_block($element) {
+    private function generate_etch_group_block($element, $element_map = array()) {
         $etch_data = $element['etch_data'] ?? array();
         $content = $element['content'] ?? '';
         
@@ -90,10 +180,13 @@ class B2E_Gutenberg_Generator {
         // Extract style IDs
         $style_ids = $this->extract_style_ids($element['settings'] ?? array());
         
+        // Use custom label if available, otherwise use element type
+        $element_name = !empty($element['label']) ? $element['label'] : ucfirst($element['etch_type']);
+        
         // Build etchData
         $etch_data_array = array(
             'origin' => 'etch',
-            'name' => ucfirst($element['etch_type']),
+            'name' => $element_name,
             'styles' => $style_ids,
             'attributes' => $etch_data,
             'block' => array(
@@ -103,15 +196,40 @@ class B2E_Gutenberg_Generator {
         );
         
         // Generate Gutenberg block
-        $block_content = $this->generate_block_content($element, $content);
+        $block_content = $this->generate_block_content($element, $content, $element_map);
         
-        $gutenberg_html = sprintf(
-            '<!-- wp:group {"metadata":{"name":"%s","etchData":%s}} -->',
-            $etch_data_array['name'],
-            json_encode($etch_data_array)
+        // Build block attributes
+        $block_attrs = array(
+            'metadata' => array(
+                'name' => $etch_data_array['name'],
+                'etchData' => $etch_data_array
+            )
         );
         
-        $gutenberg_html .= "\n<div class=\"wp-block-group\">";
+        // Add className for Gutenberg (in addition to HTML class attribute)
+        if (!empty($etch_data['class'])) {
+            $block_attrs['className'] = $etch_data['class'];
+        }
+        
+        // Add tagName for non-div elements (section, article, etc.)
+        $html_tag = $this->get_html_tag($element['etch_type']);
+        if ($html_tag !== 'div') {
+            $block_attrs['tagName'] = $html_tag;
+        }
+        
+        $gutenberg_html = sprintf(
+            '<!-- wp:group %s -->',
+            json_encode($block_attrs, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+        );
+        
+        // Add classes to the HTML element
+        $classes = array('wp-block-group');
+        if (!empty($etch_data['class'])) {
+            $classes[] = $etch_data['class'];
+        }
+        $class_attr = ' class="' . esc_attr(implode(' ', $classes)) . '"';
+        
+        $gutenberg_html .= "\n<div" . $class_attr . ">";
         $gutenberg_html .= "\n" . $block_content;
         $gutenberg_html .= "\n</div>";
         $gutenberg_html .= "\n<!-- /wp:group -->";
@@ -124,8 +242,10 @@ class B2E_Gutenberg_Generator {
      */
     private function generate_standard_block($element) {
         $etch_type = $element['etch_type'];
-        $content = $element['content'] ?? '';
         $etch_data = $element['etch_data'] ?? array();
+        
+        // Get content from etch_data or element
+        $content = $etch_data['content'] ?? $element['content'] ?? '';
         
         // Convert dynamic data in content
         $content = $this->dynamic_data_converter->convert_content($content);
@@ -135,9 +255,15 @@ class B2E_Gutenberg_Generator {
                 $level = $etch_data['level'] ?? 'h2';
                 $class = !empty($etch_data['class']) ? ' class="' . esc_attr($etch_data['class']) . '"' : '';
                 
+                // Build block attributes
+                $block_attrs = array('level' => intval(str_replace('h', '', $level)));
+                if (!empty($etch_data['class'])) {
+                    $block_attrs['className'] = $etch_data['class'];
+                }
+                
                 return sprintf(
-                    '<!-- wp:heading {"level":%d} -->',
-                    intval(str_replace('h', '', $level))
+                    '<!-- wp:heading %s -->',
+                    json_encode($block_attrs, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
                 ) . "\n" . 
                 '<' . $level . $class . '>' . $content . '</' . $level . '>' . "\n" .
                 '<!-- /wp:heading -->';
@@ -145,23 +271,30 @@ class B2E_Gutenberg_Generator {
             case 'paragraph':
                 $class = !empty($etch_data['class']) ? ' class="' . esc_attr($etch_data['class']) . '"' : '';
                 
-                return '<!-- wp:paragraph -->' . "\n" .
+                // Build block attributes
+                $block_attrs = array();
+                if (!empty($etch_data['class'])) {
+                    $block_attrs['className'] = $etch_data['class'];
+                }
+                
+                $attrs_json = !empty($block_attrs) ? ' ' . json_encode($block_attrs, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : '';
+                
+                return '<!-- wp:paragraph' . $attrs_json . ' -->' . "\n" .
                        '<p' . $class . '>' . $content . '</p>' . "\n" .
                        '<!-- /wp:paragraph -->';
                        
             case 'image':
                 $src = $etch_data['src'] ?? '';
                 $alt = $etch_data['alt'] ?? '';
-                $class = !empty($etch_data['class']) ? ' class="' . esc_attr($etch_data['class']) . '"' : '';
+                $class = !empty($etch_data['class']) ? ' ' . esc_attr($etch_data['class']) : '';
                 
                 if (empty($src)) {
                     return ''; // Skip images without source
                 }
                 
+                // Gutenberg expects inline HTML for images (no line breaks)
                 return '<!-- wp:image -->' . "\n" .
-                       '<figure class="wp-block-image' . $class . '">' . "\n" .
-                       '<img src="' . esc_url($src) . '" alt="' . esc_attr($alt) . '" />' . "\n" .
-                       '</figure>' . "\n" .
+                       '<figure class="wp-block-image' . $class . '"><img src="' . esc_url($src) . '" alt="' . esc_attr($alt) . '"/></figure>' . "\n" .
                        '<!-- /wp:image -->';
                        
             case 'button':
@@ -204,18 +337,23 @@ class B2E_Gutenberg_Generator {
     /**
      * Generate block content
      */
-    private function generate_block_content($element, $content) {
+    private function generate_block_content($element, $content, $element_map = array()) {
         // Handle children elements
-        if (!empty($element['children']) && is_array($element['children'])) {
-            $children_content = array();
+        if (!empty($element['children']) && is_array($element['children']) && !empty($element_map)) {
+            $children_blocks = array();
             
             foreach ($element['children'] as $child_id) {
-                // Find child element (this would need to be passed from parent)
-                // For now, just return the content
-                $children_content[] = $content;
+                // Find child element in map
+                if (isset($element_map[$child_id])) {
+                    $child_element = $element_map[$child_id];
+                    $child_html = $this->generate_block_html($child_element, $element_map);
+                    if ($child_html) {
+                        $children_blocks[] = $child_html;
+                    }
+                }
             }
             
-            return implode("\n", $children_content);
+            return implode("\n", $children_blocks);
         }
         
         return $content;

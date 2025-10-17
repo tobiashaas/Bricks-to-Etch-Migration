@@ -82,6 +82,9 @@ class Bricks_Etch_Migration {
         // Admin menu is now handled by B2E_Admin_Interface class only
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
         
+        // Initialize REST API endpoints immediately
+        add_action('plugins_loaded', array($this, 'init_rest_api'));
+        
         // Activation/Deactivation hooks are registered at the end of the file
     }
     
@@ -105,11 +108,51 @@ class Bricks_Etch_Migration {
             $this->admin_interface = new B2E_Admin_Interface(true);
         }
         
-        // Initialize API endpoints (static registration)
-        B2E_API_Endpoints::init();
+        // Always initialize admin interface for AJAX handlers
+        if (!isset($this->admin_interface)) {
+            $this->admin_interface = new B2E_Admin_Interface(false);
+        }
         
         // Initialize error handler
         new B2E_Error_Handler();
+    }
+    
+    /**
+     * Initialize REST API endpoints
+     */
+    public function init_rest_api() {
+        // Add CORS headers for API requests first
+        $this->add_cors_headers();
+        
+        // Initialize API endpoints when REST API is ready
+        B2E_API_Endpoints::init();
+    }
+    
+    /**
+     * Add CORS headers for API requests
+     */
+    private function add_cors_headers() {
+        // Add CORS headers for REST API requests
+        add_action('rest_api_init', function() {
+            remove_filter('rest_pre_serve_request', 'rest_send_cors_headers');
+            add_filter('rest_pre_serve_request', function($value) {
+                header('Access-Control-Allow-Origin: *');
+                header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+                header('Access-Control-Allow-Headers: Content-Type, Authorization, X-API-Key');
+                header('Access-Control-Allow-Credentials: true');
+                return $value;
+            });
+        });
+        
+        // Handle preflight OPTIONS requests
+        add_action('rest_api_init', function() {
+            add_filter('rest_pre_dispatch', function($result, $server, $request) {
+                if ($request->get_method() === 'OPTIONS') {
+                    return new WP_REST_Response(null, 200);
+                }
+                return $result;
+            }, 10, 3);
+        });
     }
     
     /**
