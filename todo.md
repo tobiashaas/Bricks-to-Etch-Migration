@@ -128,11 +128,12 @@ bricks-etch-migration/
 
 ## 📝 Notizen
 
-- **Letzte Änderung**: 18. Oktober 2025, 01:15 Uhr
-- **Aktueller Stand**: ✅ MAJOR BREAKTHROUGH! Content + CSS Migration funktioniert!
-- **Nächster Schritt**: Etch Style-Loading debuggen (Klassen da, aber Styles nicht angewendet)
-- **Zeitaufwand heute**: ~4 Stunden (Content-Parsing, CSS-Konvertierung, Labels, Custom CSS)
-- **Gelöstes Problem**: Komplette Content-Migration mit Labels, Custom CSS als Raw Stylesheet
+- **Letzte Änderung**: 18. Oktober 2025, 10:30 Uhr
+- **Aktueller Stand**: 🚧 Classes in DB korrekt, aber Frontend-Rendering fehlt
+- **Nächster Schritt**: Etch REST API verwenden statt direkter DB-Zugriff
+- **Zeitaufwand heute**: ~6 Stunden (CSS, Classes, Etch-Analyse, Debugging)
+- **Gelöstes Problem**: CSS-Konvertierung komplett, Unicode-Escaping gelöst
+- **Backup Branch**: `backup/before-api-refactor` (vor API-Umstellung)
 
 ### Test-Ergebnisse (18.10.2025, 00:00-01:15)
 
@@ -148,10 +149,13 @@ bricks-etch-migration/
 - ✅ **Cache-Invalidierung** - etch_svg_version wird erhöht
 - ✅ **~2211 CSS Styles** migriert (inkl. Framework-Klassen)
 
-**⚠️ Was noch nicht funktioniert:**
-- ⚠️ **Styles werden nicht angewendet** - Klassen sind im HTML, aber CSS greift nicht
-- ⚠️ Etch lädt Styles nicht automatisch (trotz Cache-Invalidierung)
-- ℹ️ Workaround: Klasse umbenennen → Styles werden geladen
+**⚠️ Aktuelles Problem (18.10.2025, 10:30):**
+- ⚠️ **Classes nicht im Frontend** - In DB korrekt, aber Etch rendert sie nicht
+- 🔍 **Root Cause**: Etch ignoriert HTML class-Attribut, nutzt nur etchData.attributes
+- 💡 **Geplante Lösung**: Etch REST API verwenden statt direkter DB-Zugriff
+  - `/wp-json/etch-api/styles?_method=PUT` für Styles
+  - `/wp-json/etch-api/post/{id}/blocks` für Content
+  - Vorteile: Kein Escaping, automatische Trigger, sauberer
 
 **🔧 Durchgeführte Fixes:**
 1. Media-Migration: Besseres Logging (failed/skipped counts)
