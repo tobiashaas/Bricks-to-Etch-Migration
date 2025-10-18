@@ -42,6 +42,8 @@ class B2E_CSS_Converter {
         
         // Step 1: Collect all custom CSS into a temporary stylesheet
         $custom_css_stylesheet = '';
+        
+        // Collect custom CSS from global classes
         foreach ($bricks_classes as $class) {
             if (!empty($class['settings']['_cssCustom'])) {
                 $class_name = !empty($class['name']) ? $class['name'] : $class['id'];
@@ -50,6 +52,19 @@ class B2E_CSS_Converter {
                 $custom_css = str_replace('%root%', '.' . $class_name, $class['settings']['_cssCustom']);
                 $custom_css_stylesheet .= "\n" . $custom_css . "\n";
             }
+        }
+        
+        // Collect inline CSS from code blocks (stored during content parsing)
+        global $wpdb;
+        $inline_css_options = $wpdb->get_results(
+            "SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE 'b2e_inline_css_%'",
+            ARRAY_A
+        );
+        
+        foreach ($inline_css_options as $option) {
+            $custom_css_stylesheet .= "\n" . $option['option_value'] . "\n";
+            // Clean up after collecting
+            delete_option($option['option_name']);
         }
         
         // Step 2: Convert user classes (without custom CSS for now)
@@ -166,6 +181,14 @@ class B2E_CSS_Converter {
             $css_properties = array_merge($css_properties, $this->convert_background($settings['background']));
         }
         
+        // Gradient (Bricks uses _gradient setting)
+        if (!empty($settings['_gradient'])) {
+            $gradient_css = $this->convert_gradient($settings['_gradient']);
+            if (!empty($gradient_css)) {
+                $css_properties[] = $gradient_css;
+            }
+        }
+        
         // Border
         if (!empty($settings['border'])) {
             $css_properties = array_merge($css_properties, $this->convert_border($settings['border']));
@@ -207,7 +230,10 @@ class B2E_CSS_Converter {
         $css = array();
         
         if (!empty($background['color'])) {
-            $css[] = 'background-color: ' . $background['color'] . ';';
+            $color_value = is_array($background['color']) ? ($background['color']['raw'] ?? '') : $background['color'];
+            if (!empty($color_value)) {
+                $css[] = 'background-color: ' . $color_value . ';';
+            }
         }
         
         if (!empty($background['image']['url'])) {
@@ -230,6 +256,54 @@ class B2E_CSS_Converter {
     }
     
     /**
+     * Convert gradient settings
+     */
+    private function convert_gradient($gradient) {
+        if (empty($gradient['colors']) || !is_array($gradient['colors'])) {
+            return '';
+        }
+        
+        // Build color stops
+        $color_stops = array();
+        foreach ($gradient['colors'] as $color_data) {
+            $color_value = '';
+            
+            // Extract color value
+            if (is_array($color_data['color'])) {
+                $color_value = $color_data['color']['raw'] ?? '';
+            } else {
+                $color_value = $color_data['color'] ?? '';
+            }
+            
+            if (empty($color_value)) {
+                continue;
+            }
+            
+            // Add stop position if available
+            if (!empty($color_data['stop'])) {
+                $color_stops[] = $color_value . ' ' . $color_data['stop'];
+            } else {
+                $color_stops[] = $color_value;
+            }
+        }
+        
+        if (empty($color_stops)) {
+            return '';
+        }
+        
+        // Build gradient CSS
+        $gradient_type = $gradient['type'] ?? 'linear';
+        $angle = $gradient['angle'] ?? '180deg';
+        
+        if ($gradient_type === 'radial') {
+            return 'background-image: radial-gradient(' . implode(', ', $color_stops) . ');';
+        } else {
+            // Linear gradient (default)
+            return 'background-image: linear-gradient(' . implode(', ', $color_stops) . ');';
+        }
+    }
+    
+    /**
      * Convert border settings
      */
     private function convert_border($border) {
@@ -244,7 +318,10 @@ class B2E_CSS_Converter {
         }
         
         if (!empty($border['color'])) {
-            $css[] = 'border-color: ' . $border['color'] . ';';
+            $color_value = is_array($border['color']) ? ($border['color']['raw'] ?? '') : $border['color'];
+            if (!empty($color_value)) {
+                $css[] = 'border-color: ' . $color_value . ';';
+            }
         }
         
         if (!empty($border['radius'])) {
@@ -331,7 +408,10 @@ class B2E_CSS_Converter {
         
         // Color
         if (!empty($typography['color'])) {
-            $css[] = 'color: ' . $typography['color'] . ';';
+            $color_value = is_array($typography['color']) ? ($typography['color']['raw'] ?? '') : $typography['color'];
+            if (!empty($color_value)) {
+                $css[] = 'color: ' . $color_value . ';';
+            }
         }
         
         // Vertical align
@@ -814,6 +894,12 @@ class B2E_CSS_Converter {
         // Increment Etch version to invalidate cache and force style reload
         $current_version = get_option('etch_svg_version', 1);
         update_option('etch_svg_version', $current_version + 1);
+        
+        // Clear WordPress object cache for Etch global data
+        wp_cache_delete('etch_global_data', 'etch');
+        
+        // Flush WordPress cache to ensure styles are reloaded
+        wp_cache_flush();
         
         return true;
     }

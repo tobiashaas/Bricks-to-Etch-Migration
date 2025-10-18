@@ -142,6 +142,24 @@ class B2E_Content_Parser {
             case 'gutenberg':
                 return $this->process_gutenberg_element($element, $post_id);
                 
+            case 'code':
+                // Code blocks with CSS/JS - store for later processing
+                if (!empty($element['settings']['cssCode'])) {
+                    // Store CSS code globally for CSS converter to pick up
+                    update_option('b2e_inline_css_' . $post_id, $element['settings']['cssCode'], false);
+                }
+                
+                if (!empty($element['settings']['javascriptCode'])) {
+                    // Store JavaScript code for Gutenberg generator to pick up
+                    $existing_js = get_option('b2e_inline_js_' . $post_id, '');
+                    $new_js = $existing_js . "\n" . $element['settings']['javascriptCode'];
+                    update_option('b2e_inline_js_' . $post_id, $new_js, false);
+                }
+                
+                // Skip code elements in content (CSS/JS handled separately)
+                $element['etch_type'] = 'skip';
+                return $element;
+                
             default:
                 // Log unsupported element
                 $this->error_handler->log_error('E003', array(

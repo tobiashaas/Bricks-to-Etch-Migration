@@ -107,16 +107,30 @@ class B2E_Gutenberg_Generator {
             return false;
         }
         
-        // Save Gutenberg content to database (Etch will process it automatically)
-        $update_result = wp_update_post(array(
-            'ID' => $post->ID,
-            'post_content' => $gutenberg_content
-        ));
+        // Append inline JavaScript from code blocks (if any)
+        $inline_js = get_option('b2e_inline_js_' . $post->ID, '');
+        if (!empty($inline_js)) {
+            $gutenberg_content .= "\n\n<!-- wp:html -->\n<script>\n" . trim($inline_js) . "\n</script>\n<!-- /wp:html -->";
+            delete_option('b2e_inline_js_' . $post->ID);
+        }
         
-        if (is_wp_error($update_result)) {
+        // Save Gutenberg content to database (Etch will process it automatically)
+        // Use direct DB query WITHOUT prepare to avoid escaping special characters
+        // This is safe because we control the content and ID
+        global $wpdb;
+        
+        // Escape only the content for SQL injection prevention, but preserve Unicode
+        $escaped_content = $wpdb->_real_escape($gutenberg_content);
+        $post_id = (int) $post->ID;
+        
+        $update_result = $wpdb->query(
+            "UPDATE {$wpdb->posts} SET post_content = '{$escaped_content}' WHERE ID = {$post_id}"
+        );
+        
+        if ($update_result === false) {
             $this->error_handler->log_error('I024', array(
                 'post_id' => $post->ID,
-                'error' => $update_result->get_error_message(),
+                'error' => 'Database update failed',
                 'action' => 'Failed to save Gutenberg content to database'
             ));
             return false;
@@ -145,6 +159,11 @@ class B2E_Gutenberg_Generator {
      */
     private function generate_block_html($element, $element_map = array()) {
         $etch_type = $element['etch_type'] ?? 'generic';
+        
+        // Skip elements marked for skipping (e.g., code blocks)
+        if ($etch_type === 'skip') {
+            return '';
+        }
         
         switch ($etch_type) {
             case 'section':
@@ -183,12 +202,19 @@ class B2E_Gutenberg_Generator {
         // Use custom label if available, otherwise use element type
         $element_name = !empty($element['label']) ? $element['label'] : ucfirst($element['etch_type']);
         
+        // Extract class for Gutenberg className
+        $class_name = !empty($etch_data['class']) ? $etch_data['class'] : '';
+        
+        // Keep class in etchData attributes for Etch to render
+        // Etch ignores the HTML class attribute and only uses etchData
+        $etch_data_attributes = $etch_data;
+        
         // Build etchData
         $etch_data_array = array(
             'origin' => 'etch',
             'name' => $element_name,
             'styles' => $style_ids,
-            'attributes' => $etch_data,
+            'attributes' => $etch_data_attributes,
             'block' => array(
                 'type' => 'html',
                 'tag' => $this->get_html_tag($element['etch_type']),
@@ -206,9 +232,9 @@ class B2E_Gutenberg_Generator {
             )
         );
         
-        // Add className for Gutenberg (in addition to HTML class attribute)
-        if (!empty($etch_data['class'])) {
-            $block_attrs['className'] = $etch_data['class'];
+        // Add className for Gutenberg (extracted earlier to avoid duplication)
+        if (!empty($class_name)) {
+            $block_attrs['className'] = $class_name;
         }
         
         // Add tagName for non-div elements (section, article, etc.)
@@ -224,8 +250,8 @@ class B2E_Gutenberg_Generator {
         
         // Add classes to the HTML element
         $classes = array('wp-block-group');
-        if (!empty($etch_data['class'])) {
-            $classes[] = $etch_data['class'];
+        if (!empty($class_name)) {
+            $classes[] = $class_name;
         }
         $class_attr = ' class="' . esc_attr(implode(' ', $classes)) . '"';
         
