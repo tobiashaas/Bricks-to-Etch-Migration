@@ -1031,25 +1031,56 @@ class B2E_CSS_Converter {
         // Merge with new styles
         $merged_styles = array_merge($existing_styles, $etch_styles);
         
-        // Direct DB access - more reliable than Etch API
-        // The Etch API was causing issues, so we use direct DB access
-        $result = update_option('etch_styles', $merged_styles);
-        
-        if (!$result && empty($existing_styles)) {
-            // update_option returns false if value didn't change
-            // So only error if it's a new option that failed to save
-            return new WP_Error('save_failed', 'Failed to save styles to database');
+        // Save via Etch API - this is REQUIRED for proper processing!
+        // The Etch API handles:
+        // - Unicode decoding (\u002d -> -)
+        // - Cache invalidation
+        // - Internal hooks and triggers
+        if (class_exists('Etch\RestApi\Routes\StylesRoutes')) {
+            try {
+                $routes = new \Etch\RestApi\Routes\StylesRoutes();
+                
+                // Create proper REST request with JSON body
+                $request = new \WP_REST_Request('POST', '/etch-api/styles');
+                $request->set_header('Content-Type', 'application/json');
+                $request->set_body(json_encode($merged_styles, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+                
+                error_log('B2E: Calling Etch API with ' . count($merged_styles) . ' styles');
+                
+                $response = $routes->update_styles($request);
+                
+                if (is_wp_error($response)) {
+                    error_log('B2E: Etch API error: ' . $response->get_error_message());
+                    return new WP_Error('api_failed', 'Etch API error: ' . $response->get_error_message());
+                }
+                
+                error_log('B2E: Etch API success - styles saved and processed');
+                
+                // API call successful - Etch handles everything internally
+                return true;
+                
+            } catch (Exception $e) {
+                error_log('B2E: Etch API exception: ' . $e->getMessage());
+                return new WP_Error('api_exception', 'Exception calling Etch API: ' . $e->getMessage());
+            }
+        } else {
+            // Fallback to direct DB access if Etch API not available
+            error_log('B2E: WARNING - Etch API not available, using fallback (styles may not render correctly)');
+            
+            $result = update_option('etch_styles', $merged_styles);
+            
+            if (!$result && empty($existing_styles)) {
+                return new WP_Error('save_failed', 'Failed to save styles to database');
+            }
+            
+            // Manual cache invalidation for fallback
+            $current_version = get_option('etch_svg_version', 1);
+            update_option('etch_svg_version', $current_version + 1);
+            wp_cache_delete('etch_global_data', 'etch');
+            wp_cache_flush();
+            
+            return true;
         }
-        
-        // Manual cache invalidation
-        $current_version = get_option('etch_svg_version', 1);
-        update_option('etch_svg_version', $current_version + 1);
-        wp_cache_delete('etch_global_data', 'etch');
-        wp_cache_flush();
-        
-        error_log('B2E: Saved ' . count($merged_styles) . ' styles to etch_styles option');
-        
-        return true;
     }
     
     /**
