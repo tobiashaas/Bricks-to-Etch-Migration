@@ -38,9 +38,9 @@ class B2E_Migration_Manager {
     private $gutenberg_generator;
     
     /**
-     * API service instance
+     * API client instance
      */
-    private $api_service;
+    private $api_client;
     
     /**
      * Transfer manager instance
@@ -56,7 +56,7 @@ class B2E_Migration_Manager {
         $this->content_parser = new B2E_Content_Parser();
         $this->css_converter = new B2E_CSS_Converter();
         $this->gutenberg_generator = new B2E_Gutenberg_Generator();
-        $this->api_service = B2E_API_Service::get_instance();
+        $this->api_client = new B2E_API_Client();
         // Transfer manager will be implemented later
         // $this->transfer_manager = new B2E_Transfer_Manager();
     }
@@ -365,8 +365,8 @@ class B2E_Migration_Manager {
                 );
                 
                 // Send to target site via API
-                $this->api_service->init($target_url, $api_key);
-                $result = $this->api_service->send_media($media_data);
+                $api_client = new B2E_API_Client();
+                $result = $api_client->send_media_data($target_url, $api_key, $media_data);
                 
                 if (is_wp_error($result)) {
                     $failed_count++;
@@ -433,8 +433,7 @@ class B2E_Migration_Manager {
         }
         
         // Send CSS styles to target site via API
-        $this->api_service->init($target_url, $api_key);
-        $result = $this->api_service->send_css($etch_styles);
+        $result = $this->api_client->send_css_styles($target_url, $api_key, $etch_styles);
         
         if (is_wp_error($result)) {
             $this->error_handler->log_error('E106', array(
@@ -500,11 +499,8 @@ class B2E_Migration_Manager {
             // Even if content is empty, we want the structure migrated
             
             // Send to target site via API
-            $this->api_service->init($target_url, $api_key);
-            $result = $this->api_service->send_post(array(
-                'post' => $post,
-                'etch_content' => $etch_content
-            ));
+            $api_client = new B2E_API_Client();
+            $result = $api_client->send_post($target_url, $api_key, $post, $etch_content);
             
             if (is_wp_error($result)) {
                 $this->error_handler->log_error('E105', array(

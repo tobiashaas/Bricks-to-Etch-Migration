@@ -456,9 +456,6 @@ class B2E_Gutenberg_Generator {
             return '';
         }
         
-        // Replace Bricks domain with Etch domain in image URL
-        $image_url = $this->replace_media_url($image_url);
-        
         $classes = $this->get_element_classes($element);
         
         // Get style IDs for this element
@@ -1289,38 +1286,5 @@ class B2E_Gutenberg_Generator {
         }
         
         return implode(' ', array_filter($classes));
-    }
-    
-    /**
-     * Replace Bricks media URL with Etch media URL
-     * This assumes media has been migrated and is available on Etch
-     */
-    private function replace_media_url($url) {
-        // Get source and target URLs from settings
-        $settings = get_option('b2e_settings', array());
-        $target_url = $settings['target_url'] ?? '';
-        
-        if (empty($target_url)) {
-            return $url; // No target URL, return original
-        }
-        
-        // Get source site URL
-        $source_url = home_url();
-        
-        // Parse URLs
-        $source_parsed = parse_url($source_url);
-        $target_parsed = parse_url($target_url);
-        
-        if (!$source_parsed || !$target_parsed) {
-            return $url; // Invalid URLs, return original
-        }
-        
-        // Replace source domain with target domain in media URL
-        $source_host = $source_parsed['host'] . (isset($source_parsed['port']) ? ':' . $source_parsed['port'] : '');
-        $target_host = $target_parsed['host'] . (isset($target_parsed['port']) ? ':' . $target_parsed['port'] : '');
-        
-        $new_url = str_replace($source_host, $target_host, $url);
-        
-        return $new_url;
     }
 }

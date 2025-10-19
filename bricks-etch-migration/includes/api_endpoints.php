@@ -282,15 +282,6 @@ class B2E_API_Endpoints {
             $post_info = $post_data['post'];
             $etch_content = $post_data['etch_content'];
             
-            // Check if post already exists (by original ID)
-            $existing_posts = get_posts(array(
-                'post_type' => 'any',
-                'meta_key' => '_b2e_original_post_id',
-                'meta_value' => intval($post_info['ID']),
-                'posts_per_page' => 1,
-                'post_status' => 'any'
-            ));
-            
             // Prepare post data for WordPress
             $wp_post_data = array(
                 'post_title' => sanitize_text_field($post_info['post_title']),
@@ -305,16 +296,8 @@ class B2E_API_Endpoints {
                 )
             );
             
-            // Update existing post or insert new one
-            if (!empty($existing_posts)) {
-                $post_id = $existing_posts[0]->ID;
-                $wp_post_data['ID'] = $post_id;
-                $post_id = wp_update_post($wp_post_data);
-                $action = 'updated';
-            } else {
-                $post_id = wp_insert_post($wp_post_data);
-                $action = 'created';
-            }
+            // Insert post into WordPress
+            $post_id = wp_insert_post($wp_post_data);
             
             if (is_wp_error($post_id)) {
                 return new WP_Error('insert_failed', 'Failed to insert post: ' . $post_id->get_error_message(), array('status' => 500));

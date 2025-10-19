@@ -32,7 +32,7 @@ class B2E_API_Client {
         
         $args = array(
             'method' => $method,
-            'timeout' => 120, // Increased to 120 seconds for large migrations
+            'timeout' => 30,
             'headers' => array(
                 'X-API-Key' => $api_key,
                 'Content-Type' => 'application/json',
@@ -148,19 +148,8 @@ class B2E_API_Client {
     
     /**
      * Send post
-     * Accepts either old format (4 params) or new format (3 params with array)
      */
-    public function send_post($url, $api_key, $post_or_data, $etch_content = null) {
-        // Check if called with new format (array) or old format (separate params)
-        if (is_array($post_or_data) && isset($post_or_data['post'])) {
-            // New format: array with 'post' and 'etch_content'
-            $post = $post_or_data['post'];
-            $etch_content = $post_or_data['etch_content'];
-        } else {
-            // Old format: separate parameters
-            $post = $post_or_data;
-        }
-        
+    public function send_post($url, $api_key, $post, $etch_content) {
         $post_data = array(
             'post' => array(
                 'ID' => $post->ID,

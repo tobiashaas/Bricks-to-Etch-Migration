@@ -376,7 +376,7 @@ class B2E_Content_Parser {
     public function get_bricks_posts() {
         // Get migration settings (simplified)
         $settings = array(
-            'post_types' => array('post', 'page', 'bricks_template'), // Include Bricks templates
+            'post_types' => array('post', 'page'),
             'include_drafts' => false,
             'batch_size' => 10,
             'migrate_posts' => true,
@@ -399,11 +399,6 @@ class B2E_Content_Parser {
             if ($settings['migrate_cpts']) {
                 // Get all custom post types
                 $custom_post_types = get_post_types(array('_builtin' => false), 'names');
-                
-                // Exclude Bricks-specific CPTs that shouldn't be migrated
-                $excluded_cpts = array('bricks_fonts');
-                $custom_post_types = array_diff($custom_post_types, $excluded_cpts);
-                
                 $post_types = array_merge($post_types, $custom_post_types);
             }
         }

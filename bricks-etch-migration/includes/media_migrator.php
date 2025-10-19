@@ -145,10 +145,9 @@ class B2E_Media_Migrator {
             'metadata' => $media_data['metadata'],
         );
         
-        // Send to target site via centralized API service
-        $api_service = B2E_API_Service::get_instance();
-        $api_service->init($target_url, $api_key);
-        $result = $api_service->send_media($media_payload);
+        // Send to target site via API
+        $api_client = new B2E_API_Client();
+        $result = $api_client->send_media_file($target_url, $api_key, $media_payload);
         
         if (is_wp_error($result)) {
             return $result;
@@ -164,10 +163,6 @@ class B2E_Media_Migrator {
      * Download file from source URL
      */
     private function download_file($file_url) {
-        // Convert localhost URLs for Docker internal access via centralized service
-        $api_service = B2E_API_Service::get_instance();
-        $file_url = $api_service->convert_media_url_for_docker($file_url);
-        
         $response = wp_remote_get($file_url, array(
             'timeout' => 30,
             'sslverify' => false // In case of self-signed certificates

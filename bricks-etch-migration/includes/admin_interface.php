@@ -37,9 +37,6 @@ class B2E_Admin_Interface {
         add_action('wp_ajax_b2e_get_bricks_posts', array($this, 'ajax_get_bricks_posts'));
         add_action('wp_ajax_b2e_migrate_css', array($this, 'ajax_migrate_css'));
         add_action('wp_ajax_b2e_migrate_media', array($this, 'ajax_migrate_media'));
-        add_action('wp_ajax_b2e_migrate_cpts', array($this, 'ajax_migrate_cpts'));
-        add_action('wp_ajax_b2e_get_bricks_cpts', array($this, 'ajax_get_bricks_cpts'));
-        add_action('wp_ajax_b2e_get_etch_cpts', array($this, 'ajax_get_etch_cpts'));
         add_action('wp_ajax_b2e_cleanup_etch', array($this, 'ajax_cleanup_etch'));
     }
     
@@ -296,9 +293,6 @@ class B2E_Admin_Interface {
                                 `;
                                 infoDiv.style.display = 'block';
                             }
-                            
-                            // Load CPT mapping options
-                            loadCPTMappingOptions(domain, data.data.api_key);
                         } else {
                             showToast('Migration token validation failed: ' + (data.data || 'Invalid token'), 'error');
                         }
@@ -564,9 +558,11 @@ class B2E_Admin_Interface {
             
             console.log('🔑 Using API key from sessionStorage:', apiKey.substring(0, 20) + '...');
             
-            // Note: Localhost conversion is handled server-side in convert_localhost_for_docker()
-            // No need to convert here - just use the domain as-is
+            // Convert localhost:8081 to b2e-etch for Docker internal communication
             let apiDomain = domain;
+            if (domain.includes('localhost:8081')) {
+                apiDomain = domain.replace('localhost:8081', 'b2e-etch');
+            }
             
             // Show progress section
             const progressSection = document.getElementById('migration-progress');
@@ -591,30 +587,17 @@ class B2E_Admin_Interface {
             const initialSteps = [`Found ${posts.length} items to migrate (${posts.filter(p => p.type === 'page').length} pages, ${posts.filter(p => p.type === 'post').length} posts)`];
             updateProgress(3, `📋 Found ${posts.length} items to migrate`, initialSteps);
             
-            // Step 2: Migrate Custom Post Types first (so bricks_template exists in Etch)
-            updateProgress(4, '📦 Migrating Custom Post Types...', [...initialSteps, 'Registering Bricks templates and other CPTs...']);
-            let cptSteps = [...initialSteps];
-            try {
-                await migrateCPTs(apiDomain, apiKey);
-                cptSteps.push('✅ Custom Post Types registered successfully');
-                updateProgress(5, '✅ CPT migration complete', cptSteps);
-            } catch (error) {
-                console.error('❌ CPT migration error:', error);
-                cptSteps.push('⚠️ CPT migration failed: ' + error.message);
-                updateProgress(5, '⚠️ CPT migration failed (continuing...)', cptSteps);
-            }
-            
-            // Step 3: Migrate CSS
-            updateProgress(6, '🎨 Migrating CSS styles...', [...cptSteps, 'Converting Bricks classes to Etch styles...']);
-            let cssSteps = [...cptSteps];
+            // Step 2: Migrate CSS first (once for all posts)
+            updateProgress(5, '🎨 Migrating CSS styles...', [...initialSteps, 'Converting Bricks classes to Etch styles...']);
+            let cssSteps = [...initialSteps];
             try {
                 await migrateCSSStyles(apiDomain, apiKey);
                 cssSteps.push('✅ CSS styles migrated successfully');
-                updateProgress(8, '✅ CSS migration complete', cssSteps);
+                updateProgress(7, '✅ CSS migration complete', cssSteps);
             } catch (error) {
                 console.error('❌ CSS migration error:', error);
                 cssSteps.push('⚠️ CSS migration failed: ' + error.message);
-                updateProgress(8, '⚠️ CSS migration failed (continuing...)', cssSteps);
+                updateProgress(7, '⚠️ CSS migration failed (continuing...)', cssSteps);
             }
             
             // Step 2.5: Migrate Media
@@ -752,144 +735,6 @@ class B2E_Admin_Interface {
         }
         
         /**
-         * Migrate Custom Post Types
-         */
-        async function migrateCPTs(apiDomain, apiKey) {
-            const formData = new FormData();
-            formData.append('action', 'b2e_migrate_cpts');
-            formData.append('nonce', b2e_ajax.nonce);
-            formData.append('target_url', apiDomain);
-            formData.append('api_key', apiKey);
-            
-            const response = await fetch(b2e_ajax.ajax_url, {
-                method: 'POST',
-                body: formData
-            });
-            
-            const data = await response.json();
-            
-            if (!data.success) {
-                throw new Error(data.data || 'Failed to migrate CPTs');
-            }
-            
-            return data.data;
-        }
-        
-        /**
-         * Load CPT mapping options
-         */
-        async function loadCPTMappingOptions(domain, apiKey) {
-            try {
-                // Get Bricks CPTs
-                const bricksCPTs = await getBricksCPTs();
-                
-                // Get Etch CPTs
-                const etchCPTs = await getEtchCPTs(domain, apiKey);
-                
-                // Build mapping UI
-                const mappingList = document.getElementById('cpt-mapping-list');
-                if (!mappingList) return;
-                
-                if (bricksCPTs.length === 0) {
-                    mappingList.innerHTML = '<p style="color: var(--e-base-light);">No custom post types found in Bricks.</p>';
-                    return;
-                }
-                
-                let html = '<table style="width: 100%; border-collapse: collapse;">';
-                html += '<thead><tr style="background: var(--e-base-dark); border-bottom: 2px solid var(--e-border-color);">';
-                html += '<th style="padding: 10px; text-align: left;">Bricks Post Type</th>';
-                html += '<th style="padding: 10px; text-align: left;">→ Map to Etch Post Type</th>';
-                html += '<th style="padding: 10px; text-align: left;">Count</th>';
-                html += '</tr></thead><tbody>';
-                
-                bricksCPTs.forEach(cpt => {
-                    html += '<tr style="border-bottom: 1px solid var(--e-border-color);">';
-                    html += `<td style="padding: 10px;"><strong>${cpt.label}</strong><br><code style="font-size: 0.9em; color: var(--e-base-light);">${cpt.name}</code></td>`;
-                    html += '<td style="padding: 10px;">';
-                    html += `<select name="cpt_mapping[${cpt.name}]" id="cpt_mapping_${cpt.name}" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--e-border-color);">`;
-                    
-                    // Default option: map to page
-                    html += `<option value="page" ${cpt.name === 'bricks_template' ? 'selected' : ''}>Page</option>`;
-                    html += `<option value="post">Post</option>`;
-                    
-                    // Add Etch CPTs as options
-                    etchCPTs.forEach(etchCpt => {
-                        const selected = cpt.name === etchCpt.name ? 'selected' : '';
-                        html += `<option value="${etchCpt.name}" ${selected}>${etchCpt.label}</option>`;
-                    });
-                    
-                    html += '</select>';
-                    html += '</td>';
-                    html += `<td style="padding: 10px; color: var(--e-base-light);">${cpt.count} items</td>`;
-                    html += '</tr>';
-                });
-                
-                html += '</tbody></table>';
-                mappingList.innerHTML = html;
-                
-            } catch (error) {
-                console.error('Failed to load CPT mapping options:', error);
-                const mappingList = document.getElementById('cpt-mapping-list');
-                if (mappingList) {
-                    mappingList.innerHTML = '<p style="color: var(--e-warning);">⚠️ Failed to load post type options</p>';
-                }
-            }
-        }
-        
-        /**
-         * Get Bricks CPTs
-         */
-        async function getBricksCPTs() {
-            const formData = new FormData();
-            formData.append('action', 'b2e_get_bricks_cpts');
-            formData.append('nonce', b2e_ajax.nonce);
-            
-            const response = await fetch(b2e_ajax.ajax_url, {
-                method: 'POST',
-                body: formData
-            });
-            
-            const data = await response.json();
-            return data.success ? data.data : [];
-        }
-        
-        /**
-         * Get Etch CPTs
-         */
-        async function getEtchCPTs(domain, apiKey) {
-            const formData = new FormData();
-            formData.append('action', 'b2e_get_etch_cpts');
-            formData.append('nonce', b2e_ajax.nonce);
-            formData.append('target_url', domain);
-            formData.append('api_key', apiKey);
-            
-            const response = await fetch(b2e_ajax.ajax_url, {
-                method: 'POST',
-                body: formData
-            });
-            
-            const data = await response.json();
-            return data.success ? data.data : [];
-        }
-        
-        /**
-         * Get CPT mapping from UI
-         */
-        function getCPTMapping() {
-            const mapping = {};
-            const selects = document.querySelectorAll('[name^="cpt_mapping["]');
-            
-            selects.forEach(select => {
-                const match = select.name.match(/cpt_mapping\[([^\]]+)\]/);
-                if (match) {
-                    mapping[match[1]] = select.value;
-                }
-            });
-            
-            return mapping;
-        }
-        
-        /**
          * Migrate single post
          */
         async function migratePost(postId, apiDomain, apiKey) {
@@ -899,10 +744,6 @@ class B2E_Admin_Interface {
             formData.append('post_id', postId);
             formData.append('target_url', apiDomain);
             formData.append('api_key', apiKey);
-            
-            // Add CPT mapping
-            const cptMapping = getCPTMapping();
-            formData.append('cpt_mapping', JSON.stringify(cptMapping));
             
             const response = await fetch(b2e_ajax.ajax_url, {
                 method: 'POST',
@@ -1297,18 +1138,6 @@ class B2E_Admin_Interface {
                     </tr>
                 </table>
                 
-                <!-- CPT Mapping Section -->
-                <div id="cpt-mapping-section" style="margin-top: 30px; padding: 20px; background: var(--e-highlight-light); border-radius: var(--e-border-radius); border-left: 4px solid var(--e-primary);">
-                    <h3 style="margin-top: 0;">🔄 <?php _e('Custom Post Type Mapping', 'bricks-etch-migration'); ?></h3>
-                    <p><?php _e('Map your Bricks post types to Etch post types. Bricks templates will be converted to pages by default.', 'bricks-etch-migration'); ?></p>
-                    
-                    <div id="cpt-mapping-list">
-                        <p style="color: var(--e-base-light); font-style: italic;">
-                            <?php _e('Validate the migration key first to see available post types...', 'bricks-etch-migration'); ?>
-                        </p>
-                    </div>
-                </div>
-                
                 <div style="margin-top: 20px;">
                     <button type="button" id="validate-migration-key" class="b2e-button">
                         🔗 <?php _e('Validate Key', 'bricks-etch-migration'); ?>
@@ -1437,8 +1266,10 @@ class B2E_Admin_Interface {
             return;
         }
         
-        // Convert localhost URLs for Docker internal communication (only if both are localhost)
-        $target_url = $this->convert_localhost_for_docker($target_url);
+        // Convert localhost:8081 to b2e-etch for Docker internal communication
+        if (strpos($target_url, 'localhost:8081') !== false) {
+            $target_url = str_replace('localhost:8081', 'b2e-etch', $target_url);
+        }
         
         // Validate API key via API client
         $api_client = new B2E_API_Client();
@@ -1471,8 +1302,10 @@ class B2E_Admin_Interface {
             return;
         }
         
-        // Convert localhost URLs for Docker internal communication (only if both are localhost)
-        $target_url = $this->convert_localhost_for_docker($target_url);
+        // Convert localhost:8081 to b2e-etch for Docker internal communication
+        if (strpos($target_url, 'localhost:8081') !== false) {
+            $target_url = str_replace('localhost:8081', 'b2e-etch', $target_url);
+        }
         
         // Validate migration token on target site
         $api_client = new B2E_API_Client();
@@ -2043,17 +1876,10 @@ class B2E_Admin_Interface {
         $post_id = intval($_POST['post_id'] ?? 0);
         $target_url = sanitize_url($_POST['target_url'] ?? '');
         $api_key = sanitize_text_field($_POST['api_key'] ?? '');
-        $cpt_mapping_json = $_POST['cpt_mapping'] ?? '{}';
         
         if (empty($post_id) || empty($target_url) || empty($api_key)) {
             wp_send_json_error('Missing required parameters');
             return;
-        }
-        
-        // Parse CPT mapping
-        $cpt_mapping = json_decode($cpt_mapping_json, true);
-        if (!is_array($cpt_mapping)) {
-            $cpt_mapping = array();
         }
         
         // Get the post
@@ -2063,15 +1889,7 @@ class B2E_Admin_Interface {
             return;
         }
         
-        // Apply CPT mapping if needed
-        if (isset($cpt_mapping[$post->post_type])) {
-            $original_type = $post->post_type;
-            $post->post_type = $cpt_mapping[$original_type];
-            // Store original type for logging
-            $post->_original_post_type = $original_type;
-        }
-        
-        // Check if post has Bricks content
+        // Check if it has Bricks content
         $bricks_content = get_post_meta($post_id, '_bricks_page_content_2', true);
         if (empty($bricks_content)) {
             wp_send_json_success(array(
@@ -2083,8 +1901,11 @@ class B2E_Admin_Interface {
         
         // Migrate this single post
         try {
-            // Convert localhost URLs for Docker internal communication (only if both are localhost)
-            $internal_url = $this->convert_localhost_for_docker($target_url);
+            // Convert localhost:8081 to b2e-etch for Docker internal communication
+            $internal_url = $target_url;
+            if (strpos($target_url, 'localhost:8081') !== false) {
+                $internal_url = str_replace('localhost:8081', 'b2e-etch', $target_url);
+            }
             
             // Save settings temporarily with internal URL
             update_option('b2e_settings', array(
@@ -2178,8 +1999,11 @@ class B2E_Admin_Interface {
             return;
         }
         
-        // Convert localhost URLs for Docker internal communication (only if both are localhost)
-        $internal_url = $this->convert_localhost_for_docker($target_url);
+        // Convert localhost:8081 to b2e-etch for Docker internal communication
+        $internal_url = $target_url;
+        if (strpos($target_url, 'localhost:8081') !== false) {
+            $internal_url = str_replace('localhost:8081', 'b2e-etch', $target_url);
+        }
         
         // Save settings temporarily with internal URL
         update_option('b2e_settings', array(
@@ -2217,63 +2041,6 @@ class B2E_Admin_Interface {
     }
     
     /**
-     * AJAX handler to migrate Custom Post Types
-     */
-    public function ajax_migrate_cpts() {
-        // Verify nonce
-        if (!check_ajax_referer('b2e_nonce', 'nonce', false)) {
-            wp_send_json_error('Invalid nonce');
-            return;
-        }
-        
-        // Get parameters
-        $target_url = sanitize_url($_POST['target_url'] ?? '');
-        $api_key = sanitize_text_field($_POST['api_key'] ?? '');
-        
-        if (empty($target_url) || empty($api_key)) {
-            wp_send_json_error('Missing required parameters');
-            return;
-        }
-        
-        // Convert localhost URLs for Docker internal communication (only if both are localhost)
-        $internal_url = $this->convert_localhost_for_docker($target_url);
-        
-        // Migrate CPTs
-        try {
-            $cpt_migrator = new B2E_CPT_Migrator();
-            
-            // Export CPTs from Bricks
-            $cpts_data = $cpt_migrator->export_custom_post_types();
-            
-            if (empty($cpts_data)) {
-                wp_send_json_success(array(
-                    'message' => 'No custom post types to migrate',
-                    'cpts_count' => 0
-                ));
-                return;
-            }
-            
-            // Send to Etch via API
-            $api_service = B2E_API_Service::get_instance();
-            $api_service->init($internal_url, $api_key);
-            $result = $api_service->send_cpts($cpts_data);
-            
-            if (is_wp_error($result)) {
-                wp_send_json_error('Failed to send CPTs to Etch: ' . $result->get_error_message());
-                return;
-            }
-            
-            wp_send_json_success(array(
-                'message' => 'Custom Post Types migrated successfully',
-                'cpts_count' => count($cpts_data)
-            ));
-            
-        } catch (Exception $e) {
-            wp_send_json_error('Exception: ' . $e->getMessage());
-        }
-    }
-    
-    /**
      * AJAX handler to migrate media files
      */
     public function ajax_migrate_media() {
@@ -2292,8 +2059,11 @@ class B2E_Admin_Interface {
             return;
         }
         
-        // Convert localhost URLs for Docker internal communication (only if both are localhost)
-        $internal_url = $this->convert_localhost_for_docker($target_url);
+        // Convert localhost:8081 to b2e-etch for Docker internal communication
+        $internal_url = $target_url;
+        if (strpos($target_url, 'localhost:8081') !== false) {
+            $internal_url = str_replace('localhost:8081', 'b2e-etch', $target_url);
+        }
         
         // Save settings temporarily with internal URL
         update_option('b2e_settings', array(
@@ -2371,98 +2141,5 @@ class B2E_Admin_Interface {
         } catch (Exception $e) {
             wp_send_json_error('Exception: ' . $e->getMessage());
         }
-    }
-    
-    /**
-     * AJAX handler to get Bricks CPTs
-     */
-    public function ajax_get_bricks_cpts() {
-        check_ajax_referer('b2e_nonce', 'nonce');
-        
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error('Insufficient permissions');
-            return;
-        }
-        
-        // Get all custom post types
-        $cpts = get_post_types(array('_builtin' => false), 'objects');
-        $cpt_list = array();
-        
-        // Exclude Bricks-specific CPTs that shouldn't be migrated
-        $excluded_cpts = array(
-            'bricks_fonts'       // Bricks custom fonts (Etch has own font system)
-        );
-        
-        foreach ($cpts as $cpt) {
-            // Skip excluded CPTs
-            if (in_array($cpt->name, $excluded_cpts)) {
-                continue;
-            }
-            
-            $count = wp_count_posts($cpt->name);
-            $cpt_list[] = array(
-                'name' => $cpt->name,
-                'label' => $cpt->label,
-                'count' => $count->publish
-            );
-        }
-        
-        wp_send_json_success($cpt_list);
-    }
-    
-    /**
-     * AJAX handler to get Etch CPTs
-     */
-    public function ajax_get_etch_cpts() {
-        check_ajax_referer('b2e_nonce', 'nonce');
-        
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error('Insufficient permissions');
-            return;
-        }
-        
-        $target_url = sanitize_url($_POST['target_url'] ?? '');
-        $api_key = sanitize_text_field($_POST['api_key'] ?? '');
-        
-        if (empty($target_url) || empty($api_key)) {
-            wp_send_json_error('Missing required parameters');
-            return;
-        }
-        
-        // Convert localhost URLs for Docker
-        $internal_url = $this->convert_localhost_for_docker($target_url);
-        
-        // Get CPTs from Etch via API
-        $api_service = B2E_API_Service::get_instance();
-        $api_service->init($internal_url, $api_key);
-        $result = $api_service->get_cpts();
-        
-        if (is_wp_error($result)) {
-            wp_send_json_error($result->get_error_message());
-            return;
-        }
-        
-        wp_send_json_success($result);
-    }
-    
-    /**
-     * Convert localhost URLs for Docker internal communication
-     * Only converts if BOTH source and target are localhost (Docker environment)
-     */
-    private function convert_localhost_for_docker($target_url) {
-        // Check if we're in a Docker/localhost environment
-        $current_host = $_SERVER['HTTP_HOST'] ?? '';
-        $is_source_localhost = (strpos($current_host, 'localhost') !== false || strpos($current_host, '127.0.0.1') !== false);
-        $is_target_localhost = (strpos($target_url, 'localhost') !== false || strpos($target_url, '127.0.0.1') !== false);
-        
-        // Only convert if BOTH are localhost (Docker environment)
-        if ($is_source_localhost && $is_target_localhost) {
-            // Convert localhost:8081 to b2e-etch for Docker internal communication
-            if (strpos($target_url, 'localhost:8081') !== false) {
-                $target_url = str_replace('localhost:8081', 'b2e-etch', $target_url);
-            }
-        }
-        
-        return $target_url;
     }
 }
