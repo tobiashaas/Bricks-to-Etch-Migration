@@ -41,7 +41,6 @@ require_once B2E_PLUGIN_DIR . 'includes/metabox_migrator.php';
 require_once B2E_PLUGIN_DIR . 'includes/cpt_migrator.php';
 require_once B2E_PLUGIN_DIR . 'includes/media_migrator.php';
 require_once B2E_PLUGIN_DIR . 'includes/migration_token_manager.php';
-require_once B2E_PLUGIN_DIR . 'includes/etch_migration_endpoint.php';
 require_once B2E_PLUGIN_DIR . 'includes/migration_manager.php';
 require_once B2E_PLUGIN_DIR . 'includes/admin_interface.php';
 

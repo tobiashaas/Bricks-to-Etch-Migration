@@ -501,44 +501,89 @@ class B2E_Gutenberg_Generator {
     }
     
     /**
-     * Convert Bricks Icon to SVG inline
+     * Convert Bricks Icon to Etch SVG or Icon element
      */
     private function convert_etch_icon($element) {
         $icon_library = $element['settings']['icon']['library'] ?? '';
         $icon_value = $element['settings']['icon']['icon'] ?? '';
+        $svg_code = $element['settings']['icon']['svg'] ?? '';
         $label = $element['label'] ?? '';
         
-        if (empty($icon_value)) {
+        if (empty($icon_value) && empty($svg_code)) {
             return '';
         }
         
         $classes = $this->get_element_classes($element);
-        $class_attr = !empty($classes) ? ' class="' . esc_attr(implode(' ', $classes)) . '"' : '';
+        $style_ids = $this->get_element_style_ids($element);
         
-        // Build attributes for Etch editor
-        $attrs = array();
-        if (!empty($label)) {
-            $attrs['metadata'] = array(
-                'name' => $label
+        // Check if it's an SVG or FontAwesome icon
+        if (!empty($svg_code) || strpos($icon_library, 'svg') !== false) {
+            // SVG Icon - use Etch SVG element
+            $attrs = array(
+                'metadata' => array(
+                    'name' => $label ?: 'SVG',
+                    'etchData' => array(
+                        'origin' => 'etch',
+                        'name' => $label ?: 'SVG',
+                        'styles' => $style_ids,
+                        'attributes' => array(
+                            'src' => $svg_code ?: '', // SVG code or URL
+                            'stripColors' => 'true'
+                        ),
+                        'block' => array(
+                            'type' => 'html',
+                            'tag' => 'svg',
+                            'specialized' => 'svg'
+                        )
+                    )
+                )
             );
+            
+            if (!empty($classes)) {
+                $attrs['className'] = implode(' ', $classes);
+            }
+            
+            $attrs_json = json_encode($attrs, JSON_UNESCAPED_UNICODE);
+            
+            return '<!-- wp:group ' . $attrs_json . ' -->' . "\n" .
+                   '<div class="wp-block-group"></div>' . "\n" .
+                   '<!-- /wp:group -->';
+        } else {
+            // FontAwesome or other icon font - use HTML block with <i>
+            $attrs = array(
+                'metadata' => array(
+                    'name' => $label ?: 'Icon',
+                    'etchData' => array(
+                        'origin' => 'etch',
+                        'name' => $label ?: 'Icon',
+                        'styles' => $style_ids,
+                        'attributes' => array(
+                            'class' => $icon_value
+                        ),
+                        'block' => array(
+                            'type' => 'html',
+                            'tag' => 'i'
+                        )
+                    )
+                )
+            );
+            
+            if (!empty($classes)) {
+                $attrs['className'] = implode(' ', $classes);
+            }
+            
+            $attrs_json = json_encode($attrs, JSON_UNESCAPED_UNICODE);
+            
+            $class_attr = !empty($classes) ? ' class="' . esc_attr(implode(' ', $classes)) . '"' : '';
+            
+            return '<!-- wp:html ' . $attrs_json . ' -->' . "\n" .
+                   '<i' . $class_attr . ' class="' . esc_attr($icon_value) . '"></i>' . "\n" .
+                   '<!-- /wp:html -->';
         }
-        if (!empty($classes)) {
-            $attrs['className'] = implode(' ', $classes);
-        }
-        
-        $attrs_json = !empty($attrs) ? ' ' . json_encode($attrs, JSON_UNESCAPED_UNICODE) : '';
-        
-        // Convert to HTML block with icon class (Etch will render the icon)
-        // For FontAwesome: <i class="fas fa-arrow-right-long"></i>
-        $icon_html = '<i class="' . esc_attr($icon_value) . '"></i>';
-        
-        return '<!-- wp:html' . $attrs_json . ' -->' . "\n" .
-               '<div' . $class_attr . '>' . $icon_html . '</div>' . "\n" .
-               '<!-- /wp:html -->';
     }
     
     /**
-     * Convert Bricks Button to core/button
+     * Convert Bricks Button to Etch Link (Anchor)
      */
     private function convert_etch_button($element) {
         $text = $element['settings']['text'] ?? 'Button';
@@ -555,31 +600,58 @@ class B2E_Gutenberg_Generator {
         }
         
         $classes = $this->get_element_classes($element);
-        $class_attr = !empty($classes) ? ' class="wp-block-button ' . esc_attr(implode(' ', $classes)) . '"' : ' class="wp-block-button"';
+        $style_ids = $this->get_element_style_ids($element);
         
-        // Build attributes for Etch editor
-        $attrs = array();
-        if (!empty($label)) {
-            $attrs['metadata'] = array(
-                'name' => $label
-            );
-        }
-        if (!empty($classes)) {
-            $attrs['className'] = implode(' ', $classes);
-        }
+        // Generate unique ref ID for the link
+        $ref_id = substr(md5($element['id'] ?? uniqid()), 0, 7);
         
-        $attrs_json = !empty($attrs) ? ' ' . json_encode($attrs, JSON_UNESCAPED_UNICODE) : '';
+        // Build Etch Link with nestedData (like Anchor element)
+        $link_attrs = array(
+            'href' => $url
+        );
         
-        // Build link attributes
-        $link_attrs = 'href="' . esc_url($url) . '"';
         if ($target) {
-            $link_attrs .= ' target="_blank" rel="noopener"';
+            $link_attrs['target'] = '_blank';
+            $link_attrs['rel'] = 'noopener';
         }
         
-        // Use standard wp:button
-        return '<!-- wp:button' . $attrs_json . ' -->' . "\n" .
-               '<div' . $class_attr . '><a class="wp-block-button__link" ' . $link_attrs . '>' . esc_html($text) . '</a></div>' . "\n" .
-               '<!-- /wp:button -->';
+        if (!empty($classes)) {
+            $link_attrs['class'] = implode(' ', $classes);
+        }
+        
+        $attrs = array(
+            'metadata' => array(
+                'name' => $label ?: 'Anchor',
+                'etchData' => array(
+                    'removeWrapper' => true,
+                    'block' => array(
+                        'type' => 'html',
+                        'tag' => 'p'
+                    ),
+                    'origin' => 'etch',
+                    'name' => $label ?: 'Anchor',
+                    'nestedData' => array(
+                        $ref_id => array(
+                            'origin' => 'etch',
+                            'name' => $label ?: 'Anchor',
+                            'styles' => $style_ids,
+                            'attributes' => $link_attrs,
+                            'block' => array(
+                                'type' => 'html',
+                                'tag' => 'a'
+                            )
+                        )
+                    )
+                )
+            )
+        );
+        
+        $attrs_json = json_encode($attrs, JSON_UNESCAPED_UNICODE);
+        
+        // Use wp:paragraph with nested anchor (Etch Link structure)
+        return '<!-- wp:paragraph ' . $attrs_json . ' -->' . "\n" .
+               '<p><a data-etch-ref="' . $ref_id . '">' . esc_html($text) . '</a></p>' . "\n" .
+               '<!-- /wp:paragraph -->';
     }
     
     /**
