@@ -128,12 +128,12 @@ bricks-etch-migration/
 
 ## 📝 Notizen
 
-- **Letzte Änderung**: 18. Oktober 2025, 10:30 Uhr
-- **Aktueller Stand**: 🚧 Classes in DB korrekt, aber Frontend-Rendering fehlt
-- **Nächster Schritt**: Etch REST API verwenden statt direkter DB-Zugriff
-- **Zeitaufwand heute**: ~6 Stunden (CSS, Classes, Etch-Analyse, Debugging)
-- **Gelöstes Problem**: CSS-Konvertierung komplett, Unicode-Escaping gelöst
-- **Backup Branch**: `backup/before-api-refactor` (vor API-Umstellung)
+- **Letzte Änderung**: 19. Oktober 2025, 21:55 Uhr
+- **Aktueller Stand**: 🚧 Posts migrieren, aber CSS-Styles fehlen komplett
+- **Nächster Schritt**: CSS Migration Debugging - warum werden Styles nicht übertragen?
+- **Zeitaufwand heute**: ~4 Stunden (Content Detection, API Fixes, Style Debugging)
+- **Aktuelles Problem**: CSS Migration wird nicht ausgeführt (keine Logs, keine Styles in DB)
+- **Letzter funktionierender Stand**: Vor migrate_single_post() Rewrite (Commit c145429)
 
 ### Test-Ergebnisse (18.10.2025, 00:00-01:15)
 
@@ -149,18 +149,32 @@ bricks-etch-migration/
 - ✅ **Cache-Invalidierung** - etch_svg_version wird erhöht
 - ✅ **~2211 CSS Styles** migriert (inkl. Framework-Klassen)
 
-**⚠️ Aktuelles Problem (18.10.2025, 10:30):**
-- ⚠️ **Classes nicht im Frontend** - In DB korrekt, aber Etch rendert sie nicht
-- 🔍 **Root Cause**: Etch ignoriert HTML class-Attribut, nutzt nur etchData.attributes
-- 💡 **Geplante Lösung**: Etch REST API verwenden statt direkter DB-Zugriff
-  - `/wp-json/etch-api/styles?_method=PUT` für Styles
-  - `/wp-json/etch-api/post/{id}/blocks` für Content
-  - Vorteile: Kein Escaping, automatische Trigger, sauberer
+**⚠️ Aktuelles Problem (19.10.2025, 21:55):**
+- ⚠️ **CSS Migration wird nicht ausgeführt** - Keine Bricks Styles in etch_styles Option
+- 🔍 **Symptome**: 
+  - Posts werden migriert (6 Posts in Etch)
+  - Keine CSS-Logs in Docker Logs
+  - ajax_migrate_css wird nicht aufgerufen
+  - Frontend zeigt keine Fehler
+- 💡 **Mögliche Ursachen**:
+  - AJAX-Handler wird nicht getriggert
+  - JavaScript-Fehler verhindert CSS-Migration
+  - Etch API StylesRoutes funktioniert nicht
+  - Timing-Problem (CSS wird vor Posts migriert?)
 
-**🔧 Durchgeführte Fixes:**
-1. Media-Migration: Besseres Logging (failed/skipped counts)
-2. Custom Post Types: Filter für WordPress-Defaults (wp_block, bricks_fonts, etc.)
-3. Report: Zeigt jetzt media_failed und media_skipped an
+**🔧 Durchgeführte Fixes (19.10.2025):**
+1. ✅ **Content Detection** - Separate Queries für Bricks/Gutenberg/Media
+   - `get_bricks_posts()` - Nur Posts mit `_bricks_page_content_2` + `_bricks_editor_mode = 'bricks'`
+   - `get_gutenberg_posts()` - Posts OHNE Bricks Meta
+   - `get_media()` - Alle Attachments
+2. ✅ **migrate_single_post() Rewrite** - Nutzt jetzt `send_post()` statt falsche API
+   - Vorher: Versuchte `/b2e-migration/v1/post/{id}/blocks` (existiert nicht) → 404
+   - Nachher: Nutzt `/b2e/v1/receive-post` (korrekt)
+3. ✅ **Etch API für Styles** - Zurück zur Etch API statt direktem DB-Zugriff
+   - Etch API dekodiert Unicode richtig (`\u002d` → `-`)
+   - Triggert interne Etch Hooks
+   - Invalidiert Cache automatisch
+4. ⚠️ **Problem**: CSS Migration wird nicht ausgeführt (Debugging läuft)
 
 ### Erstellte Test-Tools (17.10.2025, 21:00-21:37)
 
