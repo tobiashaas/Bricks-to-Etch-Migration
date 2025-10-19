@@ -399,29 +399,70 @@ className: "custom-class another-class"
 
 ---
 
+## Content Detection
+
+The plugin intelligently detects three types of content:
+
+### **1. Bricks Posts**
+Posts built with Bricks Builder are identified by:
+- `_bricks_page_content_2` meta field EXISTS
+- `_bricks_editor_mode` meta field = `'bricks'`
+
+**These posts are CONVERTED** from Bricks elements to Etch Gutenberg blocks.
+
+### **2. Gutenberg Posts**
+Posts without Bricks meta data:
+- No `_bricks_page_content_2` meta field
+- Standard Gutenberg or Classic Editor content
+
+**These posts are COPIED as-is** - no conversion needed.
+
+### **3. Media Files**
+All attachments in the media library:
+- `post_type` = `'attachment'`
+- `post_status` = `'inherit'`
+
+**These are COPIED with metadata** - URLs, alt text, captions preserved.
+
+---
+
 ## Migration Flow
 
 ```
-1. Load Bricks Classes
+1. Detect Content Types
+   ├─ Bricks Posts (_bricks_page_content_2 + _bricks_editor_mode = 'bricks')
+   ├─ Gutenberg Posts (no Bricks meta)
+   └─ Media (post_type = 'attachment')
    ↓
-2. Convert to Etch Styles
+2. Load Bricks Classes
+   - Get global classes from Bricks
+   ↓
+3. Convert to Etch Styles
    - Parse Bricks settings
    - Convert to Logical Properties
    - Parse Custom CSS
    - Merge styles with same selector
    ↓
-3. Send Styles to Etch API
+4. Send Styles to Etch API
    - POST to /wp-json/etch/v1/styles
    ↓
-4. Convert Content
-   - Parse Bricks elements
-   - Build element hierarchy
-   - Convert to Gutenberg blocks
-   - Add etchData metadata
+5. Convert Content
+   ├─ Bricks Posts:
+   │  - Parse Bricks elements
+   │  - Build element hierarchy
+   │  - Convert to Gutenberg blocks
+   │  - Add etchData metadata
+   │
+   ├─ Gutenberg Posts:
+   │  - Copy content as-is (no conversion)
+   │
+   └─ Media:
+      - Copy attachments with metadata
    ↓
-5. Create Posts in Etch
+6. Create Posts in Etch
    - POST to /wp-json/wp/v2/pages
-   - Include full Gutenberg HTML
+   - POST to /wp-json/wp/v2/posts
+   - POST to /wp-json/wp/v2/media
 ```
 
 ---
