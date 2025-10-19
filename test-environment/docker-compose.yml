@@ -17,6 +17,7 @@ services:
     volumes:
       - ./wordpress-bricks:/var/www/html
       - ./php.ini:/usr/local/etc/php/conf.d/99-custom.ini
+      - ../bricks-etch-migration:/var/www/html/wp-content/plugins/bricks-etch-migration
     depends_on:
       - mysql-bricks
     networks:
@@ -38,6 +39,7 @@ services:
     volumes:
       - ./wordpress-etch:/var/www/html
       - ./php.ini:/usr/local/etc/php/conf.d/99-custom.ini
+      - ../bricks-etch-migration:/var/www/html/wp-content/plugins/bricks-etch-migration
     depends_on:
       - mysql-etch
     networks:
