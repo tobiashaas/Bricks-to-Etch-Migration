@@ -573,19 +573,28 @@ class B2E_Admin_Interface {
             // Update progress
             updateProgress(0, 'Getting list of posts...', []);
             
-            // Step 1: Get list of all Bricks posts
-            updateProgress(0, '🔍 Scanning for Bricks content...', ['Starting migration process...']);
+            // Step 1: Get list of all content (Bricks, Gutenberg, Media)
+            updateProgress(0, '🔍 Scanning for content...', ['Starting migration process...']);
             const posts = await getBricksPosts();
             
+            // Note: getBricksPosts now returns ALL content types (Bricks, Gutenberg, Media)
+            // So we don't abort if no Bricks posts are found - we still migrate Gutenberg and Media
+            
             if (!posts || posts.length === 0) {
-                showToast('No Bricks posts found to migrate', 'error');
-                updateProgress(0, '❌ No content found', ['No Bricks posts or pages found']);
-                return;
+                showToast('No content found to migrate', 'warning');
+                updateProgress(0, '⚠️ No content found', ['No posts, pages, or media files found']);
+                // Continue anyway - maybe there are styles to migrate
             }
             
-            console.log(`📋 Found ${posts.length} posts to migrate`);
-            const initialSteps = [`Found ${posts.length} items to migrate (${posts.filter(p => p.type === 'page').length} pages, ${posts.filter(p => p.type === 'post').length} posts)`];
-            updateProgress(3, `📋 Found ${posts.length} items to migrate`, initialSteps);
+            const bricksCount = posts ? posts.filter(p => p.has_bricks).length : 0;
+            const gutenbergCount = posts ? posts.filter(p => !p.has_bricks && p.type !== 'attachment').length : 0;
+            const mediaCount = posts ? posts.filter(p => p.type === 'attachment').length : 0;
+            
+            console.log(`📋 Found ${posts ? posts.length : 0} items: ${bricksCount} Bricks, ${gutenbergCount} Gutenberg, ${mediaCount} media`);
+            const initialSteps = posts && posts.length > 0 
+                ? [`Found ${posts.length} items: ${bricksCount} Bricks, ${gutenbergCount} Gutenberg, ${mediaCount} media`]
+                : ['No content found - will migrate styles only'];
+            updateProgress(3, `📋 Found ${posts ? posts.length : 0} items to migrate`, initialSteps);
             
             // Step 2: Migrate CSS first (once for all posts)
             updateProgress(5, '🎨 Migrating CSS styles...', [...initialSteps, 'Converting Bricks classes to Etch styles...']);
@@ -1930,7 +1939,7 @@ class B2E_Admin_Interface {
     }
     
     /**
-     * AJAX handler to get list of Bricks posts
+     * AJAX handler to get list of ALL content (Bricks, Gutenberg, Media)
      */
     public function ajax_get_bricks_posts() {
         // Verify nonce
@@ -1939,44 +1948,51 @@ class B2E_Admin_Interface {
             return;
         }
         
-        // Get all posts AND pages with Bricks content
-        $all_posts = array();
+        // Use content_parser to get all content types
+        $content_parser = new B2E_Content_Parser();
         
-        // Get pages
-        $pages = get_posts(array(
-            'post_type' => 'page',
-            'post_status' => 'publish',
-            'numberposts' => -1,
-            'meta_key' => '_bricks_page_content_2',
-        ));
+        $bricks_posts = $content_parser->get_bricks_posts();
+        $gutenberg_posts = $content_parser->get_gutenberg_posts();
+        $media = $content_parser->get_media();
         
-        // Get posts
-        $posts = get_posts(array(
-            'post_type' => 'post',
-            'post_status' => 'publish',
-            'numberposts' => -1,
-            'meta_key' => '_bricks_page_content_2',
-        ));
-        
-        // Merge and verify they actually have Bricks content
-        $all_posts = array_merge($pages, $posts);
         $posts_data = array();
         
-        foreach ($all_posts as $post) {
-            // Double-check that it has Bricks content
-            $bricks_content = get_post_meta($post->ID, '_bricks_page_content_2', true);
-            if (!empty($bricks_content) && is_array($bricks_content)) {
-                $posts_data[] = array(
-                    'id' => $post->ID,
-                    'title' => $post->post_title,
-                    'type' => $post->post_type,
-                );
-            }
+        // Add Bricks posts
+        foreach ($bricks_posts as $post) {
+            $posts_data[] = array(
+                'id' => $post->ID,
+                'title' => $post->post_title,
+                'type' => $post->post_type,
+                'has_bricks' => true
+            );
+        }
+        
+        // Add Gutenberg posts
+        foreach ($gutenberg_posts as $post) {
+            $posts_data[] = array(
+                'id' => $post->ID,
+                'title' => $post->post_title,
+                'type' => $post->post_type,
+                'has_bricks' => false
+            );
+        }
+        
+        // Add Media
+        foreach ($media as $attachment) {
+            $posts_data[] = array(
+                'id' => $attachment->ID,
+                'title' => $attachment->post_title ?: basename($attachment->guid),
+                'type' => 'attachment',
+                'has_bricks' => false
+            );
         }
         
         wp_send_json_success(array(
             'posts' => $posts_data,
-            'count' => count($posts_data)
+            'count' => count($posts_data),
+            'bricks_count' => count($bricks_posts),
+            'gutenberg_count' => count($gutenberg_posts),
+            'media_count' => count($media)
         ));
     }
     
