@@ -726,18 +726,42 @@ class B2E_Migration_Manager {
     
     /**
      * Migrate a single post (for batch processing)
+     * Uses same logic as migrate_posts() but for one post at a time
      */
     public function migrate_single_post($post) {
         try {
-            // 1. Convert content to Gutenberg (this also sends to Etch via API)
-            $gutenberg_result = $this->gutenberg_generator->convert_bricks_to_gutenberg($post);
+            // Get settings
+            $settings = get_option('b2e_settings', array());
+            $target_url = $settings['target_url'] ?? '';
+            $api_key = $settings['api_key'] ?? '';
             
-            if (is_wp_error($gutenberg_result)) {
-                return $gutenberg_result;
+            if (empty($target_url) || empty($api_key)) {
+                return new WP_Error('missing_config', 'Target URL or API key not configured');
             }
             
-            // 2. CSS is converted globally, not per-post
-            // So we don't need to do anything here
+            // Parse Bricks content (if exists)
+            $bricks_content = $this->content_parser->parse_bricks_content($post->ID);
+            
+            // Generate Etch Gutenberg blocks (or use existing content if no Bricks)
+            if ($bricks_content && isset($bricks_content['elements'])) {
+                $etch_content = $this->gutenberg_generator->generate_gutenberg_blocks($bricks_content['elements']);
+                
+                // If conversion failed or produced empty content, use placeholder
+                if (empty($etch_content)) {
+                    $etch_content = '<!-- wp:paragraph --><p>Content migrated from Bricks (conversion pending)</p><!-- /wp:paragraph -->';
+                }
+            } else {
+                // No Bricks content - use existing post content
+                $etch_content = !empty($post->post_content) ? $post->post_content : '<!-- wp:paragraph --><p>Empty content</p><!-- /wp:paragraph -->';
+            }
+            
+            // Send to target site via API
+            $api_client = new B2E_API_Client();
+            $result = $api_client->send_post($target_url, $api_key, $post, $etch_content);
+            
+            if (is_wp_error($result)) {
+                return $result;
+            }
             
             return true;
             
