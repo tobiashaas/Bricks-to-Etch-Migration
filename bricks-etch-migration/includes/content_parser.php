@@ -372,18 +372,25 @@ class B2E_Content_Parser {
     
     /**
      * Get posts that have Bricks content
-     * These posts have _bricks_page_content_2 meta data
+     * These posts have _bricks_page_content_2 AND _bricks_editor_mode = 'bricks'
      */
     public function get_bricks_posts() {
         // Query for posts with Bricks meta data
+        // Use both meta fields for validation
         $args = array(
             'post_type' => 'any',
             'post_status' => array('publish', 'draft', 'pending', 'private'),
             'numberposts' => -1,
             'meta_query' => array(
+                'relation' => 'AND',
                 array(
                     'key' => '_bricks_page_content_2',
                     'compare' => 'EXISTS'
+                ),
+                array(
+                    'key' => '_bricks_editor_mode',
+                    'value' => 'bricks',
+                    'compare' => '='
                 )
             )
         );
