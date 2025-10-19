@@ -371,58 +371,70 @@ class B2E_Content_Parser {
     }
     
     /**
-     * Get all Bricks posts
+     * Get posts that have Bricks content
+     * These posts have _bricks_page_content_2 meta data
      */
     public function get_bricks_posts() {
-        // Get migration settings (simplified)
-        $settings = array(
-            'post_types' => array('post', 'page'),
-            'include_drafts' => false,
-            'batch_size' => 10,
-            'migrate_posts' => true,
-            'migrate_pages' => true,
-            'migrate_cpts' => true
+        // Query for posts with Bricks meta data
+        $args = array(
+            'post_type' => 'any',
+            'post_status' => array('publish', 'draft', 'pending', 'private'),
+            'numberposts' => -1,
+            'meta_query' => array(
+                array(
+                    'key' => '_bricks_page_content_2',
+                    'compare' => 'EXISTS'
+                )
+            )
         );
         
-        // Determine which post types to migrate
-        $post_types = array();
-        if (!empty($settings['selected_post_types']) && is_array($settings['selected_post_types'])) {
-            $post_types = $settings['selected_post_types'];
-        } else {
-            // Default: migrate posts and pages
-            if ($settings['migrate_posts']) {
-                $post_types[] = 'post';
-            }
-            if ($settings['migrate_pages']) {
-                $post_types[] = 'page';
-            }
-            if ($settings['migrate_cpts']) {
-                // Get all custom post types
-                $custom_post_types = get_post_types(array('_builtin' => false), 'names');
-                $post_types = array_merge($post_types, $custom_post_types);
-            }
-        }
+        return get_posts($args);
+    }
+    
+    /**
+     * Get posts that DON'T have Bricks content (Gutenberg/Classic Editor)
+     * These are posts without _bricks_page_content_2 meta data
+     */
+    public function get_gutenberg_posts() {
+        // Query for posts WITHOUT Bricks meta data
+        $args = array(
+            'post_type' => array('post', 'page'), // Only posts and pages, not CPTs
+            'post_status' => array('publish', 'draft', 'pending', 'private'),
+            'numberposts' => -1,
+            'meta_query' => array(
+                array(
+                    'key' => '_bricks_page_content_2',
+                    'compare' => 'NOT EXISTS'
+                )
+            )
+        );
         
-        // If no post types selected, use 'any'
-        if (empty($post_types)) {
-            $post_types = 'any';
-        }
-        
-        // Determine which post statuses to migrate
-        $post_statuses = array('publish');
-        if (!empty($settings['selected_post_statuses']) && is_array($settings['selected_post_statuses'])) {
-            $post_statuses = $settings['selected_post_statuses'];
-        }
-        
-        // Query for ALL posts (not just Bricks posts)
-        // We migrate everything - Bricks content gets converted, Gutenberg stays Gutenberg
-        $posts = get_posts(array(
-            'post_type' => $post_types,
-            'post_status' => $post_statuses,
+        return get_posts($args);
+    }
+    
+    /**
+     * Get all media/attachments
+     */
+    public function get_media() {
+        $args = array(
+            'post_type' => 'attachment',
+            'post_status' => 'inherit',
             'numberposts' => -1
-        ));
+        );
         
-        return $posts;
+        return get_posts($args);
+    }
+    
+    /**
+     * Get ALL content (Bricks + Gutenberg + Media)
+     * Used for total count
+     */
+    public function get_all_content() {
+        $bricks_posts = $this->get_bricks_posts();
+        $gutenberg_posts = $this->get_gutenberg_posts();
+        $media = $this->get_media();
+        
+        return array_merge($bricks_posts, $gutenberg_posts, $media);
     }
     
     /**

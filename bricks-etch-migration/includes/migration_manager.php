@@ -89,11 +89,16 @@ class B2E_Migration_Manager {
             }
             
             // Step 2: Analyze Bricks Content
-            $this->update_progress('analyzing', 20, __('Analyzing Bricks content...', 'bricks-etch-migration'));
+            $this->update_progress('analyzing', 20, __('Analyzing content...', 'bricks-etch-migration'));
             sleep(2); // Simulate processing time
             
             $bricks_posts = $this->content_parser->get_bricks_posts();
-            $this->update_progress('analyzing', 25, sprintf(__('Found %d Bricks posts to migrate...', 'bricks-etch-migration'), count($bricks_posts)));
+            $gutenberg_posts = $this->content_parser->get_gutenberg_posts();
+            $media = $this->content_parser->get_media();
+            $total_content = count($bricks_posts) + count($gutenberg_posts) + count($media);
+            
+            $this->update_progress('analyzing', 25, sprintf(__('Found %d Bricks posts, %d Gutenberg posts, %d media files (%d total)', 'bricks-etch-migration'), 
+                count($bricks_posts), count($gutenberg_posts), count($media), $total_content));
             
             // Step 3: Custom Post Types
             $this->update_progress('cpts', 30, __('Migrating custom post types...', 'bricks-etch-migration'));
@@ -454,22 +459,29 @@ class B2E_Migration_Manager {
     }
     
     /**
-     * Migrate posts
+     * Migrate posts (Bricks, Gutenberg, and Media)
      */
     private function migrate_posts($target_url, $api_key) {
+        // Get all content types
         $bricks_posts = $this->content_parser->get_bricks_posts();
+        $gutenberg_posts = $this->content_parser->get_gutenberg_posts();
+        $media = $this->content_parser->get_media();
         
-        if (empty($bricks_posts)) {
+        // Merge all content
+        $all_posts = array_merge($bricks_posts, $gutenberg_posts, $media);
+        
+        if (empty($all_posts)) {
             return true; // No posts to migrate
         }
         
-        $total_posts = count($bricks_posts);
+        $total_posts = count($all_posts);
         $migrated_posts = 0;
         $migrated_pages = 0;
+        $migrated_media = 0;
         
         // Memory optimization for large migrations
         $batch_size = 10; // Process 10 posts at a time
-        $batches = array_chunk($bricks_posts, $batch_size);
+        $batches = array_chunk($all_posts, $batch_size);
         
         foreach ($batches as $batch_index => $batch) {
             foreach ($batch as $post) {
@@ -522,20 +534,22 @@ class B2E_Migration_Manager {
                 'action' => 'Post migrated successfully to target site'
             ));
             
-            // Count posts vs pages separately
+            // Count posts vs pages vs media separately
             if ($post->post_type === 'post') {
                 $migrated_posts++;
             } elseif ($post->post_type === 'page') {
                 $migrated_pages++;
+            } elseif ($post->post_type === 'attachment') {
+                $migrated_media++;
             }
             
-            $total_migrated = $migrated_posts + $migrated_pages;
+            $total_migrated = $migrated_posts + $migrated_pages + $migrated_media;
             
             // Update progress
             $progress_percentage = 70 + (($total_migrated / $total_posts) * 20);
             $this->update_progress('posts', $progress_percentage, 
-                sprintf(__('Migrating content... %d posts, %d pages (%d/%d total)', 'bricks-etch-migration'), 
-                    $migrated_posts, $migrated_pages, $total_migrated, $total_posts));
+                sprintf(__('Migrating content... %d posts, %d pages, %d media (%d/%d total)', 'bricks-etch-migration'), 
+                    $migrated_posts, $migrated_pages, $migrated_media, $total_migrated, $total_posts));
             }
             
             // Memory cleanup after each batch
@@ -566,9 +580,10 @@ class B2E_Migration_Manager {
         
         
         // Update migration log
+        $all_content = $this->content_parser->get_all_content();
         $this->error_handler->log_error('W001', array(
             'completed_at' => current_time('mysql'),
-            'total_posts' => count($this->content_parser->get_bricks_posts()),
+            'total_content' => count($all_content),
         ));
         
         return true;
