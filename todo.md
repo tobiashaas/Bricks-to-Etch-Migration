@@ -126,14 +126,25 @@ bricks-etch-migration/
 - Direkt mit Migration starten
 - API-Key-Problem später lösen
 
-## 📝 Notizen
+### Notizen
 
-- **Letzte Änderung**: 19. Oktober 2025, 21:55 Uhr
-- **Aktueller Stand**: 🚧 Posts migrieren, aber CSS-Styles fehlen komplett
-- **Nächster Schritt**: CSS Migration Debugging - warum werden Styles nicht übertragen?
-- **Zeitaufwand heute**: ~4 Stunden (Content Detection, API Fixes, Style Debugging)
-- **Aktuelles Problem**: CSS Migration wird nicht ausgeführt (keine Logs, keine Styles in DB)
-- **Letzter funktionierender Stand**: Vor migrate_single_post() Rewrite (Commit c145429)
+- **Letzte Änderung**: 20. Oktober 2025, 00:00 Uhr
+- **Aktueller Stand**: 🟡 Kritischer Bug identifiziert - Selectors werden zu null
+- **Nächster Schritt**: Etch API debuggen und Selector-Bug fixen
+- **Zeitaufwand heute**: ~5 Stunden (Content Detection, API Fixes, Style Debugging, Logging)
+- **Durchgeführte Fixes**:
+  - ✅ Debug-Logging in allen CSS-Migration-Komponenten hinzugefügt
+  - ✅ Frontend JavaScript Logging (Console)
+  - ✅ AJAX Handler Logging (admin_interface.php)
+  - ✅ CSS Converter Logging (css_converter.php)
+  - ✅ API Client Logging (api_client.php)
+  - ✅ API Endpoint Logging (api_endpoints.php)
+  - ✅ Test-Skripte erstellt: test-css-migration-debug.sh, verify-css-migration.sh
+- **Nächste Schritte**:
+  1. Migration über Browser starten
+  2. Logs mit test-css-migration-debug.sh überwachen
+  3. Ergebnisse mit verify-css-migration.sh prüfen
+  4. Basierend auf Logs Problem identifizieren und fixen
 
 ### Test-Ergebnisse (18.10.2025, 00:00-01:15)
 
@@ -149,20 +160,21 @@ bricks-etch-migration/
 - ✅ **Cache-Invalidierung** - etch_svg_version wird erhöht
 - ✅ **~2211 CSS Styles** migriert (inkl. Framework-Klassen)
 
-**⚠️ Aktuelles Problem (19.10.2025, 21:55):**
-- ⚠️ **CSS Migration wird nicht ausgeführt** - Keine Bricks Styles in etch_styles Option
+**⚠️ Aktuelles Problem (20.10.2025, 00:00):**
+- ⚠️ **Selectors in etch_styles sind null** - CSS kann nicht gerendert werden
 - 🔍 **Symptome**: 
   - Posts werden migriert (6 Posts in Etch)
-  - Keine CSS-Logs in Docker Logs
-  - ajax_migrate_css wird nicht aufgerufen
-  - Frontend zeigt keine Fehler
-- 💡 **Mögliche Ursachen**:
-  - AJAX-Handler wird nicht getriggert
-  - JavaScript-Fehler verhindert CSS-Migration
-  - Etch API StylesRoutes funktioniert nicht
-  - Timing-Problem (CSS wird vor Posts migriert?)
+  - Style-IDs sind im Content vorhanden
+  - Styles sind in etch_styles gespeichert
+  - ABER: selector Feld ist null statt ".klassenname"
+  - Frontend rendert keine CSS-Styles
+- 💡 **Root Cause**:
+  - CSS-Converter generiert Selectors korrekt
+  - Etch API überschreibt/löscht Selectors beim Import
+  - Vermutlich Problem in StylesRoutes::update_styles()
+- 📝 **Details**: Siehe CSS-FRONTEND-RENDERING-STATUS.md
 
-**🔧 Durchgeführte Fixes (19.10.2025):**
+**🔧 Durchgeführte Fixes (19-20.10.2025):**
 1. ✅ **Content Detection** - Separate Queries für Bricks/Gutenberg/Media
    - `get_bricks_posts()` - Nur Posts mit `_bricks_page_content_2` + `_bricks_editor_mode = 'bricks'`
    - `get_gutenberg_posts()` - Posts OHNE Bricks Meta
@@ -174,7 +186,17 @@ bricks-etch-migration/
    - Etch API dekodiert Unicode richtig (`\u002d` → `-`)
    - Triggert interne Etch Hooks
    - Invalidiert Cache automatisch
-4. ⚠️ **Problem**: CSS Migration wird nicht ausgeführt (Debugging läuft)
+4. ✅ **ID-Generierung** - Nutzt jetzt uniqid() wie Etch (statt MD5)
+   - Vorher: `substr(md5($class_name), 0, 7)` → falsche IDs
+   - Nachher: `substr(uniqid(), -7)` → korrekte IDs wie Etch
+5. ✅ **_cssClasses Handling** - String-Split implementiert
+   - Vorher: Erwartete Array, bekam String → keine Klassen gefunden
+   - Nachher: Splittet String bei Leerzeichen → alle Klassen gefunden
+6. ✅ **Style-Map Verwendung** - Content-Migration nutzt jetzt Style-Map
+   - Findet Bricks-ID für Klassenname
+   - Lookt Etch-ID in Style-Map auf
+   - Fügt Etch-ID in etchData.styles ein
+7. ⚠️ **Problem**: Selectors werden zu null (Etch API Bug - wird debuggt)
 
 ### Erstellte Test-Tools (17.10.2025, 21:00-21:37)
 

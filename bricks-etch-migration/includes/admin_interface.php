@@ -701,22 +701,34 @@ class B2E_Admin_Interface {
          * Migrate CSS styles
          */
         async function migrateCSSStyles(apiDomain, apiKey) {
+            console.log('🎨 Frontend: Starting CSS migration...');
+            console.log('🎨 Frontend: API Domain:', apiDomain);
+            console.log('🎨 Frontend: API Key:', apiKey.substring(0, 20) + '...');
+            
             const formData = new FormData();
             formData.append('action', 'b2e_migrate_css');
             formData.append('nonce', b2e_ajax.nonce);
             formData.append('target_url', apiDomain);
             formData.append('api_key', apiKey);
             
+            console.log('🎨 Frontend: Sending AJAX request to:', b2e_ajax.ajax_url);
+            
             const response = await fetch(b2e_ajax.ajax_url, {
                 method: 'POST',
                 body: formData
             });
             
+            console.log('🎨 Frontend: Response status:', response.status);
+            
             const data = await response.json();
+            console.log('🎨 Frontend: Response data:', data);
             
             if (!data.success) {
+                console.error('❌ Frontend: CSS migration failed:', data.data);
                 throw new Error(data.data || 'Failed to migrate CSS');
             }
+            
+            console.log('✅ Frontend: CSS migration successful! Styles count:', data.data.styles_count);
         }
         
         /**
@@ -2000,8 +2012,11 @@ class B2E_Admin_Interface {
      * AJAX handler to migrate CSS
      */
     public function ajax_migrate_css() {
+        error_log('🎨 B2E CSS Migration: AJAX handler called');
+        
         // Verify nonce
         if (!check_ajax_referer('b2e_nonce', 'nonce', false)) {
+            error_log('❌ B2E CSS Migration: Invalid nonce');
             wp_send_json_error('Invalid nonce');
             return;
         }
@@ -2010,7 +2025,10 @@ class B2E_Admin_Interface {
         $target_url = sanitize_url($_POST['target_url'] ?? '');
         $api_key = sanitize_text_field($_POST['api_key'] ?? '');
         
+        error_log('🎨 B2E CSS Migration: target_url=' . $target_url . ', api_key=' . substr($api_key, 0, 20) . '...');
+        
         if (empty($target_url) || empty($api_key)) {
+            error_log('❌ B2E CSS Migration: Missing required parameters');
             wp_send_json_error('Missing required parameters');
             return;
         }
@@ -2030,28 +2048,46 @@ class B2E_Admin_Interface {
         // Migrate CSS
         try {
             // Step 1: Convert Bricks classes to Etch styles
+            error_log('🎨 B2E CSS Migration: Step 1 - Converting Bricks classes to Etch styles...');
             $css_converter = new B2E_CSS_Converter();
             $etch_styles = $css_converter->convert_bricks_classes_to_etch();
             
             if (is_wp_error($etch_styles)) {
+                error_log('❌ B2E CSS Migration: Converter returned error: ' . $etch_styles->get_error_message());
                 wp_send_json_error($etch_styles->get_error_message());
                 return;
             }
             
+            $styles_count = is_array($etch_styles) ? count($etch_styles) : 0;
+            error_log('✅ B2E CSS Migration: Converted ' . $styles_count . ' styles');
+            
+            if ($styles_count === 0) {
+                error_log('⚠️ B2E CSS Migration: No styles to migrate (empty array)');
+                wp_send_json_success(array(
+                    'message' => 'No CSS styles found to migrate',
+                    'styles_count' => 0
+                ));
+                return;
+            }
+            
             // Step 2: Send styles to Etch via API
+            error_log('🎨 B2E CSS Migration: Step 2 - Sending ' . $styles_count . ' styles to Etch API...');
             $api_client = new B2E_API_Client();
             $result = $api_client->send_css_styles($internal_url, $api_key, $etch_styles);
             
             if (is_wp_error($result)) {
+                error_log('❌ B2E CSS Migration: API error: ' . $result->get_error_message());
                 wp_send_json_error('Failed to send styles to Etch: ' . $result->get_error_message());
                 return;
             }
             
+            error_log('✅ B2E CSS Migration: SUCCESS - ' . $styles_count . ' styles migrated');
             wp_send_json_success(array(
                 'message' => 'CSS migrated successfully',
-                'styles_count' => count($etch_styles)
+                'styles_count' => $styles_count
             ));
         } catch (Exception $e) {
+            error_log('❌ B2E CSS Migration: Exception: ' . $e->getMessage());
             wp_send_json_error('Exception: ' . $e->getMessage());
         }
     }

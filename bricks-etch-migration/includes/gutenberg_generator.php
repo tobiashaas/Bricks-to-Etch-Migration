@@ -678,8 +678,17 @@ class B2E_Gutenberg_Generator {
         }
         
         // Custom classes (these are already names, not IDs)
-        if (isset($element['settings']['_cssClasses']) && is_array($element['settings']['_cssClasses'])) {
-            $classes = array_merge($classes, $element['settings']['_cssClasses']);
+        // Note: _cssClasses is a STRING in Bricks, not an array!
+        if (isset($element['settings']['_cssClasses']) && !empty($element['settings']['_cssClasses'])) {
+            $css_classes = $element['settings']['_cssClasses'];
+            // Split by space if it's a string
+            if (is_string($css_classes)) {
+                $css_classes = explode(' ', trim($css_classes));
+            }
+            // Merge with existing classes
+            if (is_array($css_classes)) {
+                $classes = array_merge($classes, $css_classes);
+            }
         }
         
         return $classes;
@@ -691,7 +700,9 @@ class B2E_Gutenberg_Generator {
     private function get_element_style_ids($element) {
         $style_ids = array();
         
-        // Get Bricks global class IDs
+        error_log('B2E: get_element_style_ids called for element: ' . ($element['name'] ?? 'unknown'));
+        
+        // Method 1: Get Bricks global class IDs (if available)
         if (isset($element['settings']['_cssGlobalClasses']) && is_array($element['settings']['_cssGlobalClasses'])) {
             // Get style map (Bricks ID => Etch ID)
             $style_map = get_option('b2e_style_map', array());
@@ -704,7 +715,53 @@ class B2E_Gutenberg_Generator {
             }
         }
         
-        return $style_ids;
+        // Method 2: Get regular CSS classes and map them to style IDs
+        // This is needed because many Bricks sites use _cssClasses instead of _cssGlobalClasses
+        $classes = $this->get_element_classes($element);
+        if (!empty($classes)) {
+            // Get Bricks Global Classes to check which classes actually have styles
+            $bricks_classes = get_option('bricks_global_classes', array());
+            $bricks_class_names = array();
+            foreach ($bricks_classes as $bricks_class) {
+                $class_name = !empty($bricks_class['name']) ? $bricks_class['name'] : $bricks_class['id'];
+                // Remove ACSS prefix
+                $class_name = preg_replace('/^acss_import_/', '', $class_name);
+                $bricks_class_names[] = $class_name;
+            }
+            
+            // Only generate IDs for classes that exist in Bricks Global Classes
+            // We need to find the Bricks ID for this class name, then lookup in style_map
+            $style_map = get_option('b2e_style_map', array());
+            error_log('B2E: Style map has ' . count($style_map) . ' entries');
+            error_log('B2E: Processing ' . count($classes) . ' classes: ' . implode(', ', $classes));
+            
+            foreach ($classes as $class_name) {
+                if (in_array($class_name, $bricks_class_names)) {
+                    // Find the Bricks ID for this class name
+                    $bricks_id = null;
+                    foreach ($bricks_classes as $bricks_class) {
+                        $bricks_class_name = !empty($bricks_class['name']) ? $bricks_class['name'] : $bricks_class['id'];
+                        $bricks_class_name = preg_replace('/^acss_import_/', '', $bricks_class_name);
+                        if ($bricks_class_name === $class_name) {
+                            $bricks_id = $bricks_class['id'];
+                            break;
+                        }
+                    }
+                    
+                    // Lookup Etch ID in style_map
+                    if ($bricks_id && isset($style_map[$bricks_id])) {
+                        $style_ids[] = $style_map[$bricks_id];
+                        error_log('B2E: Found Global Class: ' . $class_name . ' (Bricks ID: ' . $bricks_id . ') → Etch ID: ' . $style_map[$bricks_id]);
+                    } else {
+                        error_log('B2E: Global Class found but no style_map entry: ' . $class_name);
+                    }
+                } else {
+                    error_log('B2E: Skipping non-Global Class: ' . $class_name);
+                }
+            }
+        }
+        
+        return array_unique($style_ids);
     }
     
     /**
@@ -714,6 +771,10 @@ class B2E_Gutenberg_Generator {
         if (empty($bricks_elements) || !is_array($bricks_elements)) {
             return '';
         }
+        
+        // Add timestamp comment to verify new content is generated
+        $timestamp = '<!-- B2E Generated: ' . date('Y-m-d H:i:s') . ' -->';
+        error_log('B2E: Generating blocks at ' . date('Y-m-d H:i:s'));
         
         // Build element lookup map (id => element)
         $element_map = array();
