@@ -23,11 +23,619 @@ class B2E_Gutenberg_Generator {
     private $dynamic_data_converter;
     
     /**
+     * Content parser instance
+     */
+    private $content_parser;
+    
+    /**
      * Constructor
      */
     public function __construct() {
         $this->error_handler = new B2E_Error_Handler();
         $this->dynamic_data_converter = new B2E_Dynamic_Data_Converter();
+        $this->content_parser = new B2E_Content_Parser();
+    }
+    
+    /**
+     * Convert Bricks elements directly to Gutenberg HTML (SIMPLE & DIRECT)
+     */
+    private function convert_bricks_to_gutenberg_html($bricks_elements, $post) {
+        if (empty($bricks_elements) || !is_array($bricks_elements)) {
+            return '';
+        }
+        
+        $html_parts = array();
+        
+        // Build element map for hierarchy
+        $element_map = array();
+        foreach ($bricks_elements as $element) {
+            if (isset($element['id'])) {
+                $element_map[$element['id']] = $element;
+            }
+        }
+        
+        // Find root elements (parent = 0 or '0')
+        $root_elements = array();
+        foreach ($bricks_elements as $element) {
+            $parent = $element['parent'] ?? '0';
+            if ($parent === 0 || $parent === '0' || $parent === '') {
+                $root_elements[] = $element;
+            }
+        }
+        
+        // Convert each root element
+        foreach ($root_elements as $element) {
+            $block_html = $this->convert_single_bricks_element($element, $element_map);
+            if (!empty($block_html)) {
+                $html_parts[] = $block_html;
+            }
+        }
+        
+        return implode("\n\n", $html_parts);
+    }
+    
+    /**
+     * Convert a single Bricks element to Etch block
+     */
+    private function convert_single_bricks_element($element, $element_map) {
+        $element_type = $element['name'] ?? '';
+        $element_id = $element['id'] ?? '';
+        $settings = $element['settings'] ?? array();
+        $children_ids = $element['children'] ?? array();
+        
+        // Get children elements
+        $children = array();
+        foreach ($children_ids as $child_id) {
+            if (isset($element_map[$child_id])) {
+                $children[] = $element_map[$child_id];
+            }
+        }
+        
+        // Convert based on element type to ETCH blocks
+        switch ($element_type) {
+            case 'section':
+                return $this->convert_etch_section($element, $children, $element_map);
+            
+            case 'container':
+                return $this->convert_etch_container($element, $children, $element_map);
+            
+            case 'block':
+            case 'div':
+                return $this->convert_etch_div($element, $children, $element_map);
+            
+            case 'text':
+            case 'text-basic':
+                return $this->convert_etch_text($element);
+            
+            case 'heading':
+                return $this->convert_etch_heading($element);
+            
+            case 'image':
+                return $this->convert_etch_image($element);
+            
+            case 'icon':
+                return $this->convert_etch_icon($element);
+            
+            case 'button':
+                return $this->convert_etch_button($element);
+            
+            case 'code':
+            case 'filter-radio':
+            case 'form':
+            case 'map':
+                // Convert unsupported elements to div
+                return $this->convert_etch_div($element, $children, $element_map);
+            
+            default:
+                // Wrap unknown elements - render children
+                $child_html = '';
+                foreach ($children as $child) {
+                    $child_html .= $this->convert_single_bricks_element($child, $element_map);
+                }
+                return $child_html;
+        }
+    }
+    
+    /**
+     * Convert Bricks Section to Etch Section (wp:group with proper etchData)
+     */
+    private function convert_etch_section($element, $children, $element_map) {
+        $classes = $this->get_element_classes($element);
+        $settings = $element['settings'] ?? array();
+        $label = $element['label'] ?? '';
+        
+        // Convert children
+        $children_html = '';
+        foreach ($children as $child) {
+            $child_html = $this->convert_single_bricks_element($child, $element_map);
+            if (!empty($child_html)) {
+                $children_html .= $child_html . "\n";
+            }
+        }
+        
+        // Build Etch-compatible attributes
+        $etch_attributes = array(
+            'data-etch-element' => 'section'
+        );
+        
+        // Add class to attributes if exists
+        if (!empty($classes)) {
+            $etch_attributes['class'] = implode(' ', $classes);
+        }
+        
+        // Get style IDs for this element
+        $style_ids = $this->get_element_style_ids($element);
+        
+        // Add default section style
+        array_unshift($style_ids, 'etch-section-style');
+        
+        // Build attributes JSON with FULL Etch structure
+        $attrs = array(
+            'metadata' => array(
+                'name' => $label ?: 'Section',
+                'etchData' => array(
+                    'origin' => 'etch',
+                    'name' => $label ?: 'Section',
+                    'styles' => $style_ids,
+                    'attributes' => $etch_attributes,
+                    'block' => array(
+                        'type' => 'html',
+                        'tag' => 'section'
+                    )
+                )
+            )
+        );
+        
+        $attrs_json = json_encode($attrs, JSON_UNESCAPED_UNICODE);
+        
+        // Build class attribute for HTML (Etch uses <div> in HTML, renders based on block.tag)
+        $class_attr = !empty($classes) ? ' class="wp-block-group ' . esc_attr(implode(' ', $classes)) . '"' : ' class="wp-block-group"';
+        
+        // Etch Section = wp:group with <div> (rendered as <section> by Etch)
+        return '<!-- wp:group ' . $attrs_json . ' -->' . "\n" .
+               '<div' . $class_attr . '>' . "\n" .
+               $children_html .
+               '</div>' . "\n" .
+               '<!-- /wp:group -->';
+    }
+    
+    /**
+     * Convert Bricks Container to Etch Container (wp:group with proper etchData)
+     */
+    private function convert_etch_container($element, $children, $element_map) {
+        $classes = $this->get_element_classes($element);
+        $label = $element['label'] ?? '';
+        
+        // Convert children
+        $children_html = '';
+        foreach ($children as $child) {
+            $child_html = $this->convert_single_bricks_element($child, $element_map);
+            if (!empty($child_html)) {
+                $children_html .= $child_html . "\n";
+            }
+        }
+        
+        // Build Etch-compatible attributes
+        $etch_attributes = array(
+            'data-etch-element' => 'container'
+        );
+        
+        // Add class to attributes if exists
+        if (!empty($classes)) {
+            $etch_attributes['class'] = implode(' ', $classes);
+        }
+        
+        // Get style IDs for this element
+        $style_ids = $this->get_element_style_ids($element);
+        
+        // Add default container style
+        array_unshift($style_ids, 'etch-container-style');
+        
+        // Build attributes JSON with FULL Etch structure
+        $attrs = array(
+            'metadata' => array(
+                'name' => $label ?: 'Container',
+                'etchData' => array(
+                    'origin' => 'etch',
+                    'name' => $label ?: 'Container',
+                    'styles' => $style_ids,
+                    'attributes' => $etch_attributes,
+                    'block' => array(
+                        'type' => 'html',
+                        'tag' => 'div'
+                    )
+                )
+            )
+        );
+        
+        $attrs_json = json_encode($attrs, JSON_UNESCAPED_UNICODE);
+        
+        // Build class attribute for HTML
+        $class_attr = !empty($classes) ? ' class="wp-block-group ' . esc_attr(implode(' ', $classes)) . '"' : ' class="wp-block-group"';
+        
+        // Etch Container = wp:group
+        return '<!-- wp:group ' . $attrs_json . ' -->' . "\n" .
+               '<div' . $class_attr . '>' . "\n" .
+               $children_html .
+               '</div>' . "\n" .
+               '<!-- /wp:group -->';
+    }
+    
+    /**
+     * Convert Bricks Div to Etch Flex-Div (wp:group with proper etchData)
+     */
+    private function convert_etch_div($element, $children, $element_map) {
+        $classes = $this->get_element_classes($element);
+        $label = $element['label'] ?? '';
+        
+        // Convert children
+        $children_html = '';
+        foreach ($children as $child) {
+            $child_html = $this->convert_single_bricks_element($child, $element_map);
+            if (!empty($child_html)) {
+                $children_html .= $child_html . "\n";
+            }
+        }
+        
+        // Build Etch-compatible attributes for flex-div
+        $etch_attributes = array(
+            'data-etch-element' => 'flex-div'
+        );
+        
+        // Add class to attributes if exists
+        if (!empty($classes)) {
+            $etch_attributes['class'] = implode(' ', $classes);
+        }
+        
+        // Get style IDs for this element
+        $style_ids = $this->get_element_style_ids($element);
+        
+        // Add default flex-div style
+        array_unshift($style_ids, 'etch-flex-div-style');
+        
+        // Build attributes JSON with FULL Etch structure
+        $attrs = array(
+            'metadata' => array(
+                'name' => $label ?: 'Flex Div',
+                'etchData' => array(
+                    'origin' => 'etch',
+                    'name' => $label ?: 'Flex Div',
+                    'styles' => $style_ids,
+                    'attributes' => $etch_attributes,
+                    'block' => array(
+                        'type' => 'html',
+                        'tag' => 'div'
+                    )
+                )
+            )
+        );
+        
+        $attrs_json = json_encode($attrs, JSON_UNESCAPED_UNICODE);
+        
+        // Build class attribute for HTML
+        $class_attr = !empty($classes) ? ' class="wp-block-group ' . esc_attr(implode(' ', $classes)) . '"' : ' class="wp-block-group"';
+        
+        // Etch Div = wp:group
+        return '<!-- wp:group ' . $attrs_json . ' -->' . "\n" .
+               '<div' . $class_attr . '>' . "\n" .
+               $children_html .
+               '</div>' . "\n" .
+               '<!-- /wp:group -->';
+    }
+    
+    /**
+     * Convert Bricks Text to standard paragraph with Etch metadata
+     */
+    private function convert_etch_text($element) {
+        $text = $element['settings']['text'] ?? '';
+        $label = $element['label'] ?? '';
+        
+        if (empty($text)) {
+            return '';
+        }
+        
+        $classes = $this->get_element_classes($element);
+        $class_attr = !empty($classes) ? ' class="' . esc_attr(implode(' ', $classes)) . '"' : '';
+        
+        // Get style IDs for this element
+        $style_ids = $this->get_element_style_ids($element);
+        
+        // Build attributes with Etch metadata
+        $attrs = array();
+        
+        // Add etchData with styles
+        if (!empty($style_ids) || !empty($classes)) {
+            $etch_data = array(
+                'origin' => 'etch',
+                'name' => $label ?: 'Text',
+                'styles' => $style_ids,
+                'attributes' => array(),
+                'block' => array(
+                    'type' => 'html',
+                    'tag' => 'p'
+                )
+            );
+            
+            if (!empty($classes)) {
+                $etch_data['attributes']['class'] = implode(' ', $classes);
+            }
+            
+            $attrs['metadata'] = array(
+                'name' => $label ?: 'Text',
+                'etchData' => $etch_data
+            );
+        }
+        
+        if (!empty($classes)) {
+            $attrs['className'] = implode(' ', $classes);
+        }
+        
+        $attrs_json = !empty($attrs) ? ' ' . json_encode($attrs, JSON_UNESCAPED_UNICODE) : '';
+        
+        // Use standard wp:paragraph
+        return '<!-- wp:paragraph' . $attrs_json . ' -->' . "\n" .
+               '<p' . $class_attr . '>' . $text . '</p>' . "\n" .
+               '<!-- /wp:paragraph -->';
+    }
+    
+    /**
+     * Convert Bricks Heading to standard heading with Etch metadata
+     */
+    private function convert_etch_heading($element) {
+        $text = $element['settings']['text'] ?? '';
+        $tag = $element['settings']['tag'] ?? 'h2';
+        $label = $element['label'] ?? '';
+        
+        if (empty($text)) {
+            return '';
+        }
+        
+        $classes = $this->get_element_classes($element);
+        $base_classes = array('wp-block-heading');
+        if (!empty($classes)) {
+            $base_classes = array_merge($base_classes, $classes);
+        }
+        $class_attr = ' class="' . esc_attr(implode(' ', $base_classes)) . '"';
+        
+        // Get style IDs for this element
+        $style_ids = $this->get_element_style_ids($element);
+        
+        // Build attributes with Etch metadata
+        $attrs = array();
+        
+        // Add etchData with styles
+        if (!empty($style_ids) || !empty($classes)) {
+            $etch_data = array(
+                'origin' => 'etch',
+                'name' => $label ?: 'Heading',
+                'styles' => $style_ids,
+                'attributes' => array(),
+                'block' => array(
+                    'type' => 'html',
+                    'tag' => $tag
+                )
+            );
+            
+            if (!empty($classes)) {
+                $etch_data['attributes']['class'] = implode(' ', $classes);
+            }
+            
+            $attrs['metadata'] = array(
+                'name' => $label ?: 'Heading',
+                'etchData' => $etch_data
+            );
+        }
+        
+        if (!empty($classes)) {
+            $attrs['className'] = implode(' ', $classes);
+        }
+        
+        // Add level attribute for heading
+        $level = (int) str_replace('h', '', $tag);
+        if ($level >= 1 && $level <= 6) {
+            $attrs['level'] = $level;
+        }
+        
+        $attrs_json = !empty($attrs) ? ' ' . json_encode($attrs, JSON_UNESCAPED_UNICODE) : '';
+        
+        // Use standard wp:heading
+        return '<!-- wp:heading' . $attrs_json . ' -->' . "\n" .
+               '<' . $tag . $class_attr . '>' . $text . '</' . $tag . '>' . "\n" .
+               '<!-- /wp:heading -->';
+    }
+    
+    /**
+     * Convert Bricks Image to standard image
+     */
+    private function convert_etch_image($element) {
+        $image_id = $element['settings']['image']['id'] ?? '';
+        $image_url = $element['settings']['image']['url'] ?? '';
+        $label = $element['label'] ?? '';
+        
+        if (empty($image_url)) {
+            return '';
+        }
+        
+        // Replace Bricks domain with Etch domain in image URL
+        $image_url = $this->replace_media_url($image_url);
+        
+        $classes = $this->get_element_classes($element);
+        
+        // Get style IDs for this element
+        $style_ids = $this->get_element_style_ids($element);
+        
+        // Build attributes with Etch nestedData structure for img classes
+        $attrs = array(
+            'metadata' => array(
+                'name' => $label ?: 'Image',
+                'etchData' => array(
+                    'removeWrapper' => true,
+                    'block' => array(
+                        'type' => 'html',
+                        'tag' => 'figure'
+                    ),
+                    'origin' => 'etch',
+                    'name' => $label ?: 'Image',
+                    'nestedData' => array(
+                        'img' => array(
+                            'origin' => 'etch',
+                            'name' => $label ?: 'Image',
+                            'styles' => $style_ids,
+                            'attributes' => array(
+                                'src' => $image_url,
+                                'class' => !empty($classes) ? implode(' ', $classes) : ''
+                            ),
+                            'block' => array(
+                                'type' => 'html',
+                                'tag' => 'img'
+                            )
+                        )
+                    )
+                )
+            )
+        );
+        
+        $attrs_json = json_encode($attrs, JSON_UNESCAPED_UNICODE);
+        
+        // Use standard wp:image with Etch nestedData
+        return '<!-- wp:image ' . $attrs_json . ' -->' . "\n" .
+               '<figure class="wp-block-image"><img src="' . esc_url($image_url) . '" alt=""/></figure>' . "\n" .
+               '<!-- /wp:image -->';
+    }
+    
+    /**
+     * Convert Bricks Icon to SVG inline
+     */
+    private function convert_etch_icon($element) {
+        $icon_library = $element['settings']['icon']['library'] ?? '';
+        $icon_value = $element['settings']['icon']['icon'] ?? '';
+        $label = $element['label'] ?? '';
+        
+        if (empty($icon_value)) {
+            return '';
+        }
+        
+        $classes = $this->get_element_classes($element);
+        $class_attr = !empty($classes) ? ' class="' . esc_attr(implode(' ', $classes)) . '"' : '';
+        
+        // Build attributes for Etch editor
+        $attrs = array();
+        if (!empty($label)) {
+            $attrs['metadata'] = array(
+                'name' => $label
+            );
+        }
+        if (!empty($classes)) {
+            $attrs['className'] = implode(' ', $classes);
+        }
+        
+        $attrs_json = !empty($attrs) ? ' ' . json_encode($attrs, JSON_UNESCAPED_UNICODE) : '';
+        
+        // Convert to HTML block with icon class (Etch will render the icon)
+        // For FontAwesome: <i class="fas fa-arrow-right-long"></i>
+        $icon_html = '<i class="' . esc_attr($icon_value) . '"></i>';
+        
+        return '<!-- wp:html' . $attrs_json . ' -->' . "\n" .
+               '<div' . $class_attr . '>' . $icon_html . '</div>' . "\n" .
+               '<!-- /wp:html -->';
+    }
+    
+    /**
+     * Convert Bricks Button to core/button
+     */
+    private function convert_etch_button($element) {
+        $text = $element['settings']['text'] ?? 'Button';
+        $link = $element['settings']['link'] ?? '#';
+        $label = $element['label'] ?? '';
+        
+        // Handle Bricks link format (can be array or string)
+        if (is_array($link)) {
+            $url = $link['url'] ?? '#';
+            $target = $link['newTab'] ?? false;
+        } else {
+            $url = $link;
+            $target = false;
+        }
+        
+        $classes = $this->get_element_classes($element);
+        $class_attr = !empty($classes) ? ' class="wp-block-button ' . esc_attr(implode(' ', $classes)) . '"' : ' class="wp-block-button"';
+        
+        // Build attributes for Etch editor
+        $attrs = array();
+        if (!empty($label)) {
+            $attrs['metadata'] = array(
+                'name' => $label
+            );
+        }
+        if (!empty($classes)) {
+            $attrs['className'] = implode(' ', $classes);
+        }
+        
+        $attrs_json = !empty($attrs) ? ' ' . json_encode($attrs, JSON_UNESCAPED_UNICODE) : '';
+        
+        // Build link attributes
+        $link_attrs = 'href="' . esc_url($url) . '"';
+        if ($target) {
+            $link_attrs .= ' target="_blank" rel="noopener"';
+        }
+        
+        // Use standard wp:button
+        return '<!-- wp:button' . $attrs_json . ' -->' . "\n" .
+               '<div' . $class_attr . '><a class="wp-block-button__link" ' . $link_attrs . '>' . esc_html($text) . '</a></div>' . "\n" .
+               '<!-- /wp:button -->';
+    }
+    
+    /**
+     * Get element classes (resolve IDs to names)
+     */
+    private function get_element_classes($element) {
+        $classes = array();
+        
+        // Global classes - resolve IDs to names
+        if (isset($element['settings']['_cssGlobalClasses']) && is_array($element['settings']['_cssGlobalClasses'])) {
+            $global_classes = get_option('bricks_global_classes', array());
+            
+            foreach ($element['settings']['_cssGlobalClasses'] as $class_id) {
+                // Find the class by ID
+                foreach ($global_classes as $global_class) {
+                    if (isset($global_class['id']) && $global_class['id'] === $class_id) {
+                        if (isset($global_class['name'])) {
+                            $classes[] = $global_class['name'];
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+        
+        // Custom classes (these are already names, not IDs)
+        if (isset($element['settings']['_cssClasses']) && is_array($element['settings']['_cssClasses'])) {
+            $classes = array_merge($classes, $element['settings']['_cssClasses']);
+        }
+        
+        return $classes;
+    }
+    
+    /**
+     * Get Etch style IDs for element (convert Bricks class IDs to Etch style IDs)
+     */
+    private function get_element_style_ids($element) {
+        $style_ids = array();
+        
+        // Get Bricks global class IDs
+        if (isset($element['settings']['_cssGlobalClasses']) && is_array($element['settings']['_cssGlobalClasses'])) {
+            // Get style map (Bricks ID => Etch ID)
+            $style_map = get_option('b2e_style_map', array());
+            
+            foreach ($element['settings']['_cssGlobalClasses'] as $bricks_class_id) {
+                // Convert Bricks ID to Etch ID
+                if (isset($style_map[$bricks_class_id])) {
+                    $style_ids[] = $style_map[$bricks_class_id];
+                }
+            }
+        }
+        
+        return $style_ids;
     }
     
     /**
@@ -69,37 +677,36 @@ class B2E_Gutenberg_Generator {
      * Convert Bricks to Gutenberg and save to database (FOR ECH PROCESSING!)
      */
     public function convert_bricks_to_gutenberg($post) {
-        if (empty($post)) {
-            return false;
+        error_log("B2E: convert_bricks_to_gutenberg called for post " . $post->ID);
+        
+        // Check for Bricks content first
+        $bricks_content = get_post_meta($post->ID, '_bricks_page_content_2', true);
+        
+        // If it's a JSON string, decode it
+        if (is_string($bricks_content)) {
+            $decoded = json_decode($bricks_content, true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $bricks_content = $decoded;
+            }
         }
         
-        // Get Bricks content
-        $bricks_content = get_post_meta($post->ID, '_bricks_page_content', true);
-        
-        if (empty($bricks_content)) {
+        if (empty($bricks_content) || !is_array($bricks_content)) {
             $this->error_handler->log_error('I020', array(
                 'post_id' => $post->ID,
-                'action' => 'No Bricks content found for conversion'
+                'action' => 'No Bricks content found for conversion',
+                'content_type' => gettype($bricks_content)
             ));
             return false;
         }
         
-        // Parse and convert Bricks elements to Gutenberg format
-        $content_parser = new B2E_Content_Parser();
-        $parsed_elements = $content_parser->convert_to_etch_format($bricks_content);
+        error_log("B2E: Found " . count($bricks_content) . " Bricks elements");
         
-        if (empty($parsed_elements)) {
-            $this->error_handler->log_error('I021', array(
-                'post_id' => $post->ID,
-                'action' => 'Failed to parse Bricks elements'
-            ));
-            return false;
-        }
+        // Convert Bricks elements directly to Gutenberg HTML (SIMPLE APPROACH)
+        $gutenberg_html = $this->convert_bricks_to_gutenberg_html($bricks_content, $post);
         
-        // Generate Gutenberg blocks HTML
-        $gutenberg_content = $this->generate_gutenberg_blocks($parsed_elements);
+        error_log("B2E: Generated HTML length: " . strlen($gutenberg_html));
         
-        if (empty($gutenberg_content)) {
+        if (empty($gutenberg_html)) {
             $this->error_handler->log_error('I022', array(
                 'post_id' => $post->ID,
                 'action' => 'Failed to generate Gutenberg blocks'
@@ -110,28 +717,80 @@ class B2E_Gutenberg_Generator {
         // Append inline JavaScript from code blocks (if any)
         $inline_js = get_option('b2e_inline_js_' . $post->ID, '');
         if (!empty($inline_js)) {
-            $gutenberg_content .= "\n\n<!-- wp:html -->\n<script>\n" . trim($inline_js) . "\n</script>\n<!-- /wp:html -->";
+            $gutenberg_html .= "\n\n<!-- wp:html -->\n<script>\n" . trim($inline_js) . "\n</script>\n<!-- /wp:html -->";
             delete_option('b2e_inline_js_' . $post->ID);
         }
         
-        // Save Gutenberg content to database (Etch will process it automatically)
-        // Use direct DB query WITHOUT prepare to avoid escaping special characters
-        // This is safe because we control the content and ID
-        global $wpdb;
+        // Convert HTML to blocks array
+        $gutenberg_blocks = parse_blocks($gutenberg_html);
         
-        // Escape only the content for SQL injection prevention, but preserve Unicode
-        $escaped_content = $wpdb->_real_escape($gutenberg_content);
-        $post_id = (int) $post->ID;
+        // Get target site URL from settings
+        $settings = get_option('b2e_settings', array());
+        $target_url = $settings['target_url'] ?? '';
         
-        $update_result = $wpdb->query(
-            "UPDATE {$wpdb->posts} SET post_content = '{$escaped_content}' WHERE ID = {$post_id}"
-        );
-        
-        if ($update_result === false) {
+        if (empty($target_url)) {
             $this->error_handler->log_error('I024', array(
                 'post_id' => $post->ID,
-                'error' => 'Database update failed',
-                'action' => 'Failed to save Gutenberg content to database'
+                'error' => 'No target URL configured',
+                'action' => 'Failed to send blocks to Etch API'
+            ));
+            return false;
+        }
+        
+        // Send blocks to Etch via HTTP (using custom migration endpoint without auth)
+        $etch_post_id = $post->ID; // Same ID on Etch side
+        $endpoint_url = rtrim($target_url, '/') . "/wp-json/b2e-migration/v1/post/{$etch_post_id}/blocks";
+        
+        // Prepare payload with blocks AND metadata
+        $payload = array(
+            'blocks' => $gutenberg_blocks,
+            'metadata' => array(
+                'post_title' => $post->post_title,
+                'post_name' => $post->post_name,
+                'post_type' => $post->post_type,
+                'post_status' => $post->post_status,
+                'post_excerpt' => $post->post_excerpt,
+                'post_date' => $post->post_date,
+                'post_author' => $post->post_author,
+            )
+        );
+        
+        // Debug log
+        error_log("B2E: Sending blocks to: " . $endpoint_url);
+        error_log("B2E: Post title: " . $post->post_title);
+        error_log("B2E: Blocks count: " . count($gutenberg_blocks));
+        
+        $response = wp_remote_post($endpoint_url, array(
+            'body' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            'headers' => array('Content-Type' => 'application/json'),
+            'timeout' => 30,
+        ));
+        
+        // Debug log response
+        if (is_wp_error($response)) {
+            error_log("B2E: WP_Error: " . $response->get_error_message());
+        } else {
+            error_log("B2E: Response code: " . wp_remote_retrieve_response_code($response));
+            error_log("B2E: Response body: " . wp_remote_retrieve_body($response));
+        }
+        
+        if (is_wp_error($response)) {
+            $this->error_handler->log_error('I024', array(
+                'post_id' => $post->ID,
+                'error' => $response->get_error_message(),
+                'action' => 'Failed to send blocks to Etch API'
+            ));
+            return false;
+        }
+        
+        // Check response
+        $response_code = wp_remote_retrieve_response_code($response);
+        if ($response_code !== 200) {
+            $response_body = wp_remote_retrieve_body($response);
+            $this->error_handler->log_error('I024', array(
+                'post_id' => $post->ID,
+                'error' => "API returned {$response_code}: {$response_body}",
+                'action' => 'Failed to save blocks via Etch API'
             ));
             return false;
         }
@@ -140,18 +799,19 @@ class B2E_Gutenberg_Generator {
         delete_post_meta($post->ID, '_bricks_page_content');
         delete_post_meta($post->ID, '_bricks_page_settings');
         
-        // Log successful conversion and database save
+        // Log successful conversion and API save
         $this->error_handler->log_error('I023', array(
             'post_id' => $post->ID,
             'post_title' => $post->post_title,
-            'elements_converted' => count($parsed_elements),
-            'gutenberg_length' => strlen($gutenberg_content),
+            'bricks_elements' => count($bricks_content),
+            'blocks_generated' => count($gutenberg_blocks),
+            'api_method' => 'Custom Migration Endpoint via HTTP',
             'database_updated' => true,
             'bricks_meta_cleaned' => true,
-            'action' => 'Bricks converted to Gutenberg and saved to database - Etch will process automatically'
+            'action' => 'Bricks converted to Gutenberg blocks and saved via Etch API'
         ));
         
-        return $gutenberg_content;
+        return true;
     }
     
     /**
@@ -629,5 +1289,38 @@ class B2E_Gutenberg_Generator {
         }
         
         return implode(' ', array_filter($classes));
+    }
+    
+    /**
+     * Replace Bricks media URL with Etch media URL
+     * This assumes media has been migrated and is available on Etch
+     */
+    private function replace_media_url($url) {
+        // Get source and target URLs from settings
+        $settings = get_option('b2e_settings', array());
+        $target_url = $settings['target_url'] ?? '';
+        
+        if (empty($target_url)) {
+            return $url; // No target URL, return original
+        }
+        
+        // Get source site URL
+        $source_url = home_url();
+        
+        // Parse URLs
+        $source_parsed = parse_url($source_url);
+        $target_parsed = parse_url($target_url);
+        
+        if (!$source_parsed || !$target_parsed) {
+            return $url; // Invalid URLs, return original
+        }
+        
+        // Replace source domain with target domain in media URL
+        $source_host = $source_parsed['host'] . (isset($source_parsed['port']) ? ':' . $source_parsed['port'] : '');
+        $target_host = $target_parsed['host'] . (isset($target_parsed['port']) ? ':' . $target_parsed['port'] : '');
+        
+        $new_url = str_replace($source_host, $target_host, $url);
+        
+        return $new_url;
     }
 }

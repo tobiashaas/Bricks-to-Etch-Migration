@@ -33,6 +33,14 @@ class B2E_Admin_Interface {
         add_action('wp_ajax_b2e_validate_api_key', array($this, 'ajax_validate_api_key'));
         add_action('wp_ajax_b2e_validate_migration_token', array($this, 'ajax_validate_migration_token'));
         add_action('wp_ajax_b2e_get_migration_progress', array($this, 'ajax_get_migration_progress'));
+        add_action('wp_ajax_b2e_migrate_batch', array($this, 'ajax_migrate_batch'));
+        add_action('wp_ajax_b2e_get_bricks_posts', array($this, 'ajax_get_bricks_posts'));
+        add_action('wp_ajax_b2e_migrate_css', array($this, 'ajax_migrate_css'));
+        add_action('wp_ajax_b2e_migrate_media', array($this, 'ajax_migrate_media'));
+        add_action('wp_ajax_b2e_migrate_cpts', array($this, 'ajax_migrate_cpts'));
+        add_action('wp_ajax_b2e_get_bricks_cpts', array($this, 'ajax_get_bricks_cpts'));
+        add_action('wp_ajax_b2e_get_etch_cpts', array($this, 'ajax_get_etch_cpts'));
+        add_action('wp_ajax_b2e_cleanup_etch', array($this, 'ajax_cleanup_etch'));
     }
     
     /**
@@ -288,6 +296,9 @@ class B2E_Admin_Interface {
                                 `;
                                 infoDiv.style.display = 'block';
                             }
+                            
+                            // Load CPT mapping options
+                            loadCPTMappingOptions(domain, data.data.api_key);
                         } else {
                             showToast('Migration token validation failed: ' + (data.data || 'Invalid token'), 'error');
                         }
@@ -537,10 +548,10 @@ class B2E_Admin_Interface {
         }
 
         /**
-         * Start the migration process
+         * Start the migration process (BATCH VERSION)
          */
-        function startMigrationProcess(domain, token, expires) {
-            console.log('🚀 Starting migration process...', { domain, token, expires });
+        async function startMigrationProcess(domain, token, expires) {
+            console.log('🚀 Starting BATCH migration process...', { domain, token, expires });
             
             // Get API key from sessionStorage (set during token validation)
             const apiKey = sessionStorage.getItem('b2e_api_key');
@@ -553,96 +564,362 @@ class B2E_Admin_Interface {
             
             console.log('🔑 Using API key from sessionStorage:', apiKey.substring(0, 20) + '...');
             
-            // Convert localhost:8081 to b2e-etch for Docker internal communication
+            // Note: Localhost conversion is handled server-side in convert_localhost_for_docker()
+            // No need to convert here - just use the domain as-is
             let apiDomain = domain;
-            if (domain.includes('localhost:8081')) {
-                apiDomain = domain.replace('localhost:8081', 'b2e-etch');
-            }
             
             // Show progress section
-            // Show progress section immediately
             const progressSection = document.getElementById('migration-progress');
             if (progressSection) {
                 progressSection.style.display = 'block';
             }
             
             // Update progress
-            updateProgress(0, 'Starting migration...', []);
+            updateProgress(0, 'Getting list of posts...', []);
             
-            // Start migration via AJAX to local handler
-                        const formData = new FormData();
-                        formData.append('action', 'b2e_start_migration');
-                        formData.append('nonce', b2e_ajax.nonce);
-                        formData.append('target_url', apiDomain); // Use converted domain
-                        formData.append('api_key', apiKey); // Use actual API key, not token
+            // Step 1: Get list of all Bricks posts
+            updateProgress(0, '🔍 Scanning for Bricks content...', ['Starting migration process...']);
+            const posts = await getBricksPosts();
             
-            console.log('📡 AJAX parameters:', {
-                action: 'b2e_start_migration',
-                nonce: b2e_ajax.nonce,
-                target_url: apiDomain,
-                api_key: apiKey.substring(0, 20) + '...'
-            });
+            if (!posts || posts.length === 0) {
+                showToast('No Bricks posts found to migrate', 'error');
+                updateProgress(0, '❌ No content found', ['No Bricks posts or pages found']);
+                return;
+            }
             
-            console.log('📡 Using nonce:', b2e_ajax.nonce);
+            console.log(`📋 Found ${posts.length} posts to migrate`);
+            const initialSteps = [`Found ${posts.length} items to migrate (${posts.filter(p => p.type === 'page').length} pages, ${posts.filter(p => p.type === 'post').length} posts)`];
+            updateProgress(3, `📋 Found ${posts.length} items to migrate`, initialSteps);
             
-            console.log('📡 Sending AJAX request...', {
-                action: 'b2e_start_migration',
-                target_url: apiDomain,
-                api_key: apiKey.substring(0, 20) + '...'
-            });
+            // Step 2: Migrate Custom Post Types first (so bricks_template exists in Etch)
+            updateProgress(4, '📦 Migrating Custom Post Types...', [...initialSteps, 'Registering Bricks templates and other CPTs...']);
+            let cptSteps = [...initialSteps];
+            try {
+                await migrateCPTs(apiDomain, apiKey);
+                cptSteps.push('✅ Custom Post Types registered successfully');
+                updateProgress(5, '✅ CPT migration complete', cptSteps);
+            } catch (error) {
+                console.error('❌ CPT migration error:', error);
+                cptSteps.push('⚠️ CPT migration failed: ' + error.message);
+                updateProgress(5, '⚠️ CPT migration failed (continuing...)', cptSteps);
+            }
             
-            fetch(b2e_ajax.ajax_url, {
+            // Step 3: Migrate CSS
+            updateProgress(6, '🎨 Migrating CSS styles...', [...cptSteps, 'Converting Bricks classes to Etch styles...']);
+            let cssSteps = [...cptSteps];
+            try {
+                await migrateCSSStyles(apiDomain, apiKey);
+                cssSteps.push('✅ CSS styles migrated successfully');
+                updateProgress(8, '✅ CSS migration complete', cssSteps);
+            } catch (error) {
+                console.error('❌ CSS migration error:', error);
+                cssSteps.push('⚠️ CSS migration failed: ' + error.message);
+                updateProgress(8, '⚠️ CSS migration failed (continuing...)', cssSteps);
+            }
+            
+            // Step 2.5: Migrate Media
+            updateProgress(8, '📸 Migrating media files...', [...cssSteps, 'Transferring images and attachments...']);
+            try {
+                await migrateMedia(apiDomain, apiKey);
+                cssSteps.push('✅ Media files migrated successfully');
+                updateProgress(10, '✅ Media migration complete', cssSteps);
+            } catch (error) {
+                cssSteps.push('⚠️ Media migration had errors: ' + error.message);
+                updateProgress(10, '⚠️ Media migration completed with errors', cssSteps);
+            }
+            
+            // Step 3: Migrate posts one by one
+            const completedSteps = [...cssSteps];
+            let successCount = 0;
+            let errorCount = 0;
+            
+            for (let i = 0; i < posts.length; i++) {
+                const post = posts[i];
+                const progress = 10 + ((i / posts.length) * 85); // 10-95%
+                const postTypeIcon = post.type === 'page' ? '📄' : '📝';
+                
+                updateProgress(progress, `${postTypeIcon} Migrating: ${post.title} (${i + 1}/${posts.length})...`, completedSteps);
+                
+                try {
+                    const startTime = Date.now();
+                    await migratePost(post.id, apiDomain, apiKey);
+                    const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+                    
+                    successCount++;
+                    completedSteps.push(`✅ ${post.title} (${post.type}) - ${duration}s`);
+                    console.log(`✅ Migrated: ${post.title} in ${duration}s`);
+                } catch (error) {
+                    errorCount++;
+                    completedSteps.push(`❌ ${post.title} (${post.type}): ${error.message}`);
+                    console.error(`❌ Failed: ${post.title}`, error);
+                }
+                
+                // Update progress with completed step
+                const newProgress = 10 + (((i + 1) / posts.length) * 85);
+                const statusText = `${successCount} successful, ${errorCount} failed`;
+                updateProgress(newProgress, `📊 Progress: ${i + 1}/${posts.length} (${statusText})`, completedSteps);
+                
+                // Small delay to show progress
+                await new Promise(resolve => setTimeout(resolve, 300));
+            }
+            
+            // Step 4: Complete
+            const finalMessage = errorCount === 0 
+                ? `🎉 Migration complete! All ${successCount} items migrated successfully!`
+                : `⚠️ Migration complete with ${errorCount} error(s). ${successCount} items migrated successfully.`;
+            
+            completedSteps.push('');
+            completedSteps.push(`📊 Final Summary:`);
+            completedSteps.push(`   ✅ Success: ${successCount}`);
+            completedSteps.push(`   ❌ Failed: ${errorCount}`);
+            completedSteps.push(`   📦 Total: ${posts.length}`);
+            
+            updateProgress(100, finalMessage, completedSteps);
+            showToast(finalMessage, errorCount === 0 ? 'success' : 'warning');
+            
+            // Generate report
+            setTimeout(() => {
+                generateMigrationReport();
+            }, 2000);
+        }
+        
+        /**
+         * Get list of Bricks posts
+         */
+        async function getBricksPosts() {
+            const formData = new FormData();
+            formData.append('action', 'b2e_get_bricks_posts');
+            formData.append('nonce', b2e_ajax.nonce);
+            
+            const response = await fetch(b2e_ajax.ajax_url, {
                 method: 'POST',
                 body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                console.log('📡 AJAX response:', data);
-                console.log('📡 AJAX response type:', typeof data);
-                console.log('📡 AJAX response success:', data.success);
-                console.log('📡 AJAX response data:', data.data);
-                
-                if (data.success) {
-                showToast('Migration started successfully!', 'success');
-                // Start polling for progress
-                pollMigrationProgress();
-                    
-                    // Generate migration report after a delay
-                    setTimeout(() => {
-                        generateMigrationReport();
-                    }, 2000);
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                return data.data.posts;
             } else {
-                    let errorMessage = 'Unknown error';
+                throw new Error(data.data || 'Failed to get posts');
+            }
+        }
+        
+        /**
+         * Migrate CSS styles
+         */
+        async function migrateCSSStyles(apiDomain, apiKey) {
+            const formData = new FormData();
+            formData.append('action', 'b2e_migrate_css');
+            formData.append('nonce', b2e_ajax.nonce);
+            formData.append('target_url', apiDomain);
+            formData.append('api_key', apiKey);
+            
+            const response = await fetch(b2e_ajax.ajax_url, {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (!data.success) {
+                throw new Error(data.data || 'Failed to migrate CSS');
+            }
+        }
+        
+        /**
+         * Migrate media files
+         */
+        async function migrateMedia(apiDomain, apiKey) {
+            const formData = new FormData();
+            formData.append('action', 'b2e_migrate_media');
+            formData.append('nonce', b2e_ajax.nonce);
+            formData.append('target_url', apiDomain);
+            formData.append('api_key', apiKey);
+            
+            const response = await fetch(b2e_ajax.ajax_url, {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (!data.success) {
+                throw new Error(data.data || 'Failed to migrate media');
+            }
+            
+            return data.data;
+        }
+        
+        /**
+         * Migrate Custom Post Types
+         */
+        async function migrateCPTs(apiDomain, apiKey) {
+            const formData = new FormData();
+            formData.append('action', 'b2e_migrate_cpts');
+            formData.append('nonce', b2e_ajax.nonce);
+            formData.append('target_url', apiDomain);
+            formData.append('api_key', apiKey);
+            
+            const response = await fetch(b2e_ajax.ajax_url, {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (!data.success) {
+                throw new Error(data.data || 'Failed to migrate CPTs');
+            }
+            
+            return data.data;
+        }
+        
+        /**
+         * Load CPT mapping options
+         */
+        async function loadCPTMappingOptions(domain, apiKey) {
+            try {
+                // Get Bricks CPTs
+                const bricksCPTs = await getBricksCPTs();
+                
+                // Get Etch CPTs
+                const etchCPTs = await getEtchCPTs(domain, apiKey);
+                
+                // Build mapping UI
+                const mappingList = document.getElementById('cpt-mapping-list');
+                if (!mappingList) return;
+                
+                if (bricksCPTs.length === 0) {
+                    mappingList.innerHTML = '<p style="color: var(--e-base-light);">No custom post types found in Bricks.</p>';
+                    return;
+                }
+                
+                let html = '<table style="width: 100%; border-collapse: collapse;">';
+                html += '<thead><tr style="background: var(--e-base-dark); border-bottom: 2px solid var(--e-border-color);">';
+                html += '<th style="padding: 10px; text-align: left;">Bricks Post Type</th>';
+                html += '<th style="padding: 10px; text-align: left;">→ Map to Etch Post Type</th>';
+                html += '<th style="padding: 10px; text-align: left;">Count</th>';
+                html += '</tr></thead><tbody>';
+                
+                bricksCPTs.forEach(cpt => {
+                    html += '<tr style="border-bottom: 1px solid var(--e-border-color);">';
+                    html += `<td style="padding: 10px;"><strong>${cpt.label}</strong><br><code style="font-size: 0.9em; color: var(--e-base-light);">${cpt.name}</code></td>`;
+                    html += '<td style="padding: 10px;">';
+                    html += `<select name="cpt_mapping[${cpt.name}]" id="cpt_mapping_${cpt.name}" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--e-border-color);">`;
                     
-                    if (data.data) {
-                        if (typeof data.data === 'string') {
-                            errorMessage = data.data;
-                        } else if (data.data.message) {
-                            errorMessage = data.data.message;
-                        } else {
-                            errorMessage = JSON.stringify(data.data);
-                        }
-                    }
+                    // Default option: map to page
+                    html += `<option value="page" ${cpt.name === 'bricks_template' ? 'selected' : ''}>Page</option>`;
+                    html += `<option value="post">Post</option>`;
                     
-                    console.error('Migration failed with error:', errorMessage);
-                    showToast('Migration failed to start: ' + errorMessage, 'error');
+                    // Add Etch CPTs as options
+                    etchCPTs.forEach(etchCpt => {
+                        const selected = cpt.name === etchCpt.name ? 'selected' : '';
+                        html += `<option value="${etchCpt.name}" ${selected}>${etchCpt.label}</option>`;
+                    });
                     
-                if (progressSection) {
-                    progressSection.style.display = 'none';
+                    html += '</select>';
+                    html += '</td>';
+                    html += `<td style="padding: 10px; color: var(--e-base-light);">${cpt.count} items</td>`;
+                    html += '</tr>';
+                });
+                
+                html += '</tbody></table>';
+                mappingList.innerHTML = html;
+                
+            } catch (error) {
+                console.error('Failed to load CPT mapping options:', error);
+                const mappingList = document.getElementById('cpt-mapping-list');
+                if (mappingList) {
+                    mappingList.innerHTML = '<p style="color: var(--e-warning);">⚠️ Failed to load post type options</p>';
                 }
             }
-            })
-            .catch(error => {
-                console.error('Migration start error:', error);
-                showToast('Migration failed to start: ' + error.message, 'error');
-                if (progressSection) {
-                    progressSection.style.display = 'none';
+        }
+        
+        /**
+         * Get Bricks CPTs
+         */
+        async function getBricksCPTs() {
+            const formData = new FormData();
+            formData.append('action', 'b2e_get_bricks_cpts');
+            formData.append('nonce', b2e_ajax.nonce);
+            
+            const response = await fetch(b2e_ajax.ajax_url, {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            return data.success ? data.data : [];
+        }
+        
+        /**
+         * Get Etch CPTs
+         */
+        async function getEtchCPTs(domain, apiKey) {
+            const formData = new FormData();
+            formData.append('action', 'b2e_get_etch_cpts');
+            formData.append('nonce', b2e_ajax.nonce);
+            formData.append('target_url', domain);
+            formData.append('api_key', apiKey);
+            
+            const response = await fetch(b2e_ajax.ajax_url, {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            return data.success ? data.data : [];
+        }
+        
+        /**
+         * Get CPT mapping from UI
+         */
+        function getCPTMapping() {
+            const mapping = {};
+            const selects = document.querySelectorAll('[name^="cpt_mapping["]');
+            
+            selects.forEach(select => {
+                const match = select.name.match(/cpt_mapping\[([^\]]+)\]/);
+                if (match) {
+                    mapping[match[1]] = select.value;
                 }
             });
+            
+            return mapping;
+        }
+        
+        /**
+         * Migrate single post
+         */
+        async function migratePost(postId, apiDomain, apiKey) {
+            const formData = new FormData();
+            formData.append('action', 'b2e_migrate_batch');
+            formData.append('nonce', b2e_ajax.nonce);
+            formData.append('post_id', postId);
+            formData.append('target_url', apiDomain);
+            formData.append('api_key', apiKey);
+            
+            // Add CPT mapping
+            const cptMapping = getCPTMapping();
+            formData.append('cpt_mapping', JSON.stringify(cptMapping));
+            
+            const response = await fetch(b2e_ajax.ajax_url, {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (!data.success) {
+                throw new Error(data.data || 'Failed to migrate post');
+            }
+            
+            return data.data;
         }
 
         /**
-         * Update migration progress
+         * Update migration progress (IMPROVED VERSION)
          */
         function updateProgress(percentage, currentStep, steps) {
             const progressBar = document.getElementById('progress-bar');
@@ -652,9 +929,21 @@ class B2E_Admin_Interface {
             
             console.log('📊 Updating progress:', { percentage, currentStep, steps });
             
-            // Update progress bar width
+            // Update progress bar width with smooth transition
             if (progressBar) {
                 progressBar.style.width = percentage + '%';
+                progressBar.style.transition = 'width 0.3s ease-in-out';
+                
+                // Color coding based on progress
+                if (percentage < 30) {
+                    progressBar.style.background = 'var(--e-danger)'; // Orange - Starting
+                } else if (percentage < 70) {
+                    progressBar.style.background = 'cyan'; // Blue - In Progress
+                } else if (percentage < 100) {
+                    progressBar.style.background = 'var(--e-primary)'; // Green - Almost Done
+                } else {
+                    progressBar.style.background = 'lightgreen'; // Dark Green - Complete
+                }
             }
             
             // Update percentage text inside bar
@@ -662,18 +951,85 @@ class B2E_Admin_Interface {
                 progressPercentage.textContent = Math.round(percentage) + '%';
             }
             
-            // Update current step text
+            // Update current step text with animation
             if (progressText) {
-                progressText.textContent = currentStep || 'Processing...';
+                progressText.style.transition = 'opacity 0.2s';
+                progressText.style.opacity = '0';
+                
+                setTimeout(() => {
+                    progressText.textContent = currentStep || 'Processing...';
+                    progressText.style.opacity = '1';
+                }, 100);
             }
             
-            // Update steps list
+            // Update steps list with better formatting
             if (progressSteps && Array.isArray(steps) && steps.length > 0) {
-                progressSteps.innerHTML = '<ul style="list-style: none; padding: 0; margin: 0;">';
+                let stepsHTML = '<div style="max-height: 300px; overflow-y: auto; padding: var(--e-space-m); border-radius: var(--e-border-radius); margin-top: var(--e-space-m);">';
+                stepsHTML += '<ul style="list-style: none; padding: 0; margin: 0; font-family: monospace; font-size: 13px;">';
+                
                 steps.forEach((step, index) => {
-                    progressSteps.innerHTML += `<li style="padding: 5px 0;">✓ ${step}</li>`;
+                    const isSuccess = step.includes('✅');
+                    const isError = step.includes('❌');
+                    const isInfo = !isSuccess && !isError;
+                    
+                    let color = '#6b7280'; // Gray for info
+                    let icon = '•';
+                    
+                    if (isSuccess) {
+                        color = 'var(--e-primary)'; // Green
+                        icon = '✅';
+                        step = step.replace('✅', '');
+                    } else if (isError) {
+                        color = 'var(--e-danger)'; // Red
+                        icon = '❌';
+                        step = step.replace('❌', '');
+                    }
+                    
+                    stepsHTML += `
+                        <li style="
+                            padding: var(--e-space-s) var(--e-space-m); 
+                            margin: var(--e-space-xs) 0; 
+                            color: ${color};
+                            border-left: 3px solid ${color};
+                            border-radius: var(--e-border-radius);
+                            animation: slideIn 0.3s ease-out;
+                        ">
+                            <span style="margin-right: var(--e-space-s);">${icon}</span>
+                            <span>${step.trim()}</span>
+                        </li>
+                    `;
                 });
-                progressSteps.innerHTML += '</ul>';
+                
+                stepsHTML += '</ul></div>';
+                
+                // Add CSS animation
+                if (!document.getElementById('progress-animation-style')) {
+                    const style = document.createElement('style');
+                    style.id = 'progress-animation-style';
+                    style.textContent = `
+                        @keyframes slideIn {
+                            from {
+                                opacity: 0;
+                                transform: translateX(-10px);
+                            }
+                            to {
+                                opacity: 1;
+                                transform: translateX(0);
+                            }
+                        }
+                    `;
+                    document.head.appendChild(style);
+                }
+                
+                progressSteps.innerHTML = stepsHTML;
+                
+                // Auto-scroll to bottom
+                setTimeout(() => {
+                    const container = progressSteps.querySelector('div');
+                    if (container) {
+                        container.scrollTop = container.scrollHeight;
+                    }
+                }, 100);
             }
         }
 
@@ -751,9 +1107,9 @@ class B2E_Admin_Interface {
         function showMigrationReport(reportData) {
             const reportHtml = `
                 <div class="b2e-report-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; display: flex; align-items: center; justify-content: center;">
-                    <div class="b2e-report-modal" style="background: white; padding: 30px; border-radius: 8px; max-width: 600px; max-height: 80vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
-                        <h2 style="margin-top: 0; color: #333;">📊 Migration Report</h2>
-                        <div style="margin-bottom: 20px;">
+                    <div class="b2e-report-modal" style="background: var(--e-base); padding: var(--e-space-l); border-radius: var(--e-border-radius); max-width: 600px; max-height: 80vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.3); border: 1px solid var(--e-border-color);">
+                        <h2 style="margin-top: 0; color: var(--e-light);">📊 Migration Report</h2>
+                        <div style="margin-bottom: var(--e-space-l);">
                             <strong>Migration Status:</strong> ${reportData.status || 'Unknown'}<br>
                             <strong>Posts Migrated:</strong> ${reportData.posts_migrated || 0} / ${reportData.posts_available || 0}<br>
                             <strong>Pages Migrated:</strong> ${reportData.pages_migrated || 0} / ${reportData.pages_available || 0}<br>
@@ -764,8 +1120,8 @@ class B2E_Admin_Interface {
                             <strong>Report Time:</strong> ${reportData.migration_time || 'Unknown'}<br>
                             <strong>Log Entries:</strong> ${reportData.total_entries || 0}<br>
                         </div>
-                        ${reportData.details ? `<div style="margin-bottom: 20px;"><strong>Recent Activity:</strong><br><pre style="background: #f5f5f5; padding: 10px; border-radius: 4px; overflow-x: auto; white-space: pre-wrap;">${reportData.details}</pre></div>` : ''}
-                        <button onclick="this.closest('.b2e-report-overlay').remove()" style="background: #0073aa; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">Close Report</button>
+                        ${reportData.details ? `<div style="margin-bottom: var(--e-space-l);"><strong>Recent Activity:</strong><br><pre style="background: var(--e-base-dark); padding: var(--e-space-m); border-radius: var(--e-border-radius); overflow-x: auto; white-space: pre-wrap; border: 1px solid var(--e-border-color);">${reportData.details}</pre></div>` : ''}
+                        <button onclick="this.closest('.b2e-report-overlay').remove()" style="background: var(--e-primary); color: var(--e-base-dark); border: none; padding: var(--e-space-m) var(--e-space-l); border-radius: var(--e-border-radius); cursor: pointer;">Close Report</button>
                     </div>
                 </div>
             `;
@@ -790,26 +1146,29 @@ class B2E_Admin_Interface {
             // Add basic styles if CSS is not loaded
             toast.style.cssText = `
                 position: fixed;
-                bottom: 24px;
-                right: 24px;
-                background: #333;
-                color: white;
-                padding: 16px 24px;
+                bottom: 16px;
+                right: 16px;
+                background: #252525;
+                color: #e3e3e3;
+                padding: 16px;
                 border-radius: 6px;
                 z-index: 9999;
                 transform: translateX(400px);
                 transition: transform 0.3s ease;
                 font-family: Arial, sans-serif;
                 box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+                border: 1px solid #383838;
             `;
             
             if (type === 'success') {
-                toast.style.background = '#46b450';
+                toast.style.background = 'var(--e-primary)';
+                toast.style.color = 'var(--e-base-dark)';
             } else if (type === 'error') {
-                toast.style.background = '#f26060';
+                toast.style.background = 'var(--e-danger)';
+                toast.style.color = 'white';
             } else if (type === 'warning') {
-                toast.style.background = '#f2c960';
-                toast.style.color = '#333';
+                toast.style.background = 'var(--e-warning)';
+                toast.style.color = 'var(--e-base-dark)';
             }
             
             document.body.appendChild(toast);
@@ -909,7 +1268,7 @@ class B2E_Admin_Interface {
                             <label for="migration_key"><?php _e('Migration Key', 'bricks-etch-migration'); ?></label>
                         </th>
                         <td>
-                            <div style="display: flex; gap: 10px;">
+                            <div style="display: flex; gap: var(--e-space-m);">
                                 <input type="text" id="migration_key" name="migration_key" 
                                        value="<?php echo esc_attr($settings['migration_key'] ?? ''); ?>"
                                        placeholder="Paste your migration key here..."
@@ -938,6 +1297,18 @@ class B2E_Admin_Interface {
                     </tr>
                 </table>
                 
+                <!-- CPT Mapping Section -->
+                <div id="cpt-mapping-section" style="margin-top: 30px; padding: 20px; background: var(--e-highlight-light); border-radius: var(--e-border-radius); border-left: 4px solid var(--e-primary);">
+                    <h3 style="margin-top: 0;">🔄 <?php _e('Custom Post Type Mapping', 'bricks-etch-migration'); ?></h3>
+                    <p><?php _e('Map your Bricks post types to Etch post types. Bricks templates will be converted to pages by default.', 'bricks-etch-migration'); ?></p>
+                    
+                    <div id="cpt-mapping-list">
+                        <p style="color: var(--e-base-light); font-style: italic;">
+                            <?php _e('Validate the migration key first to see available post types...', 'bricks-etch-migration'); ?>
+                        </p>
+                    </div>
+                </div>
+                
                 <div style="margin-top: 20px;">
                     <button type="button" id="validate-migration-key" class="b2e-button">
                         🔗 <?php _e('Validate Key', 'bricks-etch-migration'); ?>
@@ -952,13 +1323,13 @@ class B2E_Admin_Interface {
                 </div>
                 
                 <!-- Migration Progress Section -->
-                <div id="migration-progress" style="margin-top: 30px; display: none;">
+                <div id="migration-progress" style="margin-top: var(--e-space-l); display: none;">
                     <h3>📊 <?php _e('Migration Progress', 'bricks-etch-migration'); ?></h3>
-                    <div style="background: #f0f0f1; border-radius: 8px; padding: 20px; margin-top: 15px;">
-                        <div style="margin-bottom: 10px;">
+                    <div style="background: var(--e-base-dark); border-radius: var(--e-border-radius); padding: var(--e-space-l); margin-top: var(--e-space-m); border: 1px solid var(--e-border-color);">
+                        <div style="margin-bottom: var(--e-space-m);">
                             <strong id="progress-text"><?php _e('Initializing...', 'bricks-etch-migration'); ?></strong>
                         </div>
-                        <div style="background: #fff; border-radius: 4px; height: 30px; overflow: hidden; border: 1px solid #ddd;">
+                        <div style="background: var(--e-base-ultra-light); border-radius: var(--e-border-radius); height: 30px; overflow: hidden; border: 1px solid var(--e-border-color);">
                             <div id="progress-bar" style="background: linear-gradient(90deg, #0073aa, #00a0d2); height: 100%; width: 0%; transition: width 0.3s ease; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 12px;">
                                 <span id="progress-percentage">0%</span>
                             </div>
@@ -971,7 +1342,7 @@ class B2E_Admin_Interface {
             </div>
             
             <!-- Step 2: Instructions -->
-            <div style="background: var(--e-highlight-light);border-radius:var(--e-border-radius);border-left: 10px solid var(--e-warning);padding: var(--e-space-l);margin: 20px 0;">
+            <div style="background: var(--e-highlight-light); border-radius: var(--e-border-radius); border-left: 10px solid var(--e-warning); padding: var(--e-space-l); margin: var(--e-space-l) 0;">
                 <h3>
                     📋 <?php _e('How to Get Your Migration Key', 'bricks-etch-migration'); ?>
                 </h3>
@@ -1066,10 +1437,8 @@ class B2E_Admin_Interface {
             return;
         }
         
-        // Convert localhost:8081 to b2e-etch for Docker internal communication
-        if (strpos($target_url, 'localhost:8081') !== false) {
-            $target_url = str_replace('localhost:8081', 'b2e-etch', $target_url);
-        }
+        // Convert localhost URLs for Docker internal communication (only if both are localhost)
+        $target_url = $this->convert_localhost_for_docker($target_url);
         
         // Validate API key via API client
         $api_client = new B2E_API_Client();
@@ -1102,10 +1471,8 @@ class B2E_Admin_Interface {
             return;
         }
         
-        // Convert localhost:8081 to b2e-etch for Docker internal communication
-        if (strpos($target_url, 'localhost:8081') !== false) {
-            $target_url = str_replace('localhost:8081', 'b2e-etch', $target_url);
-        }
+        // Convert localhost URLs for Docker internal communication (only if both are localhost)
+        $target_url = $this->convert_localhost_for_docker($target_url);
         
         // Validate migration token on target site
         $api_client = new B2E_API_Client();
@@ -1276,26 +1643,29 @@ class B2E_Admin_Interface {
             // Add basic styles if CSS is not loaded
             toast.style.cssText = `
                 position: fixed;
-                bottom: 24px;
-                right: 24px;
-                background: #333;
-                color: white;
-                padding: 16px 24px;
+                bottom: 16px;
+                right: 16px;
+                background: #252525;
+                color: #e3e3e3;
+                padding: 16px;
                 border-radius: 6px;
                 z-index: 9999;
                 transform: translateX(400px);
                 transition: transform 0.3s ease;
                 font-family: Arial, sans-serif;
                 box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+                border: 1px solid #383838;
             `;
             
             if (type === 'success') {
-                toast.style.background = '#46b450';
+                toast.style.background = 'var(--e-primary)';
+                toast.style.color = 'var(--e-base-dark)';
             } else if (type === 'error') {
-                toast.style.background = '#f26060';
+                toast.style.background = 'var(--e-danger)';
+                toast.style.color = 'white';
             } else if (type === 'warning') {
-                toast.style.background = '#f2c960';
-                toast.style.color = '#333';
+                toast.style.background = 'var(--e-warning)';
+                toast.style.color = 'var(--e-base-dark)';
             }
             
             document.body.appendChild(toast);
@@ -1462,6 +1832,10 @@ class B2E_Admin_Interface {
      */
     public function ajax_start_migration() {
         error_log('B2E AJAX: Start migration called');
+        
+        // Increase timeout for large migrations
+        set_time_limit(300); // 5 minutes
+        ini_set('max_execution_time', '300');
         
         // Verify nonce using check_ajax_referer (doesn't consume nonce)
         if (!check_ajax_referer('b2e_nonce', 'nonce', false)) {
@@ -1653,5 +2027,442 @@ class B2E_Admin_Interface {
         wp_send_json_success(array(
             'message' => 'Settings saved successfully!'
         ));
+    }
+    
+    /**
+     * AJAX handler for batch migration (one post at a time)
+     */
+    public function ajax_migrate_batch() {
+        // Verify nonce
+        if (!check_ajax_referer('b2e_nonce', 'nonce', false)) {
+            wp_send_json_error('Invalid nonce');
+            return;
+        }
+        
+        // Get parameters
+        $post_id = intval($_POST['post_id'] ?? 0);
+        $target_url = sanitize_url($_POST['target_url'] ?? '');
+        $api_key = sanitize_text_field($_POST['api_key'] ?? '');
+        $cpt_mapping_json = $_POST['cpt_mapping'] ?? '{}';
+        
+        if (empty($post_id) || empty($target_url) || empty($api_key)) {
+            wp_send_json_error('Missing required parameters');
+            return;
+        }
+        
+        // Parse CPT mapping
+        $cpt_mapping = json_decode($cpt_mapping_json, true);
+        if (!is_array($cpt_mapping)) {
+            $cpt_mapping = array();
+        }
+        
+        // Get the post
+        $post = get_post($post_id);
+        if (!$post) {
+            wp_send_json_error('Post not found');
+            return;
+        }
+        
+        // Apply CPT mapping if needed
+        if (isset($cpt_mapping[$post->post_type])) {
+            $original_type = $post->post_type;
+            $post->post_type = $cpt_mapping[$original_type];
+            // Store original type for logging
+            $post->_original_post_type = $original_type;
+        }
+        
+        // Check if post has Bricks content
+        $bricks_content = get_post_meta($post_id, '_bricks_page_content_2', true);
+        if (empty($bricks_content)) {
+            wp_send_json_success(array(
+                'message' => 'Post skipped (no Bricks content)',
+                'skipped' => true
+            ));
+            return;
+        }
+        
+        // Migrate this single post
+        try {
+            // Convert localhost URLs for Docker internal communication (only if both are localhost)
+            $internal_url = $this->convert_localhost_for_docker($target_url);
+            
+            // Save settings temporarily with internal URL
+            update_option('b2e_settings', array(
+                'target_url' => $internal_url,
+                'api_key' => $api_key
+            ), false);
+            
+            $migration_manager = new B2E_Migration_Manager();
+            $result = $migration_manager->migrate_single_post($post);
+            
+            if (is_wp_error($result)) {
+                wp_send_json_error($result->get_error_message());
+            } else {
+                wp_send_json_success(array(
+                    'message' => 'Post migrated successfully',
+                    'post_title' => $post->post_title
+                ));
+            }
+        } catch (Exception $e) {
+            wp_send_json_error('Exception: ' . $e->getMessage());
+        }
+    }
+    
+    /**
+     * AJAX handler to get list of Bricks posts
+     */
+    public function ajax_get_bricks_posts() {
+        // Verify nonce
+        if (!check_ajax_referer('b2e_nonce', 'nonce', false)) {
+            wp_send_json_error('Invalid nonce');
+            return;
+        }
+        
+        // Get all posts AND pages with Bricks content
+        $all_posts = array();
+        
+        // Get pages
+        $pages = get_posts(array(
+            'post_type' => 'page',
+            'post_status' => 'publish',
+            'numberposts' => -1,
+            'meta_key' => '_bricks_page_content_2',
+        ));
+        
+        // Get posts
+        $posts = get_posts(array(
+            'post_type' => 'post',
+            'post_status' => 'publish',
+            'numberposts' => -1,
+            'meta_key' => '_bricks_page_content_2',
+        ));
+        
+        // Merge and verify they actually have Bricks content
+        $all_posts = array_merge($pages, $posts);
+        $posts_data = array();
+        
+        foreach ($all_posts as $post) {
+            // Double-check that it has Bricks content
+            $bricks_content = get_post_meta($post->ID, '_bricks_page_content_2', true);
+            if (!empty($bricks_content) && is_array($bricks_content)) {
+                $posts_data[] = array(
+                    'id' => $post->ID,
+                    'title' => $post->post_title,
+                    'type' => $post->post_type,
+                );
+            }
+        }
+        
+        wp_send_json_success(array(
+            'posts' => $posts_data,
+            'count' => count($posts_data)
+        ));
+    }
+    
+    /**
+     * AJAX handler to migrate CSS
+     */
+    public function ajax_migrate_css() {
+        // Verify nonce
+        if (!check_ajax_referer('b2e_nonce', 'nonce', false)) {
+            wp_send_json_error('Invalid nonce');
+            return;
+        }
+        
+        // Get parameters
+        $target_url = sanitize_url($_POST['target_url'] ?? '');
+        $api_key = sanitize_text_field($_POST['api_key'] ?? '');
+        
+        if (empty($target_url) || empty($api_key)) {
+            wp_send_json_error('Missing required parameters');
+            return;
+        }
+        
+        // Convert localhost URLs for Docker internal communication (only if both are localhost)
+        $internal_url = $this->convert_localhost_for_docker($target_url);
+        
+        // Save settings temporarily with internal URL
+        update_option('b2e_settings', array(
+            'target_url' => $internal_url,
+            'api_key' => $api_key
+        ), false);
+        
+        // Migrate CSS
+        try {
+            // Step 1: Convert Bricks classes to Etch styles
+            $css_converter = new B2E_CSS_Converter();
+            $etch_styles = $css_converter->convert_bricks_classes_to_etch();
+            
+            if (is_wp_error($etch_styles)) {
+                wp_send_json_error($etch_styles->get_error_message());
+                return;
+            }
+            
+            // Step 2: Send styles to Etch via API
+            $api_client = new B2E_API_Client();
+            $result = $api_client->send_css_styles($internal_url, $api_key, $etch_styles);
+            
+            if (is_wp_error($result)) {
+                wp_send_json_error('Failed to send styles to Etch: ' . $result->get_error_message());
+                return;
+            }
+            
+            wp_send_json_success(array(
+                'message' => 'CSS migrated successfully',
+                'styles_count' => count($etch_styles)
+            ));
+        } catch (Exception $e) {
+            wp_send_json_error('Exception: ' . $e->getMessage());
+        }
+    }
+    
+    /**
+     * AJAX handler to migrate Custom Post Types
+     */
+    public function ajax_migrate_cpts() {
+        // Verify nonce
+        if (!check_ajax_referer('b2e_nonce', 'nonce', false)) {
+            wp_send_json_error('Invalid nonce');
+            return;
+        }
+        
+        // Get parameters
+        $target_url = sanitize_url($_POST['target_url'] ?? '');
+        $api_key = sanitize_text_field($_POST['api_key'] ?? '');
+        
+        if (empty($target_url) || empty($api_key)) {
+            wp_send_json_error('Missing required parameters');
+            return;
+        }
+        
+        // Convert localhost URLs for Docker internal communication (only if both are localhost)
+        $internal_url = $this->convert_localhost_for_docker($target_url);
+        
+        // Migrate CPTs
+        try {
+            $cpt_migrator = new B2E_CPT_Migrator();
+            
+            // Export CPTs from Bricks
+            $cpts_data = $cpt_migrator->export_custom_post_types();
+            
+            if (empty($cpts_data)) {
+                wp_send_json_success(array(
+                    'message' => 'No custom post types to migrate',
+                    'cpts_count' => 0
+                ));
+                return;
+            }
+            
+            // Send to Etch via API
+            $api_service = B2E_API_Service::get_instance();
+            $api_service->init($internal_url, $api_key);
+            $result = $api_service->send_cpts($cpts_data);
+            
+            if (is_wp_error($result)) {
+                wp_send_json_error('Failed to send CPTs to Etch: ' . $result->get_error_message());
+                return;
+            }
+            
+            wp_send_json_success(array(
+                'message' => 'Custom Post Types migrated successfully',
+                'cpts_count' => count($cpts_data)
+            ));
+            
+        } catch (Exception $e) {
+            wp_send_json_error('Exception: ' . $e->getMessage());
+        }
+    }
+    
+    /**
+     * AJAX handler to migrate media files
+     */
+    public function ajax_migrate_media() {
+        // Verify nonce
+        if (!check_ajax_referer('b2e_nonce', 'nonce', false)) {
+            wp_send_json_error('Invalid nonce');
+            return;
+        }
+        
+        // Get parameters
+        $target_url = sanitize_url($_POST['target_url'] ?? '');
+        $api_key = sanitize_text_field($_POST['api_key'] ?? '');
+        
+        if (empty($target_url) || empty($api_key)) {
+            wp_send_json_error('Missing required parameters');
+            return;
+        }
+        
+        // Convert localhost URLs for Docker internal communication (only if both are localhost)
+        $internal_url = $this->convert_localhost_for_docker($target_url);
+        
+        // Save settings temporarily with internal URL
+        update_option('b2e_settings', array(
+            'target_url' => $internal_url,
+            'api_key' => $api_key
+        ), false);
+        
+        // Migrate media
+        try {
+            $media_migrator = new B2E_Media_Migrator();
+            $result = $media_migrator->migrate_media($internal_url, $api_key);
+            
+            if (is_wp_error($result)) {
+                wp_send_json_error($result->get_error_message());
+            } else {
+                wp_send_json_success(array(
+                    'message' => 'Media migrated successfully',
+                    'migrated' => $result['migrated'] ?? 0,
+                    'failed' => $result['failed'] ?? 0,
+                    'skipped' => $result['skipped'] ?? 0,
+                    'total' => $result['total'] ?? 0
+                ));
+            }
+        } catch (Exception $e) {
+            wp_send_json_error('Exception: ' . $e->getMessage());
+        }
+    }
+    
+    /**
+     * AJAX handler to cleanup Etch (delete all posts, pages, styles)
+     */
+    public function ajax_cleanup_etch() {
+        // Verify nonce
+        if (!check_ajax_referer('b2e_nonce', 'nonce', false)) {
+            wp_send_json_error('Invalid nonce');
+            return;
+        }
+        
+        // Get parameters
+        $target_url = sanitize_url($_POST['target_url'] ?? '');
+        $api_key = sanitize_text_field($_POST['api_key'] ?? '');
+        
+        if (empty($target_url) || empty($api_key)) {
+            wp_send_json_error('Missing required parameters');
+            return;
+        }
+        
+        try {
+            // Build cleanup commands
+            $commands = array(
+                // Delete all posts and pages
+                'wp post delete $(wp post list --post_type=post,page,attachment --format=ids) --force',
+                // Delete etch_styles
+                'wp option delete etch_styles',
+                // Clear cache
+                'wp cache flush',
+                // Clear transients
+                'wp transient delete --all'
+            );
+            
+            $results = array();
+            
+            foreach ($commands as $command) {
+                // Send command via API (you'll need to implement this endpoint on Etch side)
+                // For now, we'll return the commands
+                $results[] = $command;
+            }
+            
+            wp_send_json_success(array(
+                'message' => 'Cleanup commands prepared',
+                'commands' => $results,
+                'note' => 'Run these commands on Etch server via WP-CLI'
+            ));
+            
+        } catch (Exception $e) {
+            wp_send_json_error('Exception: ' . $e->getMessage());
+        }
+    }
+    
+    /**
+     * AJAX handler to get Bricks CPTs
+     */
+    public function ajax_get_bricks_cpts() {
+        check_ajax_referer('b2e_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Insufficient permissions');
+            return;
+        }
+        
+        // Get all custom post types
+        $cpts = get_post_types(array('_builtin' => false), 'objects');
+        $cpt_list = array();
+        
+        // Exclude Bricks-specific CPTs that shouldn't be migrated
+        $excluded_cpts = array(
+            'bricks_fonts'       // Bricks custom fonts (Etch has own font system)
+        );
+        
+        foreach ($cpts as $cpt) {
+            // Skip excluded CPTs
+            if (in_array($cpt->name, $excluded_cpts)) {
+                continue;
+            }
+            
+            $count = wp_count_posts($cpt->name);
+            $cpt_list[] = array(
+                'name' => $cpt->name,
+                'label' => $cpt->label,
+                'count' => $count->publish
+            );
+        }
+        
+        wp_send_json_success($cpt_list);
+    }
+    
+    /**
+     * AJAX handler to get Etch CPTs
+     */
+    public function ajax_get_etch_cpts() {
+        check_ajax_referer('b2e_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Insufficient permissions');
+            return;
+        }
+        
+        $target_url = sanitize_url($_POST['target_url'] ?? '');
+        $api_key = sanitize_text_field($_POST['api_key'] ?? '');
+        
+        if (empty($target_url) || empty($api_key)) {
+            wp_send_json_error('Missing required parameters');
+            return;
+        }
+        
+        // Convert localhost URLs for Docker
+        $internal_url = $this->convert_localhost_for_docker($target_url);
+        
+        // Get CPTs from Etch via API
+        $api_service = B2E_API_Service::get_instance();
+        $api_service->init($internal_url, $api_key);
+        $result = $api_service->get_cpts();
+        
+        if (is_wp_error($result)) {
+            wp_send_json_error($result->get_error_message());
+            return;
+        }
+        
+        wp_send_json_success($result);
+    }
+    
+    /**
+     * Convert localhost URLs for Docker internal communication
+     * Only converts if BOTH source and target are localhost (Docker environment)
+     */
+    private function convert_localhost_for_docker($target_url) {
+        // Check if we're in a Docker/localhost environment
+        $current_host = $_SERVER['HTTP_HOST'] ?? '';
+        $is_source_localhost = (strpos($current_host, 'localhost') !== false || strpos($current_host, '127.0.0.1') !== false);
+        $is_target_localhost = (strpos($target_url, 'localhost') !== false || strpos($target_url, '127.0.0.1') !== false);
+        
+        // Only convert if BOTH are localhost (Docker environment)
+        if ($is_source_localhost && $is_target_localhost) {
+            // Convert localhost:8081 to b2e-etch for Docker internal communication
+            if (strpos($target_url, 'localhost:8081') !== false) {
+                $target_url = str_replace('localhost:8081', 'b2e-etch', $target_url);
+            }
+        }
+        
+        return $target_url;
     }
 }

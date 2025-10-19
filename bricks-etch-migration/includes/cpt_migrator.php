@@ -238,8 +238,9 @@ class B2E_CPT_Migrator {
             return true; // No CPTs to migrate
         }
         
-        $api_client = new B2E_API_Client();
-        $result = $api_client->send_custom_post_types($target_url, $api_key, $cpts);
+        $api_service = B2E_API_Service::get_instance();
+        $api_service->init($target_url, $api_key);
+        $result = $api_service->send_cpts($cpts);
         
         if (is_wp_error($result)) {
             return $result;

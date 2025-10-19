@@ -32,6 +32,7 @@ class B2E_CSS_Converter {
     public function convert_bricks_classes_to_etch() {
         $bricks_classes = get_option('bricks_global_classes', array());
         $etch_styles = array();
+        $style_map = array(); // Maps Bricks ID => Etch Style ID
         
         // Add Etch element styles (readonly)
         $etch_styles = array_merge($etch_styles, $this->get_etch_element_styles());
@@ -75,14 +76,43 @@ class B2E_CSS_Converter {
                 $hash_base = !empty($class['name']) ? $class['name'] : $class['id'];
                 $style_id = $this->generate_style_hash($hash_base);
                 $etch_styles[$style_id] = $converted_class;
+                
+                // Map Bricks ID to Etch Style ID
+                if (!empty($class['id'])) {
+                    $style_map[$class['id']] = $style_id;
+                }
             }
         }
         
-        // Step 3: Parse custom CSS stylesheet and extract all rules
+        // Step 3: Parse custom CSS stylesheet and merge with existing styles
         if (!empty($custom_css_stylesheet)) {
             $custom_styles = $this->parse_custom_css_stylesheet($custom_css_stylesheet);
-            $etch_styles = array_merge($etch_styles, $custom_styles);
+            
+            // Merge custom CSS with existing styles (combine CSS for same selector)
+            foreach ($custom_styles as $style_id => $custom_style) {
+                if (isset($etch_styles[$style_id])) {
+                    // Combine CSS for same selector
+                    $existing_css = trim($etch_styles[$style_id]['css']);
+                    $custom_css = trim($custom_style['css']);
+                    
+                    // Convert custom CSS to logical properties
+                    $custom_css = $this->convert_to_logical_properties($custom_css);
+                    
+                    if (!empty($existing_css) && !empty($custom_css)) {
+                        $etch_styles[$style_id]['css'] = $existing_css . "\n  " . $custom_css;
+                    } elseif (!empty($custom_css)) {
+                        $etch_styles[$style_id]['css'] = $custom_css;
+                    }
+                } else {
+                    // New style from custom CSS - convert to logical properties
+                    $custom_style['css'] = $this->convert_to_logical_properties($custom_style['css']);
+                    $etch_styles[$style_id] = $custom_style;
+                }
+            }
         }
+        
+        // Save style map for use during content migration
+        update_option('b2e_style_map', $style_map);
         
         return $etch_styles;
     }
@@ -562,12 +592,34 @@ class B2E_CSS_Converter {
             $css[] = 'grid-template-rows: ' . $settings['_gridTemplateRows'] . ';';
         }
         
+        // Grid gap (shorthand)
+        if (!empty($settings['_gridGap'])) {
+            $css[] = 'gap: ' . $settings['_gridGap'] . ';';
+        }
+        
         if (!empty($settings['_gridColumnGap'])) {
             $css[] = 'column-gap: ' . $settings['_gridColumnGap'] . ';';
         }
         
         if (!empty($settings['_gridRowGap'])) {
             $css[] = 'row-gap: ' . $settings['_gridRowGap'] . ';';
+        }
+        
+        // Grid alignment
+        if (!empty($settings['_justifyContentGrid'])) {
+            $css[] = 'justify-content: ' . $settings['_justifyContentGrid'] . ';';
+        }
+        
+        if (!empty($settings['_alignItemsGrid'])) {
+            $css[] = 'align-items: ' . $settings['_alignItemsGrid'] . ';';
+        }
+        
+        if (!empty($settings['_justifyItemsGrid'])) {
+            $css[] = 'justify-items: ' . $settings['_justifyItemsGrid'] . ';';
+        }
+        
+        if (!empty($settings['_alignContentGrid'])) {
+            $css[] = 'align-content: ' . $settings['_alignContentGrid'] . ';';
         }
         
         if (!empty($settings['_gridAutoFlow'])) {
@@ -603,33 +655,34 @@ class B2E_CSS_Converter {
     }
     
     /**
-     * Convert sizing properties
+     * Convert sizing properties to Logical Properties
      */
     private function convert_sizing($settings) {
         $css = array();
         
+        // Convert to logical properties
         if (!empty($settings['_width'])) {
-            $css[] = 'width: ' . $settings['_width'] . ';';
+            $css[] = 'inline-size: ' . $settings['_width'] . ';';
         }
         
         if (!empty($settings['_height'])) {
-            $css[] = 'height: ' . $settings['_height'] . ';';
+            $css[] = 'block-size: ' . $settings['_height'] . ';';
         }
         
         if (!empty($settings['_minWidth'])) {
-            $css[] = 'min-width: ' . $settings['_minWidth'] . ';';
+            $css[] = 'min-inline-size: ' . $settings['_minWidth'] . ';';
         }
         
         if (!empty($settings['_minHeight'])) {
-            $css[] = 'min-height: ' . $settings['_minHeight'] . ';';
+            $css[] = 'min-block-size: ' . $settings['_minHeight'] . ';';
         }
         
         if (!empty($settings['_maxWidth'])) {
-            $css[] = 'max-width: ' . $settings['_maxWidth'] . ';';
+            $css[] = 'max-inline-size: ' . $settings['_maxWidth'] . ';';
         }
         
         if (!empty($settings['_maxHeight'])) {
-            $css[] = 'max-height: ' . $settings['_maxHeight'] . ';';
+            $css[] = 'max-block-size: ' . $settings['_maxHeight'] . ';';
         }
         
         if (!empty($settings['_aspectRatio'])) {
@@ -640,50 +693,56 @@ class B2E_CSS_Converter {
     }
     
     /**
-     * Convert margin and padding (Bricks format)
+     * Convert margin and padding (Bricks format) to Logical Properties
      */
     private function convert_margin_padding($settings) {
         $css = array();
         
-        // Margin
+        // Margin - convert to logical properties
         if (!empty($settings['_margin'])) {
             $margin = $settings['_margin'];
             if (is_array($margin)) {
-                $values = array();
-                if (isset($margin['top'])) $values[] = $margin['top'];
-                if (isset($margin['right'])) $values[] = $margin['right'];
-                if (isset($margin['bottom'])) $values[] = $margin['bottom'];
-                if (isset($margin['left'])) $values[] = $margin['left'];
-                if (!empty($values)) {
-                    $css[] = 'margin: ' . implode(' ', $values) . ';';
-                }
+                // Individual sides using logical properties
+                if (isset($margin['top'])) $css[] = 'margin-block-start: ' . $margin['top'] . ';';
+                if (isset($margin['right'])) $css[] = 'margin-inline-end: ' . $margin['right'] . ';';
+                if (isset($margin['bottom'])) $css[] = 'margin-block-end: ' . $margin['bottom'] . ';';
+                if (isset($margin['left'])) $css[] = 'margin-inline-start: ' . $margin['left'] . ';';
             } else {
                 $css[] = 'margin: ' . $margin . ';';
             }
         }
         
-        // Padding
+        // Individual margin properties (e.g., _marginTop, _marginBottom)
+        if (isset($settings['_marginTop'])) $css[] = 'margin-block-start: ' . $settings['_marginTop'] . ';';
+        if (isset($settings['_marginRight'])) $css[] = 'margin-inline-end: ' . $settings['_marginRight'] . ';';
+        if (isset($settings['_marginBottom'])) $css[] = 'margin-block-end: ' . $settings['_marginBottom'] . ';';
+        if (isset($settings['_marginLeft'])) $css[] = 'margin-inline-start: ' . $settings['_marginLeft'] . ';';
+        
+        // Padding - convert to logical properties
         if (!empty($settings['_padding'])) {
             $padding = $settings['_padding'];
             if (is_array($padding)) {
-                $values = array();
-                if (isset($padding['top'])) $values[] = $padding['top'];
-                if (isset($padding['right'])) $values[] = $padding['right'];
-                if (isset($padding['bottom'])) $values[] = $padding['bottom'];
-                if (isset($padding['left'])) $values[] = $padding['left'];
-                if (!empty($values)) {
-                    $css[] = 'padding: ' . implode(' ', $values) . ';';
-                }
+                // Individual sides using logical properties
+                if (isset($padding['top'])) $css[] = 'padding-block-start: ' . $padding['top'] . ';';
+                if (isset($padding['right'])) $css[] = 'padding-inline-end: ' . $padding['right'] . ';';
+                if (isset($padding['bottom'])) $css[] = 'padding-block-end: ' . $padding['bottom'] . ';';
+                if (isset($padding['left'])) $css[] = 'padding-inline-start: ' . $padding['left'] . ';';
             } else {
                 $css[] = 'padding: ' . $padding . ';';
             }
         }
         
+        // Individual padding properties
+        if (isset($settings['_paddingTop'])) $css[] = 'padding-block-start: ' . $settings['_paddingTop'] . ';';
+        if (isset($settings['_paddingRight'])) $css[] = 'padding-inline-end: ' . $settings['_paddingRight'] . ';';
+        if (isset($settings['_paddingBottom'])) $css[] = 'padding-block-end: ' . $settings['_paddingBottom'] . ';';
+        if (isset($settings['_paddingLeft'])) $css[] = 'padding-inline-start: ' . $settings['_paddingLeft'] . ';';
+        
         return $css;
     }
     
     /**
-     * Convert position properties
+     * Convert position properties to Logical Properties
      */
     private function convert_position($settings) {
         $css = array();
@@ -692,20 +751,22 @@ class B2E_CSS_Converter {
             $css[] = 'position: ' . $settings['_position'] . ';';
         }
         
-        if (!empty($settings['_top'])) {
-            $css[] = 'top: ' . $settings['_top'] . ';';
+        // Convert to logical properties (inset-*)
+        // Use isset() instead of !empty() to allow "0" values
+        if (isset($settings['_top']) && $settings['_top'] !== '') {
+            $css[] = 'inset-block-start: ' . $settings['_top'] . ';';
         }
         
-        if (!empty($settings['_right'])) {
-            $css[] = 'right: ' . $settings['_right'] . ';';
+        if (isset($settings['_right']) && $settings['_right'] !== '') {
+            $css[] = 'inset-inline-end: ' . $settings['_right'] . ';';
         }
         
-        if (!empty($settings['_bottom'])) {
-            $css[] = 'bottom: ' . $settings['_bottom'] . ';';
+        if (isset($settings['_bottom']) && $settings['_bottom'] !== '') {
+            $css[] = 'inset-block-end: ' . $settings['_bottom'] . ';';
         }
         
-        if (!empty($settings['_left'])) {
-            $css[] = 'left: ' . $settings['_left'] . ';';
+        if (isset($settings['_left']) && $settings['_left'] !== '') {
+            $css[] = 'inset-inline-start: ' . $settings['_left'] . ';';
         }
         
         return $css;
@@ -755,6 +816,50 @@ class B2E_CSS_Converter {
         
         if (!empty($settings['_isolation'])) {
             $css[] = 'isolation: ' . $settings['_isolation'] . ';';
+        }
+        
+        return $css;
+    }
+    
+    /**
+     * Convert physical properties to logical properties in CSS
+     */
+    private function convert_to_logical_properties($css) {
+        // Map of physical to logical properties
+        $property_map = array(
+            // Margin
+            'margin-top' => 'margin-block-start',
+            'margin-right' => 'margin-inline-end',
+            'margin-bottom' => 'margin-block-end',
+            'margin-left' => 'margin-inline-start',
+            // Padding
+            'padding-top' => 'padding-block-start',
+            'padding-right' => 'padding-inline-end',
+            'padding-bottom' => 'padding-block-end',
+            'padding-left' => 'padding-inline-start',
+            // Border
+            'border-top' => 'border-block-start',
+            'border-right' => 'border-inline-end',
+            'border-bottom' => 'border-block-end',
+            'border-left' => 'border-inline-start',
+            // Position
+            'top' => 'inset-block-start',
+            'right' => 'inset-inline-end',
+            'bottom' => 'inset-block-end',
+            'left' => 'inset-inline-start',
+            // Size
+            'width' => 'inline-size',
+            'height' => 'block-size',
+            'min-width' => 'min-inline-size',
+            'min-height' => 'min-block-size',
+            'max-width' => 'max-inline-size',
+            'max-height' => 'max-block-size',
+        );
+        
+        // Replace each physical property with logical equivalent
+        foreach ($property_map as $physical => $logical) {
+            // Match property with colon and optional whitespace
+            $css = preg_replace('/\b' . preg_quote($physical, '/') . '\s*:/i', $logical . ':', $css);
         }
         
         return $css;
@@ -839,8 +944,7 @@ class B2E_CSS_Converter {
     }
     
     /**
-     * Parse custom CSS stylesheet and extract all rules as separate styles
-     * This handles nested selectors, media queries, etc. by storing the raw CSS
+     * Parse custom CSS stylesheet and extract individual rules per selector
      */
     private function parse_custom_css_stylesheet($stylesheet) {
         $styles = array();
@@ -848,16 +952,59 @@ class B2E_CSS_Converter {
         // Remove comments
         $stylesheet = preg_replace('/\/\*.*?\*\//s', '', $stylesheet);
         
-        // For now, store the entire custom CSS as one "raw" style entry
-        // Etch will handle the parsing and rendering
-        if (!empty(trim($stylesheet))) {
-            $styles['custom-css-raw'] = array(
-                'type' => 'raw',
-                'selector' => '', // No wrapper selector
-                'collection' => 'default',
-                'css' => trim($stylesheet),
-                'readonly' => false,
-            );
+        // Simple regex to extract CSS rules: selector { properties }
+        // This handles basic selectors and nested rules
+        preg_match_all('/([^{]+)\{([^}]+)\}/s', $stylesheet, $matches, PREG_SET_ORDER);
+        
+        foreach ($matches as $match) {
+            $selector = trim($match[1]);
+            $css = trim($match[2]);
+            
+            if (empty($selector) || empty($css)) {
+                continue;
+            }
+            
+            // Extract class name from selector (e.g., ".my-class" or ".my-class > *")
+            // Use the base class for the hash
+            if (preg_match('/\.([a-zA-Z0-9_-]+)/', $selector, $class_match)) {
+                $class_name = $class_match[1];
+                $style_id = $this->generate_style_hash($class_name);
+                
+                // If this selector has child selectors (e.g., ".class > *"), store as raw CSS
+                if (strpos($selector, ' ') !== false || strpos($selector, '>') !== false) {
+                    // Complex selector - store the full rule
+                    $full_rule = $selector . ' { ' . $css . ' }';
+                    
+                    if (isset($styles[$style_id])) {
+                        // Append to existing style
+                        $styles[$style_id]['css'] .= "\n" . $full_rule;
+                    } else {
+                        // Create new style with the base selector
+                        $styles[$style_id] = array(
+                            'type' => 'class',
+                            'selector' => '.' . $class_name,
+                            'collection' => 'default',
+                            'css' => $full_rule,
+                            'readonly' => false,
+                        );
+                    }
+                } else {
+                    // Simple selector - store just the properties
+                    if (isset($styles[$style_id])) {
+                        // Append to existing style
+                        $styles[$style_id]['css'] .= "\n  " . $css;
+                    } else {
+                        // Create new style
+                        $styles[$style_id] = array(
+                            'type' => 'class',
+                            'selector' => $selector,
+                            'collection' => 'default',
+                            'css' => $css,
+                            'readonly' => false,
+                        );
+                    }
+                }
+            }
         }
         
         return $styles;
@@ -884,24 +1031,42 @@ class B2E_CSS_Converter {
         // Merge with new styles
         $merged_styles = array_merge($existing_styles, $etch_styles);
         
-        // Save to database
-        $result = update_option('etch_styles', $merged_styles);
-        
-        if (!$result) {
-            return new WP_Error('save_failed', 'Failed to save styles to database');
+        // Save via Etch API instead of direct DB access
+        // This ensures proper handling and triggers all Etch hooks
+        if (class_exists('Etch\RestApi\Routes\StylesRoutes')) {
+            try {
+                $routes = new \Etch\RestApi\Routes\StylesRoutes();
+                $request = new \WP_REST_Request('POST', '/etch-api/styles');
+                $request->set_body(json_encode($merged_styles, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+                
+                $response = $routes->update_styles($request);
+                
+                if (is_wp_error($response)) {
+                    return new WP_Error('api_failed', 'Etch API error: ' . $response->get_error_message());
+                }
+                
+                // API call successful - Etch handles cache invalidation internally
+                return true;
+                
+            } catch (Exception $e) {
+                return new WP_Error('api_exception', 'Exception calling Etch API: ' . $e->getMessage());
+            }
+        } else {
+            // Fallback to direct DB access if Etch API not available
+            $result = update_option('etch_styles', $merged_styles);
+            
+            if (!$result) {
+                return new WP_Error('save_failed', 'Failed to save styles to database');
+            }
+            
+            // Manual cache invalidation for fallback method
+            $current_version = get_option('etch_svg_version', 1);
+            update_option('etch_svg_version', $current_version + 1);
+            wp_cache_delete('etch_global_data', 'etch');
+            wp_cache_flush();
+            
+            return true;
         }
-        
-        // Increment Etch version to invalidate cache and force style reload
-        $current_version = get_option('etch_svg_version', 1);
-        update_option('etch_svg_version', $current_version + 1);
-        
-        // Clear WordPress object cache for Etch global data
-        wp_cache_delete('etch_global_data', 'etch');
-        
-        // Flush WordPress cache to ensure styles are reloaded
-        wp_cache_flush();
-        
-        return true;
     }
     
     /**

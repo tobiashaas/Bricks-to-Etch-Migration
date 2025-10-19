@@ -1,7 +1,7 @@
 === Bricks to Etch Migration ===
 Contributors: tobiashaas
-Tags: migration, bricks, etch, pagebuilder, automation
-Requires at least: 5.0
+Tags: migration, bricks, etch
+Requires at least: 6.0
 Tested up to: 6.4
 Requires PHP: 7.4
 Stable tag: 0.2.0

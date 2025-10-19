@@ -376,7 +376,7 @@ class B2E_Content_Parser {
     public function get_bricks_posts() {
         // Get migration settings (simplified)
         $settings = array(
-            'post_types' => array('post', 'page'),
+            'post_types' => array('post', 'page', 'bricks_template'), // Include Bricks templates
             'include_drafts' => false,
             'batch_size' => 10,
             'migrate_posts' => true,
@@ -399,6 +399,11 @@ class B2E_Content_Parser {
             if ($settings['migrate_cpts']) {
                 // Get all custom post types
                 $custom_post_types = get_post_types(array('_builtin' => false), 'names');
+                
+                // Exclude Bricks-specific CPTs that shouldn't be migrated
+                $excluded_cpts = array('bricks_fonts');
+                $custom_post_types = array_diff($custom_post_types, $excluded_cpts);
+                
                 $post_types = array_merge($post_types, $custom_post_types);
             }
         }
@@ -464,14 +469,20 @@ class B2E_Content_Parser {
         
         $etch_content = array();
         
-        // Handle Bricks elements structure
-        if (isset($bricks_content['elements']) && is_array($bricks_content['elements'])) {
-            foreach ($bricks_content['elements'] as $element) {
-                $converted_element = $this->convert_bricks_element($element);
-                
-                if ($converted_element) {
-                    $etch_content[] = $converted_element;
-                }
+        // Handle both formats:
+        // 1. Direct array of elements (from _bricks_page_content_2)
+        // 2. Nested structure with ['elements'] key
+        $elements = isset($bricks_content['elements']) ? $bricks_content['elements'] : $bricks_content;
+        
+        foreach ($elements as $element) {
+            if (!is_array($element)) {
+                continue;
+            }
+            
+            $converted_element = $this->convert_bricks_element($element);
+            
+            if ($converted_element) {
+                $etch_content[] = $converted_element;
             }
         }
         

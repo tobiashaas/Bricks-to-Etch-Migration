@@ -38,9 +38,9 @@ class B2E_Migration_Manager {
     private $gutenberg_generator;
     
     /**
-     * API client instance
+     * API service instance
      */
-    private $api_client;
+    private $api_service;
     
     /**
      * Transfer manager instance
@@ -56,7 +56,7 @@ class B2E_Migration_Manager {
         $this->content_parser = new B2E_Content_Parser();
         $this->css_converter = new B2E_CSS_Converter();
         $this->gutenberg_generator = new B2E_Gutenberg_Generator();
-        $this->api_client = new B2E_API_Client();
+        $this->api_service = B2E_API_Service::get_instance();
         // Transfer manager will be implemented later
         // $this->transfer_manager = new B2E_Transfer_Manager();
     }
@@ -365,8 +365,8 @@ class B2E_Migration_Manager {
                 );
                 
                 // Send to target site via API
-                $api_client = new B2E_API_Client();
-                $result = $api_client->send_media_data($target_url, $api_key, $media_data);
+                $this->api_service->init($target_url, $api_key);
+                $result = $this->api_service->send_media($media_data);
                 
                 if (is_wp_error($result)) {
                     $failed_count++;
@@ -433,7 +433,8 @@ class B2E_Migration_Manager {
         }
         
         // Send CSS styles to target site via API
-        $result = $this->api_client->send_css_styles($target_url, $api_key, $etch_styles);
+        $this->api_service->init($target_url, $api_key);
+        $result = $this->api_service->send_css($etch_styles);
         
         if (is_wp_error($result)) {
             $this->error_handler->log_error('E106', array(
@@ -499,8 +500,11 @@ class B2E_Migration_Manager {
             // Even if content is empty, we want the structure migrated
             
             // Send to target site via API
-            $api_client = new B2E_API_Client();
-            $result = $api_client->send_post($target_url, $api_key, $post, $etch_content);
+            $this->api_service->init($target_url, $api_key);
+            $result = $this->api_service->send_post(array(
+                'post' => $post,
+                'etch_content' => $etch_content
+            ));
             
             if (is_wp_error($result)) {
                 $this->error_handler->log_error('E105', array(
@@ -706,6 +710,28 @@ class B2E_Migration_Manager {
             $this->update_progress('error', 0, $e->getMessage());
             
             return new WP_Error('import_failed', $e->getMessage());
+        }
+    }
+    
+    /**
+     * Migrate a single post (for batch processing)
+     */
+    public function migrate_single_post($post) {
+        try {
+            // 1. Convert content to Gutenberg (this also sends to Etch via API)
+            $gutenberg_result = $this->gutenberg_generator->convert_bricks_to_gutenberg($post);
+            
+            if (is_wp_error($gutenberg_result)) {
+                return $gutenberg_result;
+            }
+            
+            // 2. CSS is converted globally, not per-post
+            // So we don't need to do anything here
+            
+            return true;
+            
+        } catch (Exception $e) {
+            return new WP_Error('migration_failed', $e->getMessage());
         }
     }
 }
