@@ -135,9 +135,9 @@ bricks-etch-migration/
 
 ### Notizen
 
-- **Letzte Änderung**: 20. Oktober 2025, 00:00 Uhr
-- **Aktueller Stand**: 🟡 Kritischer Bug identifiziert - Selectors werden zu null
-- **Nächster Schritt**: Etch API debuggen und Selector-Bug fixen
+- **Letzte Änderung**: 20. Oktober 2025, 10:30 Uhr
+- **Aktueller Stand**: 🟡 className-Problem gelöst, Selector-Bug wird debuggt
+- **Nächster Schritt**: JSON-Encoding/Decoding testen, Selector-Bug fixen
 - **Zeitaufwand heute**: ~5 Stunden (Content Detection, API Fixes, Style Debugging, Logging)
 - **Durchgeführte Fixes**:
   - ✅ Debug-Logging in allen CSS-Migration-Komponenten hinzugefügt
@@ -167,18 +167,23 @@ bricks-etch-migration/
 - ✅ **Cache-Invalidierung** - etch_svg_version wird erhöht
 - ✅ **~2211 CSS Styles** migriert (inkl. Framework-Klassen)
 
-**⚠️ Aktuelles Problem (20.10.2025, 00:00):**
+**⚠️ Aktuelles Problem (20.10.2025, 10:30):**
 - ⚠️ **Selectors in etch_styles sind null** - CSS kann nicht gerendert werden
 - 🔍 **Symptome**: 
   - Posts werden migriert (6 Posts in Etch)
-  - Style-IDs sind im Content vorhanden
+  - Style-IDs sind im Content vorhanden (✅ in etchData.styles)
   - Styles sind in etch_styles gespeichert
   - ABER: selector Feld ist null statt ".klassenname"
   - Frontend rendert keine CSS-Styles
-- 💡 **Root Cause**:
+- 💡 **Root Cause 1 (✅ GELÖST)**: className statt etchData.styles
+  - **Entwickler-Info**: "Die klassen müssten mit ihrer Unique ID in block.attr.metadata.etchData.styles = [\"unique-Id-hier\", \"unique-ID-von-class-2\"]"
+  - ❌ FALSCH: `{"className": "hero-barcelona bg--ultra-dark"}`
+  - ✅ RICHTIG: `{"metadata": {"etchData": {"styles": ["7b5a2e3", "8ff1c7f"]}}}`
+  - Fix: Alle `className` und `attributes.class` entfernt
+- 💡 **Root Cause 2 (🔍 IN ARBEIT)**: Selectors werden zu null
   - CSS-Converter generiert Selectors korrekt
   - Etch API überschreibt/löscht Selectors beim Import
-  - Vermutlich Problem in StylesRoutes::update_styles()
+  - Vermutlich JSON-Encoding/Decoding Problem
 - 📝 **Details**: Siehe CSS-FRONTEND-RENDERING-STATUS.md
 
 **🔧 Durchgeführte Fixes (19-20.10.2025):**
@@ -203,7 +208,15 @@ bricks-etch-migration/
    - Findet Bricks-ID für Klassenname
    - Lookt Etch-ID in Style-Map auf
    - Fügt Etch-ID in etchData.styles ein
-7. ⚠️ **Problem**: Selectors werden zu null (Etch API Bug - wird debuggt)
+7. ✅ **className vs etchData.styles** - Entwickler-Info umgesetzt
+   - Vorher: Nutzte Gutenberg `className` → funktioniert nicht mit Etch
+   - Nachher: Nutzt `metadata.etchData.styles` mit Style-IDs → korrekt!
+   - Entfernt: `className` aus allen Block-Attributen
+   - Entfernt: `attributes.class` aus `etchData.attributes`
+8. ⚠️ **Problem**: Selectors werden zu null (Etch API Bug - wird debuggt)
+   - Logging hinzugefügt: BEFORE/AFTER API call
+   - JSON-Encoding/Decoding wird getestet
+   - Element-Styles behalten Selectors, User-Styles verlieren sie
 
 ### Erstellte Test-Tools (17.10.2025, 21:00-21:37)
 

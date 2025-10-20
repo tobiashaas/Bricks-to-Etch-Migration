@@ -1,7 +1,7 @@
 # CSS Frontend Rendering - Aktueller Stand
 
-**Datum:** 20. Oktober 2025, 00:00 Uhr  
-**Status:** ✅ GELÖST - CSS wird korrekt gerendert!
+**Datum:** 20. Oktober 2025, 10:30 Uhr  
+**Status:** 🟡 In Arbeit - className-Problem gelöst, Selector-Bug wird debuggt
 
 ---
 
@@ -27,6 +27,8 @@ CSS-Styles sollen im Frontend gerendert werden, nachdem Posts von Bricks zu Etch
 - ✅ Generiert neue Gutenberg-Blöcke
 - ✅ Fügt Style-IDs in `etchData.styles` Arrays ein
 - ✅ Klassennamen werden korrekt extrahiert (auch aus Strings)
+- ✅ **WICHTIG:** Nutzt `metadata.etchData.styles` statt `className` (Entwickler-Info)
+- ✅ Entfernt `className` und `attributes.class` aus Blöcken
 
 ### 4. CSS-Konvertierung
 - ✅ Bricks Global Classes werden konvertiert
@@ -38,21 +40,31 @@ CSS-Styles sollen im Frontend gerendert werden, nachdem Posts von Bricks zu Etch
 
 ## ❌ Das Problem
 
-### Lösung (20. Oktober 2025)
+### Symptom
+CSS-Styles werden **nicht im Frontend gerendert**, obwohl:
+- Posts migriert sind
+- Style-IDs im Content vorhanden sind
+- Styles in `etch_styles` gespeichert sind
 
-### Das Problem
-CSS-Styles wurden im Frontend nicht gerendert, weil:
-1. ❌ Style-IDs im Content stimmten nicht mit IDs in `etch_styles` überein
-2. ❌ Alte Funktion `extract_style_ids()` generierte MD5-Hashes statt Style-Map zu nutzen
-3. ❌ Style-Map wurde nicht korrekt zwischen CSS- und Content-Migration übertragen
+### Root Cause 1: className statt etchData.styles (✅ GELÖST)
+**Problem:** Klassen wurden über Gutenberg `className` hinzugefügt, nicht über `etchData.styles`!
 
-### Die Lösung
-1. ✅ CSS-Konvertierung generiert IDs mit `uniqid()` (wie Etch)
-2. ✅ Style-Map wird erstellt: `Bricks-ID` → `Etch-ID`
-3. ✅ Style-Map wird mit Styles an Etch API gesendet
-4. ✅ Style-Map wird auf Bricks-Seite gespeichert
-5. ✅ Content-Migration nutzt `get_element_style_ids()` mit Style-Map
-6. ✅ IDs im Content stimmen mit IDs in `etch_styles` überein
+**Entwickler-Info (20.10.2025):**
+> "Wie fügst die die klassen zu den blöcken hinzu? Wenn du das über den Gutenberg 'className' machst funktioniert das leider nicht.
+> Die klassen müssten mit ihrer Unique ID in block.attr.metadata.etchData.styles = ["unique-Id-hier", "unique-ID-von-class-2"]"
+
+**Lösung:**
+- ❌ NICHT: `{"className": "hero-barcelona bg--ultra-dark"}`
+- ✅ RICHTIG: `{"metadata": {"etchData": {"styles": ["7b5a2e3", "8ff1c7f"]}}}`
+
+### Root Cause 2: Selectors in etch_styles sind null (🔍 IN ARBEIT)
+**Die Selectors in `etch_styles` sind `null`!**
+
+```json
+{
+  "8f166f7": {
+    "type": "class",
+    "selector": null,  // ❌ Sollte ".klassenname" sein!
     "css": "...",
     "readonly": false
   }
@@ -75,7 +87,8 @@ Etch's `StylesRegister` kann die Styles nicht rendern, weil:
 2. **Content-Generierung:** ✅ Funktioniert (neue IDs bei jeder Migration)
 3. **Style-Map:** ✅ Wird erstellt und verwendet
 4. **CSS-Converter:** ✅ Generiert Selectors korrekt (`.klassenname`)
-5. **Etch API:** ❓ **Hier liegt das Problem!**
+5. **className vs etchData.styles:** ✅ **GELÖST** - Nutzt jetzt etchData.styles
+6. **Etch API:** ❓ **Hier liegt das Problem!**
 
 ### Der Bug
 
@@ -115,17 +128,24 @@ Mögliche Ursachen:
 
 ## 📝 Nächste Schritte
 
-### 1. Etch API Debug (PRIORITÄT 1)
-- [ ] Logging in `StylesRoutes::update_styles()` hinzufügen
+### 1. className-Problem (✅ GELÖST)
+- [x] Entwickler-Info erhalten über etchData.styles
+- [x] `className` aus allen Block-Attributen entfernt
+- [x] `attributes.class` aus `etchData.attributes` entfernt
+- [x] Nur noch `metadata.etchData.styles` mit Style-IDs verwendet
+
+### 2. Etch API Debug (PRIORITÄT 1)
+- [x] Logging hinzugefügt (BEFORE/AFTER API call)
+- [ ] JSON-Encoding/Decoding testen
 - [ ] Prüfen, was mit den Selectors passiert
 - [ ] Testen, ob direktes `update_option()` funktioniert (ohne API)
 
-### 2. Workaround testen
+### 3. Workaround testen
 - [ ] CSS-Migration ohne Etch API durchführen
 - [ ] Direkt `update_option('etch_styles', $styles)` verwenden
 - [ ] Prüfen, ob Selectors dann erhalten bleiben
 
-### 3. Alternative Ansätze
+### 4. Alternative Ansätze
 - [ ] Styles nach API-Call nochmal updaten (Selectors nachträglich setzen)
 - [ ] Eigene API-Route erstellen, die Selectors nicht überschreibt
 - [ ] Etch Plugin-Code patchen (falls nötig)
@@ -177,8 +197,9 @@ docker exec b2e-bricks tail -100 /var/www/html/wp-content/debug.log | grep "B2E:
 1. **Etch nutzt `uniqid()` für IDs**, nicht MD5-Hashes
 2. **Bricks nutzt `_cssClasses` als String**, nicht als Array
 3. **Style-IDs müssen im Content UND in etch_styles sein**
-4. **Etch API kann Daten verändern** - direktes `update_option()` ist sicherer
-5. **OpCache muss geleert werden** nach Code-Änderungen (Container-Restart)
+4. **Etch nutzt `metadata.etchData.styles`, NICHT `className`!** ⭐ WICHTIG!
+5. **Etch API kann Daten verändern** - direktes `update_option()` ist sicherer
+6. **OpCache muss geleert werden** nach Code-Änderungen (Container-Restart)
 
 ### Best Practices
 
@@ -192,13 +213,14 @@ docker exec b2e-bricks tail -100 /var/www/html/wp-content/debug.log | grep "B2E:
 
 ## 📊 Statistiken
 
-- **Debugging-Zeit:** ~6 Stunden
-- **Identifizierte Bugs:** 5
-  1. MD5 statt uniqid für IDs
-  2. _cssClasses als Array statt String behandelt
-  3. Style-Map wurde nicht verwendet
-  4. Selectors werden zu null (aktuell)
-  5. OpCache-Problem (gelöst)
+- **Debugging-Zeit:** ~8 Stunden
+- **Identifizierte Bugs:** 6
+  1. MD5 statt uniqid für IDs (✅ gelöst)
+  2. _cssClasses als Array statt String behandelt (✅ gelöst)
+  3. Style-Map wurde nicht verwendet (✅ gelöst)
+  4. className statt etchData.styles verwendet (✅ gelöst)
+  5. Selectors werden zu null (🔍 in Arbeit)
+  6. OpCache-Problem (✅ gelöst)
 - **Code-Änderungen:** 8 Dateien
 - **Tests durchgeführt:** ~30 Migrationen
 
@@ -217,5 +239,5 @@ docker exec b2e-bricks tail -100 /var/www/html/wp-content/debug.log | grep "B2E:
 
 ---
 
-**Letztes Update:** 20. Oktober 2025, 00:00 Uhr  
-**Nächster Schritt:** Etch API debuggen und Selector-Bug fixen
+**Letztes Update:** 20. Oktober 2025, 10:30 Uhr  
+**Nächster Schritt:** JSON-Encoding/Decoding testen, Selector-Bug fixen

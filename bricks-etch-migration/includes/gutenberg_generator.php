@@ -63,7 +63,9 @@ class B2E_Gutenberg_Generator {
             }
         }
         
-        // Convert each root element
+        // Generate HTML for each top-level element
+        $timestamp = date('Y-m-d H:i:s'); // Get current timestamp
+        $html = $timestamp . "\n"; // Add timestamp at the beginning
         foreach ($root_elements as $element) {
             $block_html = $this->convert_single_bricks_element($element, $element_map);
             if (!empty($block_html)) {
@@ -158,10 +160,8 @@ class B2E_Gutenberg_Generator {
             'data-etch-element' => 'section'
         );
         
-        // Add class to attributes if exists
-        if (!empty($classes)) {
-            $etch_attributes['class'] = implode(' ', $classes);
-        }
+        // NOTE: Do NOT add class names to etchData.attributes!
+        // Only use etchData.styles with style IDs
         
         // Get style IDs for this element
         $style_ids = $this->get_element_style_ids($element);
@@ -220,10 +220,8 @@ class B2E_Gutenberg_Generator {
             'data-etch-element' => 'container'
         );
         
-        // Add class to attributes if exists
-        if (!empty($classes)) {
-            $etch_attributes['class'] = implode(' ', $classes);
-        }
+        // NOTE: Do NOT add class names to etchData.attributes!
+        // Only use etchData.styles with style IDs
         
         // Get style IDs for this element
         $style_ids = $this->get_element_style_ids($element);
@@ -282,10 +280,8 @@ class B2E_Gutenberg_Generator {
             'data-etch-element' => 'flex-div'
         );
         
-        // Add class to attributes if exists
-        if (!empty($classes)) {
-            $etch_attributes['class'] = implode(' ', $classes);
-        }
+        // NOTE: Do NOT add class names to etchData.attributes!
+        // Only use etchData.styles with style IDs
         
         // Get style IDs for this element
         $style_ids = $this->get_element_style_ids($element);
@@ -356,18 +352,10 @@ class B2E_Gutenberg_Generator {
                 )
             );
             
-            if (!empty($classes)) {
-                $etch_data['attributes']['class'] = implode(' ', $classes);
-            }
-            
             $attrs['metadata'] = array(
                 'name' => $label ?: 'Text',
                 'etchData' => $etch_data
             );
-        }
-        
-        if (!empty($classes)) {
-            $attrs['className'] = implode(' ', $classes);
         }
         
         $attrs_json = !empty($attrs) ? ' ' . json_encode($attrs, JSON_UNESCAPED_UNICODE) : '';
@@ -416,18 +404,10 @@ class B2E_Gutenberg_Generator {
                 )
             );
             
-            if (!empty($classes)) {
-                $etch_data['attributes']['class'] = implode(' ', $classes);
-            }
-            
             $attrs['metadata'] = array(
                 'name' => $label ?: 'Heading',
                 'etchData' => $etch_data
             );
-        }
-        
-        if (!empty($classes)) {
-            $attrs['className'] = implode(' ', $classes);
         }
         
         // Add level attribute for heading
@@ -539,9 +519,7 @@ class B2E_Gutenberg_Generator {
                 )
             );
             
-            if (!empty($classes)) {
-                $attrs['className'] = implode(' ', $classes);
-            }
+            // NOTE: Do NOT set className! Only use etchData.styles
             
             $attrs_json = json_encode($attrs, JSON_UNESCAPED_UNICODE);
             
@@ -568,9 +546,7 @@ class B2E_Gutenberg_Generator {
                 )
             );
             
-            if (!empty($classes)) {
-                $attrs['className'] = implode(' ', $classes);
-            }
+            // NOTE: Do NOT set className! Only use etchData.styles
             
             $attrs_json = json_encode($attrs, JSON_UNESCAPED_UNICODE);
             
@@ -773,8 +749,8 @@ class B2E_Gutenberg_Generator {
         }
         
         // Add timestamp comment to verify new content is generated
-        $timestamp = '<!-- B2E Generated: ' . date('Y-m-d H:i:s') . ' -->';
-        error_log('B2E: Generating blocks at ' . date('Y-m-d H:i:s'));
+        $timestamp = '<!-- B2E Generated: ' . date('Y-m-d H:i:s') . ' | NO className | NO attributes.class -->';
+        error_log('B2E: Generating blocks at ' . date('Y-m-d H:i:s') . ' with NEW CODE (no className)');
         
         // Build element lookup map (id => element)
         $element_map = array();
@@ -793,6 +769,7 @@ class B2E_Gutenberg_Generator {
         
         // Generate blocks for top-level elements (recursively includes children)
         $gutenberg_blocks = array();
+        $gutenberg_blocks[] = $timestamp; // Add timestamp at the beginning
         foreach ($top_level_elements as $element) {
             $block_html = $this->generate_block_html($element, $element_map);
             if ($block_html) {
@@ -992,12 +969,10 @@ class B2E_Gutenberg_Generator {
         // Use custom label if available, otherwise use element type
         $element_name = !empty($element['label']) ? $element['label'] : ucfirst($element['etch_type']);
         
-        // Extract class for Gutenberg className
-        $class_name = !empty($etch_data['class']) ? $etch_data['class'] : '';
-        
-        // Keep class in etchData attributes for Etch to render
-        // Etch ignores the HTML class attribute and only uses etchData
+        // NOTE: Do NOT include class in etchData.attributes!
+        // Only use etchData.styles for styling
         $etch_data_attributes = $etch_data;
+        unset($etch_data_attributes['class']); // Remove class from attributes
         
         // Build etchData
         $etch_data_array = array(
@@ -1022,10 +997,7 @@ class B2E_Gutenberg_Generator {
             )
         );
         
-        // Add className for Gutenberg (extracted earlier to avoid duplication)
-        if (!empty($class_name)) {
-            $block_attrs['className'] = $class_name;
-        }
+        // NOTE: Do NOT set className! Only use etchData.styles
         
         // Add tagName for non-div elements (section, article, etc.)
         $html_tag = $this->get_html_tag($element['etch_type']);
@@ -1073,9 +1045,7 @@ class B2E_Gutenberg_Generator {
                 
                 // Build block attributes
                 $block_attrs = array('level' => intval(str_replace('h', '', $level)));
-                if (!empty($etch_data['class'])) {
-                    $block_attrs['className'] = $etch_data['class'];
-                }
+                // NOTE: Do NOT set className! Only use etchData.styles
                 
                 return sprintf(
                     '<!-- wp:heading %s -->',
@@ -1089,9 +1059,7 @@ class B2E_Gutenberg_Generator {
                 
                 // Build block attributes
                 $block_attrs = array();
-                if (!empty($etch_data['class'])) {
-                    $block_attrs['className'] = $etch_data['class'];
-                }
+                // NOTE: Do NOT set className! Only use etchData.styles
                 
                 $attrs_json = !empty($block_attrs) ? ' ' . json_encode($block_attrs, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : '';
                 
