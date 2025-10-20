@@ -742,25 +742,32 @@ class B2E_Migration_Manager {
             // Parse Bricks content (if exists)
             $bricks_content = $this->content_parser->parse_bricks_content($post->ID);
             
-            // Generate Etch Gutenberg blocks (or use existing content if no Bricks)
-            if ($bricks_content && isset($bricks_content['elements'])) {
+            // Check if this has Bricks content or is Gutenberg/Classic
+            $has_bricks = $bricks_content && isset($bricks_content['elements']);
+            
+            if ($has_bricks) {
+                // BRICKS CONTENT: Convert and use custom API
                 $etch_content = $this->gutenberg_generator->generate_gutenberg_blocks($bricks_content['elements']);
                 
                 // If conversion failed or produced empty content, use placeholder
                 if (empty($etch_content)) {
                     $etch_content = '<!-- wp:paragraph --><p>Content migrated from Bricks (conversion pending)</p><!-- /wp:paragraph -->';
                 }
+                
+                // Send to target site via custom API
+                $api_client = new B2E_API_Client();
+                $result = $api_client->send_post($target_url, $api_key, $post, $etch_content);
+                
+                if (is_wp_error($result)) {
+                    return $result;
+                }
             } else {
-                // No Bricks content - use existing post content
-                $etch_content = !empty($post->post_content) ? $post->post_content : '<!-- wp:paragraph --><p>Empty content</p><!-- /wp:paragraph -->';
-            }
-            
-            // Send to target site via API
-            $api_client = new B2E_API_Client();
-            $result = $api_client->send_post($target_url, $api_key, $post, $etch_content);
-            
-            if (is_wp_error($result)) {
-                return $result;
+                // GUTENBERG/CLASSIC CONTENT: Use WordPress REST API
+                $result = $this->migrate_gutenberg_post($post, $target_url, $api_key);
+                
+                if (is_wp_error($result)) {
+                    return $result;
+                }
             }
             
             return true;
@@ -768,5 +775,71 @@ class B2E_Migration_Manager {
         } catch (Exception $e) {
             return new WP_Error('migration_failed', $e->getMessage());
         }
+    }
+    
+    /**
+     * Migrate Gutenberg/Classic post via WordPress REST API
+     */
+    private function migrate_gutenberg_post($post, $target_url, $api_key) {
+        // Prepare post data for WordPress REST API
+        $post_data = array(
+            'title' => $post->post_title,
+            'content' => $post->post_content,
+            'status' => $post->post_status,
+            'slug' => $post->post_name,
+            'date' => $post->post_date,
+        );
+        
+        // Determine endpoint based on post type
+        $post_type_endpoint = $post->post_type === 'post' ? 'posts' : 'pages';
+        
+        // Check if post already exists by slug
+        $check_url = rtrim($target_url, '/') . '/wp-json/wp/v2/' . $post_type_endpoint . '?slug=' . urlencode($post->post_name);
+        
+        $check_response = wp_remote_get($check_url);
+        
+        if (!is_wp_error($check_response)) {
+            $existing_posts = json_decode(wp_remote_retrieve_body($check_response), true);
+            
+            if (!empty($existing_posts) && is_array($existing_posts)) {
+                // Update existing post
+                $existing_id = $existing_posts[0]['id'];
+                $api_url = rtrim($target_url, '/') . '/wp-json/wp/v2/' . $post_type_endpoint . '/' . $existing_id;
+            } else {
+                // Create new post
+                $api_url = rtrim($target_url, '/') . '/wp-json/wp/v2/' . $post_type_endpoint;
+            }
+        } else {
+            // If check fails, try to create
+            $api_url = rtrim($target_url, '/') . '/wp-json/wp/v2/' . $post_type_endpoint;
+        }
+        
+        // Send to WordPress REST API
+        // Note: This requires Application Password or other auth method
+        // For now, we'll use the API key as Basic Auth (needs to be configured on Etch side)
+        $response = wp_remote_post($api_url, array(
+            'headers' => array(
+                'Content-Type' => 'application/json',
+                'Authorization' => 'Basic ' . base64_encode('admin:' . $api_key),
+            ),
+            'body' => json_encode($post_data),
+            'timeout' => 30,
+        ));
+        
+        if (is_wp_error($response)) {
+            error_log('B2E: WordPress API error: ' . $response->get_error_message());
+            return $response;
+        }
+        
+        $response_code = wp_remote_retrieve_response_code($response);
+        $response_body = wp_remote_retrieve_body($response);
+        
+        if ($response_code < 200 || $response_code >= 300) {
+            error_log('B2E: WordPress API error (code ' . $response_code . '): ' . $response_body);
+            return new WP_Error('api_error', 'WordPress API error: ' . $response_body);
+        }
+        
+        error_log('B2E: Successfully migrated Gutenberg post: ' . $post->post_title);
+        return true;
     }
 }
