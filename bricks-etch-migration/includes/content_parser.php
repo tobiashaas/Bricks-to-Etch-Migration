@@ -372,30 +372,41 @@ class B2E_Content_Parser {
     
     /**
      * Get posts that have Bricks content
-     * These posts have _bricks_page_content_2 AND _bricks_editor_mode = 'bricks'
+     * These posts have _bricks_page_content_2
+     * Note: bricks_template posts don't have _bricks_editor_mode, so we only check for content
      */
     public function get_bricks_posts() {
         // Query for posts with Bricks meta data
-        // Use both meta fields for validation
+        // Only check for _bricks_page_content_2 (templates don't have _bricks_editor_mode)
         $args = array(
             'post_type' => 'any',
             'post_status' => array('publish', 'draft', 'pending', 'private'),
             'numberposts' => -1,
             'meta_query' => array(
-                'relation' => 'AND',
                 array(
                     'key' => '_bricks_page_content_2',
                     'compare' => 'EXISTS'
-                ),
-                array(
-                    'key' => '_bricks_editor_mode',
-                    'value' => 'bricks',
-                    'compare' => '='
                 )
             )
         );
         
-        return get_posts($args);
+        $posts = get_posts($args);
+        
+        // Filter out posts that explicitly use Gutenberg/Classic editor
+        // (have _bricks_editor_mode but it's NOT 'bricks')
+        $filtered_posts = array();
+        foreach ($posts as $post) {
+            $editor_mode = get_post_meta($post->ID, '_bricks_editor_mode', true);
+            
+            // Include if:
+            // 1. No editor mode set (like bricks_template) OR
+            // 2. Editor mode is 'bricks'
+            if (empty($editor_mode) || $editor_mode === 'bricks') {
+                $filtered_posts[] = $post;
+            }
+        }
+        
+        return $filtered_posts;
     }
     
     /**
