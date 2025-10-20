@@ -243,20 +243,30 @@ class B2E_API_Endpoints {
         // Check if Authorization header is present
         $auth_header = $request->get_header('Authorization');
         
+        error_log('B2E Auth Check - Authorization header: ' . ($auth_header ? 'present' : 'missing'));
+        
         if (!empty($auth_header) && strpos($auth_header, 'Basic ') === 0) {
             // Extract credentials from Basic Auth
             $credentials = base64_decode(substr($auth_header, 6));
             list($username, $password) = explode(':', $credentials, 2);
             
+            error_log('B2E Auth Check - Username: ' . $username);
+            error_log('B2E Auth Check - Password length: ' . strlen($password));
+            
             // Remove spaces from password (Application Passwords have spaces for readability)
             $password = str_replace(' ', '', $password);
+            
+            error_log('B2E Auth Check - Clean password length: ' . strlen($password));
             
             // Try to authenticate with Application Password
             $user = wp_authenticate_application_password(null, $username, $password);
             
+            error_log('B2E Auth Check - Auth result: ' . (is_wp_error($user) ? $user->get_error_message() : 'Success'));
+            
             if (!is_wp_error($user) && $user instanceof WP_User) {
                 // Authentication successful
                 wp_set_current_user($user->ID);
+                error_log('B2E Auth Check - User set: ' . $user->ID);
                 return true;
             }
         }

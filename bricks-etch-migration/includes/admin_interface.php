@@ -790,6 +790,8 @@ class B2E_Admin_Interface {
             const completedSteps = [...cssSteps];
             let successCount = 0;
             let errorCount = 0;
+            let consecutiveErrors = 0;
+            const MAX_CONSECUTIVE_ERRORS = 5; // Stop after 5 consecutive errors
             
             for (let i = 0; i < posts.length; i++) {
                 const post = posts[i];
@@ -804,12 +806,26 @@ class B2E_Admin_Interface {
                     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
                     
                     successCount++;
+                    consecutiveErrors = 0; // Reset consecutive error counter on success
                     completedSteps.push(`✅ ${post.title} (${post.type}) - ${duration}s`);
                     console.log(`✅ Migrated: ${post.title} in ${duration}s`);
                 } catch (error) {
                     errorCount++;
+                    consecutiveErrors++;
                     completedSteps.push(`❌ ${post.title} (${post.type}): ${error.message}`);
                     console.error(`❌ Failed: ${post.title}`, error);
+                    
+                    // Stop if too many consecutive errors
+                    if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+                        completedSteps.push('');
+                        completedSteps.push(`🛑 MIGRATION STOPPED: ${MAX_CONSECUTIVE_ERRORS} consecutive errors detected`);
+                        completedSteps.push(`⚠️ This usually indicates an authentication or connection problem`);
+                        completedSteps.push(`💡 Please check your API credentials and try again`);
+                        
+                        updateProgress(progress, `🛑 Migration stopped due to errors`, completedSteps);
+                        showToast(`Migration stopped: ${MAX_CONSECUTIVE_ERRORS} consecutive errors`, 'error');
+                        return; // Exit migration
+                    }
                 }
                 
                 // Update progress with completed step
@@ -2418,10 +2434,13 @@ class B2E_Admin_Interface {
         // Test connection to Etch API (use /auth/test endpoint)
         $test_url = rtrim($test_target_url, '/') . '/wp-json/b2e/v1/auth/test';
         
+        // Remove spaces from API key (Application Passwords have spaces)
+        $clean_api_key = str_replace(' ', '', $api_key);
+        
         $response = wp_remote_get($test_url, array(
             'headers' => array(
-                'X-API-Key' => $api_key,
-                'Authorization' => 'Basic ' . base64_encode('admin:' . $api_key),
+                'X-API-Key' => $clean_api_key,
+                'Authorization' => 'Basic ' . base64_encode('admin:' . $clean_api_key),
             ),
             'timeout' => 10,
         ));
