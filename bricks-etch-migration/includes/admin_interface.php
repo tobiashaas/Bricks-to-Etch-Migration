@@ -709,15 +709,15 @@ class B2E_Admin_Interface {
                 const data = await response.json();
                 
                 if (data.success) {
-                    statusDiv.innerHTML = '<div style="background: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 12px; border-radius: 4px;">✅ Connection successful!</div>';
+                    statusDiv.innerHTML = '<div style="background: var(--e-primary); border: var(--e-border-width) var(--e-border-style) var(--e-border-color); border-radius: var(--e-border-radius); padding: var(--e-space-m) var(--e-space-l); ">✅ Connection successful!</div>';
                     showToast('Connection test successful!', 'success');
                 } else {
-                    statusDiv.innerHTML = '<div style="background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 12px; border-radius: 4px;">❌ Connection failed: ' + (data.data || 'Unknown error') + '</div>';
+                    statusDiv.innerHTML = '<div style="background: var(--e-warning); border: var(--e-border-width) var(--e-border-style) var(--e-border-color); border-radius: var(--e-border-radius); padding: var(--e-space-m) var(--e-space-l); ">❌ Connection failed: ' + (data.data || 'Unknown error') + '</div>';
                     showToast('Connection test failed', 'error');
                 }
             } catch (error) {
                 console.error('Connection test error:', error);
-                statusDiv.innerHTML = '<div style="background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 12px; border-radius: 4px;">❌ Connection failed: ' + error.message + '</div>';
+                statusDiv.innerHTML = '<div style="background: var(--e-warning); border: var(--e-border-width) var(--e-border-style) var(--e-border-color); border-radius: var(--e-border-radius); padding: var(--e-space-m) var(--e-space-l); ">❌ Connection failed: ' + error.message + '</div>';
                 showToast('Connection test failed', 'error');
             }
         }
@@ -2433,8 +2433,8 @@ class B2E_Admin_Interface {
             $test_target_url = str_replace('localhost:8081', 'b2e-etch', $target_url);
         }
         
-        // Test connection to Etch API
-        $test_url = rtrim($test_target_url, '/') . '/wp-json/b2e/v1/test';
+        // Test connection to Etch API (use /auth/test endpoint)
+        $test_url = rtrim($test_target_url, '/') . '/wp-json/b2e/v1/auth/test';
         
         $response = wp_remote_get($test_url, array(
             'headers' => array(
