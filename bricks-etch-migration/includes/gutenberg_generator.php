@@ -186,7 +186,7 @@ class B2E_Gutenberg_Generator {
             )
         );
         
-        $attrs_json = json_encode($attrs, JSON_UNESCAPED_UNICODE);
+        $attrs_json = json_encode($attrs, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         
         // Build class attribute for HTML (Etch uses <div> in HTML, renders based on block.tag)
         $class_attr = !empty($classes) ? ' class="wp-block-group ' . esc_attr(implode(' ', $classes)) . '"' : ' class="wp-block-group"';
@@ -246,7 +246,7 @@ class B2E_Gutenberg_Generator {
             )
         );
         
-        $attrs_json = json_encode($attrs, JSON_UNESCAPED_UNICODE);
+        $attrs_json = json_encode($attrs, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         
         // Build class attribute for HTML
         $class_attr = !empty($classes) ? ' class="wp-block-group ' . esc_attr(implode(' ', $classes)) . '"' : ' class="wp-block-group"';
@@ -306,7 +306,7 @@ class B2E_Gutenberg_Generator {
             )
         );
         
-        $attrs_json = json_encode($attrs, JSON_UNESCAPED_UNICODE);
+        $attrs_json = json_encode($attrs, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         
         // Build class attribute for HTML
         $class_attr = !empty($classes) ? ' class="wp-block-group ' . esc_attr(implode(' ', $classes)) . '"' : ' class="wp-block-group"';
@@ -358,7 +358,7 @@ class B2E_Gutenberg_Generator {
             );
         }
         
-        $attrs_json = !empty($attrs) ? ' ' . json_encode($attrs, JSON_UNESCAPED_UNICODE) : '';
+        $attrs_json = !empty($attrs) ? ' ' . json_encode($attrs, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : '';
         
         // Use standard wp:paragraph
         return '<!-- wp:paragraph' . $attrs_json . ' -->' . "\n" .
@@ -416,7 +416,7 @@ class B2E_Gutenberg_Generator {
             $attrs['level'] = $level;
         }
         
-        $attrs_json = !empty($attrs) ? ' ' . json_encode($attrs, JSON_UNESCAPED_UNICODE) : '';
+        $attrs_json = !empty($attrs) ? ' ' . json_encode($attrs, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : '';
         
         // Use standard wp:heading
         return '<!-- wp:heading' . $attrs_json . ' -->' . "\n" .
@@ -472,7 +472,7 @@ class B2E_Gutenberg_Generator {
             )
         );
         
-        $attrs_json = json_encode($attrs, JSON_UNESCAPED_UNICODE);
+        $attrs_json = json_encode($attrs, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         
         // Use standard wp:image with Etch nestedData
         return '<!-- wp:image ' . $attrs_json . ' -->' . "\n" .
@@ -521,7 +521,7 @@ class B2E_Gutenberg_Generator {
             
             // NOTE: Do NOT set className! Only use etchData.styles
             
-            $attrs_json = json_encode($attrs, JSON_UNESCAPED_UNICODE);
+            $attrs_json = json_encode($attrs, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
             
             return '<!-- wp:group ' . $attrs_json . ' -->' . "\n" .
                    '<div class="wp-block-group"></div>' . "\n" .
@@ -548,7 +548,7 @@ class B2E_Gutenberg_Generator {
             
             // NOTE: Do NOT set className! Only use etchData.styles
             
-            $attrs_json = json_encode($attrs, JSON_UNESCAPED_UNICODE);
+            $attrs_json = json_encode($attrs, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
             
             $class_attr = !empty($classes) ? ' class="' . esc_attr(implode(' ', $classes)) . '"' : '';
             
@@ -622,7 +622,7 @@ class B2E_Gutenberg_Generator {
             )
         );
         
-        $attrs_json = json_encode($attrs, JSON_UNESCAPED_UNICODE);
+        $attrs_json = json_encode($attrs, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         
         // Use wp:paragraph with nested anchor (Etch Link structure)
         return '<!-- wp:paragraph ' . $attrs_json . ' -->' . "\n" .
