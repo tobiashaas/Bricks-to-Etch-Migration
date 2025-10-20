@@ -35,6 +35,7 @@ class B2E_API_Client {
             'timeout' => 30,
             'headers' => array(
                 'X-API-Key' => $api_key,
+                'Authorization' => 'Basic ' . base64_encode('admin:' . $api_key),
                 'Content-Type' => 'application/json',
             ),
         );
