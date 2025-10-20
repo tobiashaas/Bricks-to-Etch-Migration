@@ -859,11 +859,9 @@ class B2E_Gutenberg_Generator {
         // Send blocks to Etch via HTTP (using new b2e/v1 endpoint with API key)
         $endpoint_url = rtrim($target_url, '/') . "/wp-json/b2e/v1/import/post";
         
-        // Prepare payload with blocks AND metadata
+        // Prepare payload in format expected by /import/post endpoint
         $payload = array(
-            'post_id' => $post->ID,
-            'blocks' => $gutenberg_blocks,
-            'metadata' => array(
+            'post' => array(
                 'post_title' => $post->post_title,
                 'post_name' => $post->post_name,
                 'post_type' => $post->post_type,
@@ -871,7 +869,8 @@ class B2E_Gutenberg_Generator {
                 'post_excerpt' => $post->post_excerpt,
                 'post_date' => $post->post_date,
                 'post_author' => $post->post_author,
-            )
+            ),
+            'etch_content' => $gutenberg_html // Send HTML, not blocks array
         );
         
         // Debug log
