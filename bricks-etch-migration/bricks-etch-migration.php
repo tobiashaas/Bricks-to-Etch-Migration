@@ -85,6 +85,9 @@ class Bricks_Etch_Migration {
         // Initialize REST API endpoints immediately
         add_action('plugins_loaded', array($this, 'init_rest_api'));
         
+        // Enable Application Passwords for local development (disable HTTPS requirement)
+        add_filter('wp_is_application_passwords_available', '__return_true');
+        
         // Activation/Deactivation hooks are registered at the end of the file
     }
     
