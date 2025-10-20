@@ -268,55 +268,11 @@ class B2E_API_Endpoints {
     }
     
     /**
-     * Receive migrated post from Bricks site
+     * Receive migrated post from Bricks site (LEGACY - redirects to import_post)
      */
     public static function receive_migrated_post($request) {
-        try {
-            $post_data = $request->get_json_params();
-            
-            if (empty($post_data)) {
-                return new WP_Error('no_data', 'No post data received', array('status' => 400));
-            }
-            
-            // Extract data from API client format
-            $post_info = $post_data['post'];
-            $etch_content = $post_data['etch_content'];
-            
-            // Prepare post data for WordPress
-            $wp_post_data = array(
-                'post_title' => sanitize_text_field($post_info['post_title']),
-                'post_content' => wp_kses_post($etch_content),
-                'post_status' => sanitize_text_field($post_info['post_status']),
-                'post_type' => sanitize_text_field($post_info['post_type']),
-                'post_date' => sanitize_text_field($post_info['post_date']),
-                'meta_input' => array(
-                    '_b2e_migrated_from_bricks' => true,
-                    '_b2e_original_post_id' => intval($post_info['ID']),
-                    '_b2e_migration_date' => current_time('mysql')
-                )
-            );
-            
-            // Insert post into WordPress
-            $post_id = wp_insert_post($wp_post_data);
-            
-            if (is_wp_error($post_id)) {
-                return new WP_Error('insert_failed', 'Failed to insert post: ' . $post_id->get_error_message(), array('status' => 500));
-            }
-            
-            // Log successful migration
-            error_log("B2E: Successfully migrated post '{$post_info['post_title']}' (ID: {$post_id}) from Bricks");
-            
-            return new WP_REST_Response(array(
-                'success' => true,
-                'message' => 'Post migrated successfully',
-                'post_id' => $post_id,
-                'post_title' => $post_info['post_title']
-            ), 200);
-            
-        } catch (Exception $e) {
-            error_log("B2E: Error receiving migrated post: " . $e->getMessage());
-            return new WP_Error('receive_failed', 'Failed to receive migrated post: ' . $e->getMessage(), array('status' => 500));
-        }
+        // This is the old endpoint - redirect to new import_post logic
+        return self::import_post($request);
     }
 
     /**

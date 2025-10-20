@@ -154,6 +154,7 @@ class B2E_API_Client {
             'post' => array(
                 'ID' => $post->ID,
                 'post_title' => $post->post_title,
+                'post_name' => $post->post_name, // Add slug for duplicate checking
                 'post_type' => $post->post_type,
                 'post_date' => $post->post_date,
                 'post_status' => $post->post_status,
@@ -187,7 +188,18 @@ class B2E_API_Client {
      * Send CSS styles to target site
      */
     public function send_css_styles($url, $api_key, $etch_styles) {
-        return $this->send_request($url, $api_key, '/import/css-classes', 'POST', $etch_styles);
+        $styles_count = is_array($etch_styles) ? count($etch_styles) : 0;
+        error_log('🌐 API Client: Sending ' . $styles_count . ' CSS styles to ' . $url);
+        
+        $result = $this->send_request($url, $api_key, '/import/css-classes', 'POST', $etch_styles);
+        
+        if (is_wp_error($result)) {
+            error_log('❌ API Client: Failed to send CSS styles: ' . $result->get_error_message());
+        } else {
+            error_log('✅ API Client: CSS styles sent successfully');
+        }
+        
+        return $result;
     }
     
     /**
