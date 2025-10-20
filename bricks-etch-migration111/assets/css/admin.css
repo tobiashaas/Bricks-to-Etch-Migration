@@ -277,8 +277,8 @@
     transition: all 0.2s ease;
 }
 
-.b2e-button:hover.b2e-button:hover {
-    background-color: var(--e-base-light);
+.b2e-button.b2e-button:hover {
+    background-color: var(--e-primary-dark);
     color: var(--e-foreground-color);
     border-color: var(--e-border-color);
 }
@@ -752,4 +752,9 @@
 .wrap span {
     color: var(--e-base);
     background: transparent;
+}
+
+.b2e-card.b2e-card p,
+.b2e-card.b2e-card h2 {
+    color: var(--e-light);
 }

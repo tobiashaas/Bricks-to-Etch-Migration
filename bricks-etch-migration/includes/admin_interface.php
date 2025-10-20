@@ -1028,9 +1028,8 @@ class B2E_Admin_Interface {
                             padding: var(--e-space-s) var(--e-space-m); 
                             margin: var(--e-space-xs) 0; 
                             color: ${color};
-                            border-left: 3px solid ${color};
+                            border: var(--e-border);
                             border-radius: var(--e-border-radius);
-                            animation: slideIn 0.3s ease-out;
                         ">
                             <span>${icon}</span>
                             <span>${step.trim()}</span>
@@ -1039,25 +1038,6 @@ class B2E_Admin_Interface {
                 });
                 
                 stepsHTML += '</ul></div>';
-                
-                // Add CSS animation
-                if (!document.getElementById('progress-animation-style')) {
-                    const style = document.createElement('style');
-                    style.id = 'progress-animation-style';
-                    style.textContent = `
-                        @keyframes slideIn {
-                            from {
-                                opacity: 0;
-                                transform: translateX(-10px);
-                            }
-                            to {
-                                opacity: 1;
-                                transform: translateX(0);
-                            }
-                        }
-                    `;
-                    document.head.appendChild(style);
-                }
                 
                 progressSteps.innerHTML = stepsHTML;
                 
@@ -1359,16 +1339,16 @@ class B2E_Admin_Interface {
             <!-- Migration Progress Section -->
             <div id="migration-progress" style="display: none;">
                 <h3>📊 <?php _e('Migration Progress', 'bricks-etch-migration'); ?></h3>
-                <div style="color: var(--e-base); background: var(--e-base-dark); border: var(--e-border-width) var(--e-border-style) var(--e-border-color); border-radius: var(--e-border-radius); padding: var(--e-space-m) var(--e-space-l);">
+                <div style="color: var(--e-base); background: var(--e-base-dark); border: var(--e-border); border-radius: var(--e-border-radius); padding: var(--e-space-m) var(--e-space-l);">
                     <div>
                         <strong id="progress-text"><?php _e('Initializing...', 'bricks-etch-migration'); ?></strong>
                     </div>
-                    <div style="background: var(--e-base-ultra-light); border-radius: var(--e-border-radius); height: 30px; overflow: hidden; border: 1px solid var(--e-border-color);">
+                    <div style="background: var(--e-base-ultra-light); border-radius: var(--e-border-radius); height: 30px; overflow: hidden; border: var(--e-border);">
                         <div id="progress-bar" style="background: linear-gradient(90deg, #0073aa, #00a0d2); height: 100%; width: 0%; transition: width 0.3s ease; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 12px;">
                             <span id="progress-percentage">0%</span>
                         </div>
                     </div>
-                    <div id="progress-steps" style="margin-top: 15px; font-size: 12px; color: #666;">
+                    <div id="progress-steps">
                         <!-- Migration steps will be displayed here -->
                     </div>
                 </div>
