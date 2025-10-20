@@ -573,28 +573,19 @@ class B2E_Admin_Interface {
             // Update progress
             updateProgress(0, 'Getting list of posts...', []);
             
-            // Step 1: Get list of all content (Bricks, Gutenberg, Media)
-            updateProgress(0, '🔍 Scanning for content...', ['Starting migration process...']);
+            // Step 1: Get list of all Bricks posts
+            updateProgress(0, '🔍 Scanning for Bricks content...', ['Starting migration process...']);
             const posts = await getBricksPosts();
             
-            // Note: getBricksPosts now returns ALL content types (Bricks, Gutenberg, Media)
-            // So we don't abort if no Bricks posts are found - we still migrate Gutenberg and Media
-            
             if (!posts || posts.length === 0) {
-                showToast('No content found to migrate', 'warning');
-                updateProgress(0, '⚠️ No content found', ['No posts, pages, or media files found']);
-                // Continue anyway - maybe there are styles to migrate
+                showToast('No Bricks posts found to migrate', 'error');
+                updateProgress(0, '❌ No content found', ['No Bricks posts or pages found']);
+                return;
             }
             
-            const bricksCount = posts ? posts.filter(p => p.has_bricks).length : 0;
-            const gutenbergCount = posts ? posts.filter(p => !p.has_bricks && p.type !== 'attachment').length : 0;
-            const mediaCount = posts ? posts.filter(p => p.type === 'attachment').length : 0;
-            
-            console.log(`📋 Found ${posts ? posts.length : 0} items: ${bricksCount} Bricks, ${gutenbergCount} Gutenberg, ${mediaCount} media`);
-            const initialSteps = posts && posts.length > 0 
-                ? [`Found ${posts.length} items: ${bricksCount} Bricks, ${gutenbergCount} Gutenberg, ${mediaCount} media`]
-                : ['No content found - will migrate styles only'];
-            updateProgress(3, `📋 Found ${posts ? posts.length : 0} items to migrate`, initialSteps);
+            console.log(`📋 Found ${posts.length} posts to migrate`);
+            const initialSteps = [`Found ${posts.length} items to migrate (${posts.filter(p => p.type === 'page').length} pages, ${posts.filter(p => p.type === 'post').length} posts)`];
+            updateProgress(3, `📋 Found ${posts.length} items to migrate`, initialSteps);
             
             // Step 2: Migrate CSS first (once for all posts)
             updateProgress(5, '🎨 Migrating CSS styles...', [...initialSteps, 'Converting Bricks classes to Etch styles...']);
@@ -701,34 +692,22 @@ class B2E_Admin_Interface {
          * Migrate CSS styles
          */
         async function migrateCSSStyles(apiDomain, apiKey) {
-            console.log('🎨 Frontend: Starting CSS migration...');
-            console.log('🎨 Frontend: API Domain:', apiDomain);
-            console.log('🎨 Frontend: API Key:', apiKey.substring(0, 20) + '...');
-            
             const formData = new FormData();
             formData.append('action', 'b2e_migrate_css');
             formData.append('nonce', b2e_ajax.nonce);
             formData.append('target_url', apiDomain);
             formData.append('api_key', apiKey);
             
-            console.log('🎨 Frontend: Sending AJAX request to:', b2e_ajax.ajax_url);
-            
             const response = await fetch(b2e_ajax.ajax_url, {
                 method: 'POST',
                 body: formData
             });
             
-            console.log('🎨 Frontend: Response status:', response.status);
-            
             const data = await response.json();
-            console.log('🎨 Frontend: Response data:', data);
             
             if (!data.success) {
-                console.error('❌ Frontend: CSS migration failed:', data.data);
                 throw new Error(data.data || 'Failed to migrate CSS');
             }
-            
-            console.log('✅ Frontend: CSS migration successful! Styles count:', data.data.styles_count);
         }
         
         /**
@@ -1951,7 +1930,7 @@ class B2E_Admin_Interface {
     }
     
     /**
-     * AJAX handler to get list of ALL content (Bricks, Gutenberg, Media)
+     * AJAX handler to get list of Bricks posts
      */
     public function ajax_get_bricks_posts() {
         // Verify nonce
@@ -1960,51 +1939,44 @@ class B2E_Admin_Interface {
             return;
         }
         
-        // Use content_parser to get all content types
-        $content_parser = new B2E_Content_Parser();
+        // Get all posts AND pages with Bricks content
+        $all_posts = array();
         
-        $bricks_posts = $content_parser->get_bricks_posts();
-        $gutenberg_posts = $content_parser->get_gutenberg_posts();
-        $media = $content_parser->get_media();
+        // Get pages
+        $pages = get_posts(array(
+            'post_type' => 'page',
+            'post_status' => 'publish',
+            'numberposts' => -1,
+            'meta_key' => '_bricks_page_content_2',
+        ));
         
+        // Get posts
+        $posts = get_posts(array(
+            'post_type' => 'post',
+            'post_status' => 'publish',
+            'numberposts' => -1,
+            'meta_key' => '_bricks_page_content_2',
+        ));
+        
+        // Merge and verify they actually have Bricks content
+        $all_posts = array_merge($pages, $posts);
         $posts_data = array();
         
-        // Add Bricks posts
-        foreach ($bricks_posts as $post) {
-            $posts_data[] = array(
-                'id' => $post->ID,
-                'title' => $post->post_title,
-                'type' => $post->post_type,
-                'has_bricks' => true
-            );
-        }
-        
-        // Add Gutenberg posts
-        foreach ($gutenberg_posts as $post) {
-            $posts_data[] = array(
-                'id' => $post->ID,
-                'title' => $post->post_title,
-                'type' => $post->post_type,
-                'has_bricks' => false
-            );
-        }
-        
-        // Add Media
-        foreach ($media as $attachment) {
-            $posts_data[] = array(
-                'id' => $attachment->ID,
-                'title' => $attachment->post_title ?: basename($attachment->guid),
-                'type' => 'attachment',
-                'has_bricks' => false
-            );
+        foreach ($all_posts as $post) {
+            // Double-check that it has Bricks content
+            $bricks_content = get_post_meta($post->ID, '_bricks_page_content_2', true);
+            if (!empty($bricks_content) && is_array($bricks_content)) {
+                $posts_data[] = array(
+                    'id' => $post->ID,
+                    'title' => $post->post_title,
+                    'type' => $post->post_type,
+                );
+            }
         }
         
         wp_send_json_success(array(
             'posts' => $posts_data,
-            'count' => count($posts_data),
-            'bricks_count' => count($bricks_posts),
-            'gutenberg_count' => count($gutenberg_posts),
-            'media_count' => count($media)
+            'count' => count($posts_data)
         ));
     }
     
@@ -2012,11 +1984,8 @@ class B2E_Admin_Interface {
      * AJAX handler to migrate CSS
      */
     public function ajax_migrate_css() {
-        error_log('🎨 B2E CSS Migration: AJAX handler called');
-        
         // Verify nonce
         if (!check_ajax_referer('b2e_nonce', 'nonce', false)) {
-            error_log('❌ B2E CSS Migration: Invalid nonce');
             wp_send_json_error('Invalid nonce');
             return;
         }
@@ -2025,10 +1994,7 @@ class B2E_Admin_Interface {
         $target_url = sanitize_url($_POST['target_url'] ?? '');
         $api_key = sanitize_text_field($_POST['api_key'] ?? '');
         
-        error_log('🎨 B2E CSS Migration: target_url=' . $target_url . ', api_key=' . substr($api_key, 0, 20) . '...');
-        
         if (empty($target_url) || empty($api_key)) {
-            error_log('❌ B2E CSS Migration: Missing required parameters');
             wp_send_json_error('Missing required parameters');
             return;
         }
@@ -2048,60 +2014,28 @@ class B2E_Admin_Interface {
         // Migrate CSS
         try {
             // Step 1: Convert Bricks classes to Etch styles
-            error_log('🎨 B2E CSS Migration: Step 1 - Converting Bricks classes to Etch styles...');
             $css_converter = new B2E_CSS_Converter();
-            $result = $css_converter->convert_bricks_classes_to_etch();
+            $etch_styles = $css_converter->convert_bricks_classes_to_etch();
+            
+            if (is_wp_error($etch_styles)) {
+                wp_send_json_error($etch_styles->get_error_message());
+                return;
+            }
+            
+            // Step 2: Send styles to Etch via API
+            $api_client = new B2E_API_Client();
+            $result = $api_client->send_css_styles($internal_url, $api_key, $etch_styles);
             
             if (is_wp_error($result)) {
-                error_log('❌ B2E CSS Migration: Converter returned error: ' . $result->get_error_message());
-                wp_send_json_error($result->get_error_message());
+                wp_send_json_error('Failed to send styles to Etch: ' . $result->get_error_message());
                 return;
             }
             
-            // Extract styles and style_map from result
-            $etch_styles = $result['styles'] ?? array();
-            $style_map = $result['style_map'] ?? array();
-            
-            $styles_count = count($etch_styles);
-            error_log('✅ B2E CSS Migration: Converted ' . $styles_count . ' styles');
-            error_log('✅ B2E CSS Migration: Created style map with ' . count($style_map) . ' entries');
-            
-            if ($styles_count === 0) {
-                error_log('⚠️ B2E CSS Migration: No styles to migrate (empty array)');
-                wp_send_json_success(array(
-                    'message' => 'No CSS styles found to migrate',
-                    'styles_count' => 0
-                ));
-                return;
-            }
-            
-            // Step 2: Send styles AND style_map to Etch via API
-            error_log('🎨 B2E CSS Migration: Step 2 - Sending ' . $styles_count . ' styles to Etch API...');
-            $api_client = new B2E_API_Client();
-            // Send complete result (styles + style_map)
-            $api_result = $api_client->send_css_styles($internal_url, $api_key, $result);
-            
-            if (is_wp_error($api_result)) {
-                error_log('❌ B2E CSS Migration: API error: ' . $api_result->get_error_message());
-                wp_send_json_error('Failed to send styles to Etch: ' . $api_result->get_error_message());
-                return;
-            }
-            
-            // Step 3: Save style map from API response
-            if (isset($api_result['style_map']) && is_array($api_result['style_map'])) {
-                update_option('b2e_style_map', $api_result['style_map']);
-                error_log('✅ B2E CSS Migration: Saved style map with ' . count($api_result['style_map']) . ' entries');
-            } else {
-                error_log('⚠️ B2E CSS Migration: No style map in API response!');
-            }
-            
-            error_log('✅ B2E CSS Migration: SUCCESS - ' . $styles_count . ' styles migrated');
             wp_send_json_success(array(
                 'message' => 'CSS migrated successfully',
-                'styles_count' => $styles_count
+                'styles_count' => count($etch_styles)
             ));
         } catch (Exception $e) {
-            error_log('❌ B2E CSS Migration: Exception: ' . $e->getMessage());
             wp_send_json_error('Exception: ' . $e->getMessage());
         }
     }

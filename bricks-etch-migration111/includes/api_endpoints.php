@@ -611,37 +611,22 @@ class B2E_API_Endpoints {
      * Import CSS classes
      */
     public static function import_css_classes($request) {
-        error_log('🎯 API Endpoint: import_css_classes called');
-        
         $classes_data = $request->get_json_params();
-        $styles_count = is_array($classes_data) ? count($classes_data) : 0;
-        
-        error_log('🎯 API Endpoint: Received ' . $styles_count . ' CSS classes');
         
         if (empty($classes_data)) {
-            error_log('❌ API Endpoint: No CSS classes data received');
             return new WP_Error('missing_data', 'CSS classes data is required', array('status' => 400));
         }
         
-        error_log('🎯 API Endpoint: Calling CSS Converter to import styles...');
         $css_converter = new B2E_CSS_Converter();
         $result = $css_converter->import_etch_styles($classes_data);
         
         if (is_wp_error($result)) {
-            error_log('❌ API Endpoint: CSS Converter returned error: ' . $result->get_error_message());
             return $result;
         }
         
-        // Get the style map from Etch side
-        $style_map = get_option('b2e_style_map', array());
-        
-        error_log('✅ API Endpoint: CSS classes imported successfully (' . $styles_count . ' styles)');
-        error_log('📋 API Endpoint: Returning style map with ' . count($style_map) . ' entries');
-        
         return new WP_REST_Response(array(
             'message' => 'CSS classes imported successfully',
-            'imported_count' => $styles_count,
-            'style_map' => $style_map, // Return style map to Bricks side!
+            'imported_count' => count($classes_data),
         ), 200);
     }
     
@@ -999,20 +984,14 @@ class B2E_API_Endpoints {
             }
             
             // Token is valid - generate or retrieve API key
-            $api_key_data = get_option('b2e_api_key');
+            $api_key = get_option('b2e_api_key');
             
             // If no API key exists, generate one
-            if (empty($api_key_data)) {
+            if (empty($api_key)) {
                 $api_client = new B2E_API_Client();
                 $api_key = $api_client->create_api_key();
                 error_log('B2E: Generated new API key for migration: ' . substr($api_key, 0, 10) . '...');
             } else {
-                // Extract key from array if it's an array
-                if (is_array($api_key_data) && isset($api_key_data['key'])) {
-                    $api_key = $api_key_data['key'];
-                } else {
-                    $api_key = $api_key_data; // Fallback for old format
-                }
                 error_log('B2E: Using existing API key for migration: ' . substr($api_key, 0, 10) . '...');
             }
             
