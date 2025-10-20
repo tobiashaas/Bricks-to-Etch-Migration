@@ -1203,102 +1203,105 @@ class B2E_Admin_Interface {
     }
     
     /**
-     * Render single migration interface - key-based workflow
+     * Render single migration interface - Application Password workflow
      */
     private function render_migration_interface($settings, $progress) {
         ?>
         <div class="b2e-card">
-            <h2>🔑 <?php _e('Migration Setup', 'bricks-etch-migration'); ?></h2>
-            <p><?php _e('Generate a migration key on your Etch site and use it here to migrate your Bricks content.', 'bricks-etch-migration'); ?></p>
+            <h2>🔨 <?php _e('Bricks Site - Migration Setup', 'bricks-etch-migration'); ?></h2>
+            <p><?php _e('Configure your Etch target site connection using WordPress Application Password.', 'bricks-etch-migration'); ?></p>
             
-            <!-- Step 1: Enter Migration Key -->
-            <div>
-                <h3 style="margin-top: 0; color: #0073aa;">
-                    📥 <?php _e('Step 1: Enter Migration Key', 'bricks-etch-migration'); ?>
-                </h3>
-                <p style="margin-bottom: 15px;">
-                    <?php _e('Paste the migration key generated on your Etch site:', 'bricks-etch-migration'); ?>
-                </p>
-                
-                <table class="form-table">
-                    <tr>
-                        <th scope="row">
-                            <label for="migration_key"><?php _e('Migration Key', 'bricks-etch-migration'); ?></label>
-                        </th>
-                        <td>
-                            <div style="display: flex; gap: var(--e-space-m);">
-                                <input type="text" id="migration_key" name="migration_key" 
-                                       value="<?php echo esc_attr($settings['migration_key'] ?? ''); ?>"
-                                       placeholder="Paste your migration key here..."
-                                       style="flex: 1; font-family: monospace; font-size: 12px; word-break: break-all;" />
-                                <button type="button" id="paste-key" class="b2e-button" style="white-space: nowrap;">
-                                    📋 <?php _e('Paste Key', 'bricks-etch-migration'); ?>
-                                </button>
-                            </div>
-                            <p class="description">
-                                <?php _e('This key contains all necessary information to connect to your Etch site', 'bricks-etch-migration'); ?>
-                            </p>
-                        </td>
-                    </tr>
-                    
-                    <tr>
-                        <th scope="row">
-                            <label for="convert_div_to_flex"><?php _e('Conversion Options', 'bricks-etch-migration'); ?></label>
-                        </th>
-                        <td>
-                            <label>
-                                <input type="checkbox" id="convert_div_to_flex" name="convert_div_to_flex" 
-                                       <?php checked($settings['convert_div_to_flex'] ?? true); ?> />
-                                <?php _e('Convert Bricks div elements to Etch flex containers', 'bricks-etch-migration'); ?>
-                            </label>
-                        </td>
-                    </tr>
-                </table>
-                
-                <div style="margin-top: 20px;">
-                    <button type="button" id="validate-migration-key" class="b2e-button">
-                        🔗 <?php _e('Validate Key', 'bricks-etch-migration'); ?>
-                    </button>
-                    <button type="button" id="start-migration" class="b2e-button" style="margin-left: 10px;">
-                        🚀 <?php _e('Start Migration', 'bricks-etch-migration'); ?>
-                    </button>
-                </div>
-                
-                <div id="migration-key-info" style="margin-top: 15px; display: none;">
-                    <!-- Key validation info will be displayed here -->
-                </div>
-                
-                <!-- Migration Progress Section -->
-                <div id="migration-progress" style="margin-top: var(--e-space-l); display: none;">
-                    <h3>📊 <?php _e('Migration Progress', 'bricks-etch-migration'); ?></h3>
-                    <div style="background: var(--e-base-dark); border-radius: var(--e-border-radius); padding: var(--e-space-l); margin-top: var(--e-space-m); border: 1px solid var(--e-border-color);">
-                        <div style="margin-bottom: var(--e-space-m);">
-                            <strong id="progress-text"><?php _e('Initializing...', 'bricks-etch-migration'); ?></strong>
-                        </div>
-                        <div style="background: var(--e-base-ultra-light); border-radius: var(--e-border-radius); height: 30px; overflow: hidden; border: 1px solid var(--e-border-color);">
-                            <div id="progress-bar" style="background: linear-gradient(90deg, #0073aa, #00a0d2); height: 100%; width: 0%; transition: width 0.3s ease; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 12px;">
-                                <span id="progress-percentage">0%</span>
-                            </div>
-                        </div>
-                        <div id="progress-steps" style="margin-top: 15px; font-size: 12px; color: #666;">
-                            <!-- Migration steps will be displayed here -->
-                        </div>
-                    </div>
-                </div>
+            <!-- Instructions Box -->
+            <div style="background: #f0f6fc; border: 1px solid #0969da; border-radius: 6px; padding: 16px; margin-bottom: 20px;">
+                <h3 style="margin-top: 0; color: #0969da;">📋 <?php _e('Setup Instructions', 'bricks-etch-migration'); ?></h3>
+                <p><strong><?php _e('On your Etch site:', 'bricks-etch-migration'); ?></strong></p>
+                <ol style="line-height: 1.8; margin-bottom: 10px;">
+                    <li><?php _e('Go to Users → Profile', 'bricks-etch-migration'); ?></li>
+                    <li><?php _e('Scroll to "Application Passwords"', 'bricks-etch-migration'); ?></li>
+                    <li><?php _e('Add new: "B2E Migration"', 'bricks-etch-migration'); ?></li>
+                    <li><?php _e('Copy the generated password', 'bricks-etch-migration'); ?></li>
+                    <li><?php _e('Paste it below as "Application Password"', 'bricks-etch-migration'); ?></li>
+                </ol>
             </div>
             
-            <!-- Step 2: Instructions -->
-            <div style="background: var(--e-highlight-light); border-radius: var(--e-border-radius); border-left: 10px solid var(--e-warning); padding: var(--e-space-l); margin: var(--e-space-l) 0;">
-                <h3>
-                    📋 <?php _e('How to Get Your Migration Key', 'bricks-etch-migration'); ?>
-                </h3>
-                <ol>
-                    <li><?php _e('Go to your Etch site (target site)', 'bricks-etch-migration'); ?></li>
-                    <li><?php _e('Install the Bricks to Etch Migration plugin', 'bricks-etch-migration'); ?></li>
-                    <li><?php _e('Go to B2E Migration in the admin menu', 'bricks-etch-migration'); ?></li>
-                    <li><?php _e('Click "Generate Migration Key"', 'bricks-etch-migration'); ?></li>
-                    <li><?php _e('Copy the generated key and paste it above', 'bricks-etch-migration'); ?></li>
-                </ol>
+            <!-- Connection Settings -->
+            <table class="form-table">
+                <tr>
+                    <th scope="row">
+                        <label for="target_url"><?php _e('Etch Site URL', 'bricks-etch-migration'); ?> *</label>
+                    </th>
+                    <td>
+                        <input type="url" id="target_url" name="target_url" 
+                               value="<?php echo esc_attr($settings['target_url'] ?? ''); ?>"
+                               placeholder="https://your-etch-site.com"
+                               style="width: 100%; max-width: 500px;" />
+                        <p class="description">
+                            <?php _e('The URL of your Etch target site (e.g., https://your-etch-site.com)', 'bricks-etch-migration'); ?>
+                        </p>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <th scope="row">
+                        <label for="api_key"><?php _e('Application Password', 'bricks-etch-migration'); ?> *</label>
+                    </th>
+                    <td>
+                        <input type="text" id="api_key" name="api_key" 
+                               value="<?php echo esc_attr($settings['api_key'] ?? ''); ?>"
+                               placeholder="xxxx xxxx xxxx xxxx xxxx xxxx"
+                               style="width: 100%; max-width: 500px; font-family: monospace;" />
+                        <p class="description">
+                            <?php _e('The Application Password generated on your Etch site', 'bricks-etch-migration'); ?>
+                        </p>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <th scope="row">
+                        <label for="convert_div_to_flex"><?php _e('Conversion Options', 'bricks-etch-migration'); ?></label>
+                    </th>
+                    <td>
+                        <label>
+                            <input type="checkbox" id="convert_div_to_flex" name="convert_div_to_flex" 
+                                   <?php checked($settings['convert_div_to_flex'] ?? true); ?> />
+                            <?php _e('Convert Bricks div elements to Etch flex containers', 'bricks-etch-migration'); ?>
+                        </label>
+                    </td>
+                </tr>
+            </table>
+            
+            <div style="margin-top: 20px;">
+                <button type="button" id="save-settings" class="b2e-button">
+                    💾 <?php _e('Save Settings', 'bricks-etch-migration'); ?>
+                </button>
+                <button type="button" id="test-connection" class="b2e-button" style="margin-left: 10px;">
+                    🔗 <?php _e('Test Connection', 'bricks-etch-migration'); ?>
+                </button>
+                <button type="button" id="start-migration" class="b2e-button" style="margin-left: 10px;">
+                    🚀 <?php _e('Start Migration', 'bricks-etch-migration'); ?>
+                </button>
+            </div>
+            
+            <div id="connection-status" style="margin-top: 15px; display: none;">
+                <!-- Connection test result will be displayed here -->
+            </div>
+            
+            <!-- Migration Progress Section -->
+            <div id="migration-progress" style="margin-top: var(--e-space-l); display: none;">
+                <h3>📊 <?php _e('Migration Progress', 'bricks-etch-migration'); ?></h3>
+                <div style="background: var(--e-base-dark); border-radius: var(--e-border-radius); padding: var(--e-space-l); margin-top: var(--e-space-m); border: 1px solid var(--e-border-color);">
+                    <div style="margin-bottom: var(--e-space-m);">
+                        <strong id="progress-text"><?php _e('Initializing...', 'bricks-etch-migration'); ?></strong>
+                    </div>
+                    <div style="background: var(--e-base-ultra-light); border-radius: var(--e-border-radius); height: 30px; overflow: hidden; border: 1px solid var(--e-border-color);">
+                        <div id="progress-bar" style="background: linear-gradient(90deg, #0073aa, #00a0d2); height: 100%; width: 0%; transition: width 0.3s ease; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 12px;">
+                            <span id="progress-percentage">0%</span>
+                        </div>
+                    </div>
+                    <div id="progress-steps" style="margin-top: 15px; font-size: 12px; color: #666;">
+                        <!-- Migration steps will be displayed here -->
+                    </div>
+                </div>
             </div>
         </div>
         
