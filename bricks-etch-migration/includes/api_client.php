@@ -162,7 +162,7 @@ class B2E_API_Client {
             'etch_content' => $etch_content,
         );
         
-        return $this->send_request($url, $api_key, '/receive-post', 'POST', $post_data);
+        return $this->send_request($url, $api_key, '/import/post', 'POST', $post_data);
     }
     
     /**

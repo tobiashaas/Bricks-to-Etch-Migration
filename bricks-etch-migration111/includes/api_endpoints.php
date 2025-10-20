@@ -61,10 +61,10 @@ class B2E_API_Endpoints {
             'permission_callback' => '__return_true',
         ));
         
-        // Receive migrated post endpoint
+        // Legacy endpoint - kept for backwards compatibility
         register_rest_route($namespace, '/receive-post', array(
             'methods' => 'POST',
-            'callback' => array(__CLASS__, 'receive_migrated_post'),
+            'callback' => array(__CLASS__, 'import_post'), // Use new import_post directly
             'permission_callback' => array(__CLASS__, 'check_api_key'),
         ));
         
@@ -267,14 +267,6 @@ class B2E_API_Endpoints {
         ), 200);
     }
     
-    /**
-     * Receive migrated post from Bricks site (LEGACY - redirects to import_post)
-     */
-    public static function receive_migrated_post($request) {
-        // This is the old endpoint - redirect to new import_post logic
-        return self::import_post($request);
-    }
-
     /**
      * Receive migrated media from Bricks site
      */
