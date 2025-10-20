@@ -168,14 +168,14 @@ class B2E_Admin_Interface {
             <h1>🎯 <?php _e('Etch Site - Migration Setup', 'bricks-etch-migration'); ?></h1>
             
             <?php if (!$is_https && $app_passwords_available): ?>
-            <div class="notice notice-warning" style="padding: 15px; margin-bottom: 20px;">
-                <h3 style="margin-top: 0;">⚠️ <?php _e('HTTPS Not Enabled', 'bricks-etch-migration'); ?></h3>
+            <div class="notice notice-warning" style="padding: 15px; background: var(--e-warning); color: var(--e-base);">
+                <h3">⚠️ <?php _e('HTTPS Not Enabled', 'bricks-etch-migration'); ?></h3>
                 <p><?php _e('Application Passwords normally require HTTPS. However, this plugin has <strong>automatically enabled</strong> Application Passwords for local development.', 'bricks-etch-migration'); ?></p>
                 <p><strong><?php _e('Note:', 'bricks-etch-migration'); ?></strong> <?php _e('For production sites, please enable HTTPS for better security.', 'bricks-etch-migration'); ?></p>
             </div>
             <?php endif; ?>
             
-            <div class="b2e-card">
+            <div class="b2e-card" style="gap: var(--e-panel-gap);">
                 <h2><?php _e('Setup Application Password', 'bricks-etch-migration'); ?></h2>
                 <p><?php _e('This is your <strong>Etch target site</strong>. To receive migrations from your Bricks site, you need to create an Application Password.', 'bricks-etch-migration'); ?></p>
                 
@@ -2427,8 +2427,14 @@ class B2E_Admin_Interface {
             return;
         }
         
+        // Convert localhost:8081 to b2e-etch for Docker internal communication
+        $test_target_url = $target_url;
+        if (strpos($target_url, 'localhost:8081') !== false) {
+            $test_target_url = str_replace('localhost:8081', 'b2e-etch', $target_url);
+        }
+        
         // Test connection to Etch API
-        $test_url = rtrim($target_url, '/') . '/wp-json/b2e/v1/test';
+        $test_url = rtrim($test_target_url, '/') . '/wp-json/b2e/v1/test';
         
         $response = wp_remote_get($test_url, array(
             'headers' => array(
