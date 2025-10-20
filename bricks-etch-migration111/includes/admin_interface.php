@@ -116,6 +116,106 @@ class B2E_Admin_Interface {
      * Render the main dashboard - SINGLE MIGRATION METHOD
      */
     public function render_dashboard() {
+        // Detect which plugins are active
+        $plugin_detector = new B2E_Plugin_Detector();
+        $is_bricks = $plugin_detector->is_bricks_active();
+        $is_etch = $plugin_detector->is_etch_active();
+        
+        // Show error if neither plugin is detected
+        if (!$is_bricks && !$is_etch) {
+            $this->render_no_plugin_error();
+            return;
+        }
+        
+        // Show appropriate interface based on detected plugin
+        if ($is_bricks) {
+            $this->render_bricks_dashboard();
+        } elseif ($is_etch) {
+            $this->render_etch_dashboard();
+        }
+    }
+    
+    /**
+     * Render error when no plugin is detected
+     */
+    private function render_no_plugin_error() {
+        ?>
+        <div class="wrap">
+            <h1><?php _e('Bricks to Etch Migration', 'bricks-etch-migration'); ?></h1>
+            
+            <div class="b2e-card" style="border-left: 4px solid #dc3232;">
+                <h2 style="color: #dc3232;">⚠️ <?php _e('No Compatible Plugin Detected', 'bricks-etch-migration'); ?></h2>
+                <p><?php _e('This plugin requires either <strong>Bricks Builder</strong> or <strong>Etch PageBuilder</strong> to be installed and activated.', 'bricks-etch-migration'); ?></p>
+                
+                <h3><?php _e('What to do:', 'bricks-etch-migration'); ?></h3>
+                <ul style="list-style: disc; margin-left: 20px;">
+                    <li><strong><?php _e('On Bricks Site:', 'bricks-etch-migration'); ?></strong> <?php _e('Install and activate Bricks Builder', 'bricks-etch-migration'); ?></li>
+                    <li><strong><?php _e('On Etch Site:', 'bricks-etch-migration'); ?></strong> <?php _e('Install and activate Etch PageBuilder', 'bricks-etch-migration'); ?></li>
+                </ul>
+                
+                <p style="margin-top: 20px;">
+                    <a href="<?php echo admin_url('plugins.php'); ?>" class="button button-primary">
+                        <?php _e('Go to Plugins', 'bricks-etch-migration'); ?>
+                    </a>
+                </p>
+            </div>
+        </div>
+        <?php
+    }
+    
+    /**
+     * Render Etch dashboard (target site) - Application Password setup
+     */
+    private function render_etch_dashboard() {
+        ?>
+        <div class="wrap">
+            <h1>🎯 <?php _e('Etch Site - Migration Setup', 'bricks-etch-migration'); ?></h1>
+            
+            <div class="b2e-card" style="border-left: 4px solid #00a0d2;">
+                <h2><?php _e('Setup Application Password', 'bricks-etch-migration'); ?></h2>
+                <p><?php _e('This is your <strong>Etch target site</strong>. To receive migrations from your Bricks site, you need to create an Application Password.', 'bricks-etch-migration'); ?></p>
+                
+                <h3><?php _e('Steps:', 'bricks-etch-migration'); ?></h3>
+                <ol style="line-height: 1.8;">
+                    <li><?php _e('Go to', 'bricks-etch-migration'); ?> <strong><?php _e('Users → Profile', 'bricks-etch-migration'); ?></strong></li>
+                    <li><?php _e('Scroll to', 'bricks-etch-migration'); ?> <strong><?php _e('Application Passwords', 'bricks-etch-migration'); ?></strong></li>
+                    <li><?php _e('Click', 'bricks-etch-migration'); ?> <strong><?php _e('Add New Application Password', 'bricks-etch-migration'); ?></strong></li>
+                    <li><?php _e('Name it:', 'bricks-etch-migration'); ?> <code>B2E Migration</code></li>
+                    <li><?php _e('Copy the generated password', 'bricks-etch-migration'); ?></li>
+                    <li><?php _e('Use this password as the API Key on your Bricks site', 'bricks-etch-migration'); ?></li>
+                </ol>
+                
+                <div style="background: #f0f6fc; border: 1px solid #0969da; border-radius: 6px; padding: 16px; margin-top: 20px;">
+                    <h4 style="margin-top: 0; color: #0969da;">💡 <?php _e('How it works:', 'bricks-etch-migration'); ?></h4>
+                    <ul style="margin-bottom: 0; line-height: 1.8;">
+                        <li><?php _e('Application Passwords are WordPress standard authentication', 'bricks-etch-migration'); ?></li>
+                        <li><?php _e('They work with both our custom API and WordPress REST API', 'bricks-etch-migration'); ?></li>
+                        <li><?php _e('No custom API key management needed!', 'bricks-etch-migration'); ?></li>
+                    </ul>
+                </div>
+                
+                <p style="margin-top: 20px;">
+                    <a href="<?php echo admin_url('profile.php#application-passwords-section'); ?>" class="button button-primary">
+                        🔑 <?php _e('Go to Application Passwords', 'bricks-etch-migration'); ?>
+                    </a>
+                </p>
+            </div>
+            
+            <div class="b2e-card">
+                <h3><?php _e('Your Etch Site URL:', 'bricks-etch-migration'); ?></h3>
+                <p><?php _e('Share this URL with your Bricks site:', 'bricks-etch-migration'); ?></p>
+                <input type="text" value="<?php echo esc_url(home_url()); ?>" readonly 
+                       style="width: 100%; font-family: monospace; padding: 10px; background: #f0f0f0;" 
+                       onclick="this.select();" />
+            </div>
+        </div>
+        <?php
+    }
+    
+    /**
+     * Render Bricks dashboard (source site)
+     */
+    private function render_bricks_dashboard() {
         $settings = get_option('b2e_settings', array());
         
         // Only show progress if migration is actually running (not just old data)
