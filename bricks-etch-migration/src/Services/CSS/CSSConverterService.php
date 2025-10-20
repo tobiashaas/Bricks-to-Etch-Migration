@@ -17,7 +17,8 @@ class CSSConverterService implements ServiceInterface {
         private StyleRepository $styleRepository,
         private StyleMapService $styleMapService,
         private SelectorGeneratorService $selectorGenerator,
-        private IDGeneratorService $idGenerator
+        private IDGeneratorService $idGenerator,
+        private CSSPropertyConverter $propertyConverter
     ) {}
     
     /**
@@ -74,8 +75,16 @@ class CSSConverterService implements ServiceInterface {
      * @return string CSS string
      */
     private function convertCSS(array $class): string {
-        // TODO: Implement full CSS conversion logic
-        // For now, return raw CSS if available
-        return $class['css'] ?? '';
+        // If raw CSS is available, return it
+        if (!empty($class['css'])) {
+            return $class['css'];
+        }
+        
+        // Otherwise convert properties
+        if (!empty($class['properties'])) {
+            return $this->propertyConverter->convert($class['properties']);
+        }
+        
+        return '';
     }
 }

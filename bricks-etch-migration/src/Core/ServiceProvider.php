@@ -13,6 +13,7 @@ use BricksEtchMigration\Services\CSS\IDGeneratorService;
 use BricksEtchMigration\Services\CSS\SelectorGeneratorService;
 use BricksEtchMigration\Services\CSS\StyleMapService;
 use BricksEtchMigration\Services\CSS\CSSConverterService;
+use BricksEtchMigration\Services\CSS\CSSPropertyConverter;
 
 class ServiceProvider {
     /**
@@ -40,6 +41,10 @@ class ServiceProvider {
             return new SelectorGeneratorService();
         });
         
+        $container->register('property_converter', function() {
+            return new CSSPropertyConverter();
+        });
+        
         // Services
         $container->register('style_map_service', function($c) {
             return new StyleMapService(
@@ -52,7 +57,8 @@ class ServiceProvider {
                 $c->get('style_repository'),
                 $c->get('style_map_service'),
                 $c->get('selector_generator'),
-                $c->get('id_generator')
+                $c->get('id_generator'),
+                $c->get('property_converter')
             );
         });
     }
