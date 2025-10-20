@@ -859,12 +859,19 @@ class B2E_Gutenberg_Generator {
         // Send blocks to Etch via HTTP (using new b2e/v1 endpoint with API key)
         $endpoint_url = rtrim($target_url, '/') . "/wp-json/b2e/v1/import/post";
         
+        // Convert bricks_template to page
+        $target_post_type = $post->post_type;
+        if ($target_post_type === 'bricks_template') {
+            $target_post_type = 'page';
+            error_log("B2E: Converting bricks_template to page: " . $post->post_title);
+        }
+        
         // Prepare payload in format expected by /import/post endpoint
         $payload = array(
             'post' => array(
                 'post_title' => $post->post_title,
                 'post_name' => $post->post_name,
-                'post_type' => $post->post_type,
+                'post_type' => $target_post_type, // Use converted type
                 'post_status' => $post->post_status,
                 'post_excerpt' => $post->post_excerpt,
                 'post_date' => $post->post_date,
