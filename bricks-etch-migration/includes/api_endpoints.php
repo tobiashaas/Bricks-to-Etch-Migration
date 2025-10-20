@@ -588,22 +588,41 @@ class B2E_API_Endpoints {
         $post = $post_data['post'];
         $etch_content = $post_data['etch_content'];
         
-        // Create or update post
-        $post_id = wp_insert_post(array(
+        // Check if post already exists by post_name (slug)
+        $existing_post = null;
+        if (!empty($post['post_name'])) {
+            $existing_post = get_page_by_path($post['post_name'], OBJECT, $post['post_type']);
+        }
+        
+        // If exists, update it. Otherwise create new.
+        $post_args = array(
             'post_title' => $post['post_title'],
+            'post_name' => $post['post_name'],
             'post_type' => $post['post_type'],
             'post_status' => $post['post_status'],
             'post_content' => $etch_content,
             'post_date' => $post['post_date'],
-        ));
+        );
+        
+        if ($existing_post) {
+            // Update existing post
+            $post_args['ID'] = $existing_post->ID;
+            $post_id = wp_update_post($post_args);
+            $action = 'updated';
+        } else {
+            // Create new post
+            $post_id = wp_insert_post($post_args);
+            $action = 'created';
+        }
         
         if (is_wp_error($post_id)) {
-            return new WP_Error('post_creation_failed', 'Failed to create post', array('status' => 500));
+            return new WP_Error('post_save_failed', 'Failed to save post', array('status' => 500));
         }
         
         return new WP_REST_Response(array(
             'post_id' => $post_id,
-            'message' => 'Post imported successfully',
+            'action' => $action,
+            'message' => 'Post ' . $action . ' successfully',
         ), 200);
     }
     
