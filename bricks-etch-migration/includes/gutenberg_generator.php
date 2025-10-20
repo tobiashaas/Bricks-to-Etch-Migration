@@ -844,12 +844,29 @@ class B2E_Gutenberg_Generator {
             return false;
         }
         
-        // Send blocks to Etch via HTTP (using custom migration endpoint without auth)
-        $etch_post_id = $post->ID; // Same ID on Etch side
-        $endpoint_url = rtrim($target_url, '/') . "/wp-json/b2e-migration/v1/post/{$etch_post_id}/blocks";
+        // Get API key from options
+        $api_key_data = get_option('b2e_api_key');
+        if (is_array($api_key_data) && isset($api_key_data['key'])) {
+            $api_key = $api_key_data['key'];
+        } else {
+            $api_key = $api_key_data; // Fallback for old format
+        }
+        
+        if (empty($api_key)) {
+            $this->error_handler->log_error('I024', array(
+                'post_id' => $post->ID,
+                'error' => 'No API key found',
+                'action' => 'Failed to send blocks to Etch API'
+            ));
+            return false;
+        }
+        
+        // Send blocks to Etch via HTTP (using new b2e/v1 endpoint with API key)
+        $endpoint_url = rtrim($target_url, '/') . "/wp-json/b2e/v1/import/post";
         
         // Prepare payload with blocks AND metadata
         $payload = array(
+            'post_id' => $post->ID,
             'blocks' => $gutenberg_blocks,
             'metadata' => array(
                 'post_title' => $post->post_title,
@@ -866,10 +883,14 @@ class B2E_Gutenberg_Generator {
         error_log("B2E: Sending blocks to: " . $endpoint_url);
         error_log("B2E: Post title: " . $post->post_title);
         error_log("B2E: Blocks count: " . count($gutenberg_blocks));
+        error_log("B2E: API Key: " . substr($api_key, 0, 10) . '...');
         
         $response = wp_remote_post($endpoint_url, array(
             'body' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-            'headers' => array('Content-Type' => 'application/json'),
+            'headers' => array(
+                'Content-Type' => 'application/json',
+                'X-API-Key' => $api_key
+            ),
             'timeout' => 30,
         ));
         
