@@ -157,16 +157,28 @@ class B2E_Admin_Interface {
      * Render Etch dashboard (target site) - Application Password setup
      */
     private function render_etch_dashboard() {
+        // Check if HTTPS is available
+        $is_https = is_ssl();
+        $app_passwords_available = apply_filters('wp_is_application_passwords_available', true);
+        
         ?>
         <div class="wrap">
             <h1>🎯 <?php _e('Etch Site - Migration Setup', 'bricks-etch-migration'); ?></h1>
             
-            <div class="b2e-card" style="border-left: 4px solid #00a0d2;">
+            <?php if (!$is_https && $app_passwords_available): ?>
+            <div class="notice notice-warning" style="padding: 15px; margin-bottom: 20px;">
+                <h3 style="margin-top: 0;">⚠️ <?php _e('HTTPS Not Enabled', 'bricks-etch-migration'); ?></h3>
+                <p><?php _e('Application Passwords normally require HTTPS. However, this plugin has <strong>automatically enabled</strong> Application Passwords for local development.', 'bricks-etch-migration'); ?></p>
+                <p><strong><?php _e('Note:', 'bricks-etch-migration'); ?></strong> <?php _e('For production sites, please enable HTTPS for better security.', 'bricks-etch-migration'); ?></p>
+            </div>
+            <?php endif; ?>
+            
+            <div class="b2e-card">
                 <h2><?php _e('Setup Application Password', 'bricks-etch-migration'); ?></h2>
                 <p><?php _e('This is your <strong>Etch target site</strong>. To receive migrations from your Bricks site, you need to create an Application Password.', 'bricks-etch-migration'); ?></p>
                 
                 <h3><?php _e('Steps:', 'bricks-etch-migration'); ?></h3>
-                <ol style="line-height: 1.8;">
+                <ol>
                     <li><?php _e('Go to', 'bricks-etch-migration'); ?> <strong><?php _e('Users → Profile', 'bricks-etch-migration'); ?></strong></li>
                     <li><?php _e('Scroll to', 'bricks-etch-migration'); ?> <strong><?php _e('Application Passwords', 'bricks-etch-migration'); ?></strong></li>
                     <li><?php _e('Click', 'bricks-etch-migration'); ?> <strong><?php _e('Add New Application Password', 'bricks-etch-migration'); ?></strong></li>
@@ -175,16 +187,16 @@ class B2E_Admin_Interface {
                     <li><?php _e('Use this password as the API Key on your Bricks site', 'bricks-etch-migration'); ?></li>
                 </ol>
                 
-                <div style="background: #f0f6fc; border: 1px solid #0969da; border-radius: 6px; padding: 16px; margin-top: 20px;">
+                <div style="border: 1px solid #0969da; border-radius: var(--e-border-radius); padding: 16px; margin-top: 20px;">
                     <h4 style="margin-top: 0; color: #0969da;">💡 <?php _e('How it works:', 'bricks-etch-migration'); ?></h4>
-                    <ul style="margin-bottom: 0; line-height: 1.8;">
+                    <ul>
                         <li><?php _e('Application Passwords are WordPress standard authentication', 'bricks-etch-migration'); ?></li>
                         <li><?php _e('They work with both our custom API and WordPress REST API', 'bricks-etch-migration'); ?></li>
                         <li><?php _e('No custom API key management needed!', 'bricks-etch-migration'); ?></li>
                     </ul>
                 </div>
                 
-                <p style="margin-top: 20px;">
+                <p>
                     <a href="<?php echo admin_url('profile.php#application-passwords-section'); ?>" class="button button-primary">
                         🔑 <?php _e('Go to Application Passwords', 'bricks-etch-migration'); ?>
                     </a>

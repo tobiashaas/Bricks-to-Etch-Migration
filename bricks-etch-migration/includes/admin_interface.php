@@ -157,9 +157,21 @@ class B2E_Admin_Interface {
      * Render Etch dashboard (target site) - Application Password setup
      */
     private function render_etch_dashboard() {
+        // Check if HTTPS is available
+        $is_https = is_ssl();
+        $app_passwords_available = apply_filters('wp_is_application_passwords_available', true);
+        
         ?>
         <div class="wrap">
             <h1>🎯 <?php _e('Etch Site - Migration Setup', 'bricks-etch-migration'); ?></h1>
+            
+            <?php if (!$is_https && $app_passwords_available): ?>
+            <div class="notice notice-warning" style="padding: 15px; margin-bottom: 20px;">
+                <h3 style="margin-top: 0;">⚠️ <?php _e('HTTPS Not Enabled', 'bricks-etch-migration'); ?></h3>
+                <p><?php _e('Application Passwords normally require HTTPS. However, this plugin has <strong>automatically enabled</strong> Application Passwords for local development.', 'bricks-etch-migration'); ?></p>
+                <p><strong><?php _e('Note:', 'bricks-etch-migration'); ?></strong> <?php _e('For production sites, please enable HTTPS for better security.', 'bricks-etch-migration'); ?></p>
+            </div>
+            <?php endif; ?>
             
             <div class="b2e-card">
                 <h2><?php _e('Setup Application Password', 'bricks-etch-migration'); ?></h2>
