@@ -276,34 +276,26 @@ class B2E_Admin_Interface {
                     console.log('🔍 B2E Debug - Validate button clicked - using dedicated handler');
                     // This will be handled by the dedicated validate handler
                 }
+                if (e.target.id === 'save-settings') {
+                    console.log('🔍 B2E Debug - Save settings button clicked');
+                    saveSettings();
+                }
+                if (e.target.id === 'test-connection') {
+                    console.log('🔍 B2E Debug - Test connection button clicked');
+                    testConnection();
+                }
                 if (e.target.id === 'start-migration') {
                     console.log('🔍 B2E Debug - Start migration button clicked');
-                    const migrationKey = document.getElementById('migration_key').value.trim();
+                    const targetUrl = document.getElementById('target_url').value.trim();
+                    const apiKey = document.getElementById('api_key').value.trim();
                     
-                    if (!migrationKey) {
-                        showToast('Please enter a migration key first.', 'warning');
+                    if (!targetUrl || !apiKey) {
+                        showToast('Please enter Etch Site URL and Application Password first.', 'warning');
                         return;
                     }
                     
-                    // Parse the migration key to extract components
-                    try {
-                        const url = new URL(migrationKey);
-                        const domain = url.searchParams.get('domain');
-                        const token = url.searchParams.get('token');
-                        const expires = url.searchParams.get('expires');
-                        
-                        if (!domain || !token || !expires) {
-                            showToast('Invalid migration key format.', 'error');
-                            return;
-                        }
-                        
-                        // Start migration
-                        startMigrationProcess(domain, token, expires);
-                        
-                    } catch (error) {
-                        console.error('Migration key parsing error:', error);
-                        showToast('Invalid migration key format. Please check the URL.', 'error');
-                    }
+                    // Start migration with URL and API key
+                    startMigrationProcess(targetUrl, apiKey);
                 }
                 if (e.target.id === 'generate-migration-key') {
                     console.log('🔍 B2E Debug - Generate key button clicked - showing test toast');
@@ -644,26 +636,100 @@ class B2E_Admin_Interface {
         }
 
         /**
-         * Start the migration process (BATCH VERSION)
+         * Save settings
          */
-        async function startMigrationProcess(domain, token, expires) {
-            console.log('🚀 Starting BATCH migration process...', { domain, token, expires });
+        async function saveSettings() {
+            const targetUrl = document.getElementById('target_url').value.trim();
+            const apiKey = document.getElementById('api_key').value.trim();
             
-            // Get API key from sessionStorage (set during token validation)
-            const apiKey = sessionStorage.getItem('b2e_api_key');
-            
-            if (!apiKey) {
-                showToast('API key not found. Please validate the migration key first.', 'error');
-                console.error('API key not found in sessionStorage');
+            if (!targetUrl || !apiKey) {
+                showToast('Please fill in all required fields', 'warning');
                 return;
             }
             
-            console.log('🔑 Using API key from sessionStorage:', apiKey.substring(0, 20) + '...');
+            try {
+                const response = await fetch('<?php echo admin_url('admin-ajax.php'); ?>', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        action: 'b2e_save_settings',
+                        target_url: targetUrl,
+                        api_key: apiKey,
+                        nonce: '<?php echo wp_create_nonce('b2e_save_settings'); ?>'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('Settings saved successfully!', 'success');
+                } else {
+                    showToast('Failed to save settings: ' + (data.data || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                console.error('Save settings error:', error);
+                showToast('Failed to save settings', 'error');
+            }
+        }
+        
+        /**
+         * Test connection to Etch site
+         */
+        async function testConnection() {
+            const targetUrl = document.getElementById('target_url').value.trim();
+            const apiKey = document.getElementById('api_key').value.trim();
+            
+            if (!targetUrl || !apiKey) {
+                showToast('Please fill in all required fields', 'warning');
+                return;
+            }
+            
+            const statusDiv = document.getElementById('connection-status');
+            statusDiv.style.display = 'block';
+            statusDiv.innerHTML = '<p>🔄 Testing connection...</p>';
+            
+            try {
+                const response = await fetch('<?php echo admin_url('admin-ajax.php'); ?>', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        action: 'b2e_test_connection',
+                        target_url: targetUrl,
+                        api_key: apiKey,
+                        nonce: '<?php echo wp_create_nonce('b2e_test_connection'); ?>'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    statusDiv.innerHTML = '<div style="background: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 12px; border-radius: 4px;">✅ Connection successful!</div>';
+                    showToast('Connection test successful!', 'success');
+                } else {
+                    statusDiv.innerHTML = '<div style="background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 12px; border-radius: 4px;">❌ Connection failed: ' + (data.data || 'Unknown error') + '</div>';
+                    showToast('Connection test failed', 'error');
+                }
+            } catch (error) {
+                console.error('Connection test error:', error);
+                statusDiv.innerHTML = '<div style="background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 12px; border-radius: 4px;">❌ Connection failed: ' + error.message + '</div>';
+                showToast('Connection test failed', 'error');
+            }
+        }
+        
+        /**
+         * Start the migration process (BATCH VERSION)
+         */
+        async function startMigrationProcess(targetUrl, apiKey) {
+            console.log('🚀 Starting BATCH migration process...', { targetUrl });
             
             // Convert localhost:8081 to b2e-etch for Docker internal communication
-            let apiDomain = domain;
-            if (domain.includes('localhost:8081')) {
-                apiDomain = domain.replace('localhost:8081', 'b2e-etch');
+            let apiDomain = targetUrl;
+            if (targetUrl.includes('localhost:8081')) {
+                apiDomain = targetUrl.replace('localhost:8081', 'b2e-etch');
             }
             
             // Show progress section
