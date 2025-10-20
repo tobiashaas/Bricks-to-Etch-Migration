@@ -100,16 +100,6 @@ class B2E_Admin_Interface {
             'dashicons-migrate',
             30
         );
-        
-        // Add submenu for Etch site (key generation)
-        add_submenu_page(
-            'bricks-etch-migration',
-            __('Generate Migration Key', 'bricks-etch-migration'),
-            __('Generate Key', 'bricks-etch-migration'),
-            'manage_options',
-            'bricks-etch-migration-generate',
-            array($this, 'render_key_generator')
-        );
     }
     
     /**
