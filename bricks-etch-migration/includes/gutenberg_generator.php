@@ -844,18 +844,13 @@ class B2E_Gutenberg_Generator {
             return false;
         }
         
-        // Get API key from options
-        $api_key_data = get_option('b2e_api_key');
-        if (is_array($api_key_data) && isset($api_key_data['key'])) {
-            $api_key = $api_key_data['key'];
-        } else {
-            $api_key = $api_key_data; // Fallback for old format
-        }
+        // Get API key from settings (stored after token validation)
+        $api_key = $settings['api_key'] ?? '';
         
         if (empty($api_key)) {
             $this->error_handler->log_error('I024', array(
                 'post_id' => $post->ID,
-                'error' => 'No API key found',
+                'error' => 'No API key found in settings',
                 'action' => 'Failed to send blocks to Etch API'
             ));
             return false;
