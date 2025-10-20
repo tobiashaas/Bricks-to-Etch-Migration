@@ -378,8 +378,9 @@ class B2E_Content_Parser {
     public function get_bricks_posts() {
         // Query for posts with Bricks meta data
         // Only check for _bricks_page_content_2 (templates don't have _bricks_editor_mode)
+        // Note: 'any' doesn't include all CPTs, so we explicitly list post types
         $args = array(
-            'post_type' => 'any',
+            'post_type' => array('post', 'page', 'bricks_template'), // Explicitly include bricks_template
             'post_status' => array('publish', 'draft', 'pending', 'private'),
             'numberposts' => -1,
             'meta_query' => array(
