@@ -38,6 +38,8 @@ class B2E_Admin_Interface {
         add_action('wp_ajax_b2e_migrate_css', array($this, 'ajax_migrate_css'));
         add_action('wp_ajax_b2e_migrate_media', array($this, 'ajax_migrate_media'));
         add_action('wp_ajax_b2e_cleanup_etch', array($this, 'ajax_cleanup_etch'));
+        add_action('wp_ajax_b2e_save_settings', array($this, 'ajax_save_settings'));
+        add_action('wp_ajax_b2e_test_connection', array($this, 'ajax_test_connection'));
     }
     
     /**
@@ -187,8 +189,8 @@ class B2E_Admin_Interface {
                     <li><?php _e('Use this password as the API Key on your Bricks site', 'bricks-etch-migration'); ?></li>
                 </ol>
                 
-                <div style="border: 1px solid #0969da; border-radius: var(--e-border-radius); padding: 16px; margin-top: 20px;">
-                    <h4 style="margin-top: 0; color: #0969da;">💡 <?php _e('How it works:', 'bricks-etch-migration'); ?></h4>
+                <div style="border: var(--e-border-width) var(--e-border-style) var(--e-border-color); border-radius: var(--e-border-radius); padding: var(--e-space-m) var(--e-space-l); ">
+                    <h4 style="color: var(--e-primary);">💡 <?php _e('How it works:', 'bricks-etch-migration'); ?></h4>
                     <ul>
                         <li><?php _e('Application Passwords are WordPress standard authentication', 'bricks-etch-migration'); ?></li>
                         <li><?php _e('They work with both our custom API and WordPress REST API', 'bricks-etch-migration'); ?></li>
@@ -1326,10 +1328,10 @@ class B2E_Admin_Interface {
                     <td>
                         <input type="text" id="api_key" name="api_key" 
                                value="<?php echo esc_attr($settings['api_key'] ?? ''); ?>"
-                               placeholder="xxxx xxxx xxxx xxxx xxxx xxxx"
+                               placeholder="b1lP Xz5Z oq2C xcGL L7Kn N4ID"
                                style="width: 100%; max-width: 500px; font-family: monospace;" />
                         <p class="description">
-                            <?php _e('The Application Password generated on your Etch site', 'bricks-etch-migration'); ?>
+                            <?php _e('The Application Password generated on your Etch site (with spaces)', 'bricks-etch-migration'); ?>
                         </p>
                     </td>
                 </tr>
@@ -2375,6 +2377,79 @@ class B2E_Admin_Interface {
             
         } catch (Exception $e) {
             wp_send_json_error('Exception: ' . $e->getMessage());
+        }
+    }
+    
+    /**
+     * AJAX handler to save settings
+     */
+    public function ajax_save_settings() {
+        check_ajax_referer('b2e_save_settings', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Insufficient permissions');
+            return;
+        }
+        
+        $target_url = isset($_POST['target_url']) ? sanitize_text_field($_POST['target_url']) : '';
+        $api_key = isset($_POST['api_key']) ? sanitize_text_field($_POST['api_key']) : '';
+        
+        if (empty($target_url) || empty($api_key)) {
+            wp_send_json_error('Please fill in all required fields');
+            return;
+        }
+        
+        // Save settings
+        $settings = get_option('b2e_settings', array());
+        $settings['target_url'] = $target_url;
+        $settings['api_key'] = $api_key;
+        update_option('b2e_settings', $settings);
+        
+        wp_send_json_success('Settings saved successfully');
+    }
+    
+    /**
+     * AJAX handler to test connection
+     */
+    public function ajax_test_connection() {
+        check_ajax_referer('b2e_test_connection', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Insufficient permissions');
+            return;
+        }
+        
+        $target_url = isset($_POST['target_url']) ? sanitize_text_field($_POST['target_url']) : '';
+        $api_key = isset($_POST['api_key']) ? sanitize_text_field($_POST['api_key']) : '';
+        
+        if (empty($target_url) || empty($api_key)) {
+            wp_send_json_error('Please fill in all required fields');
+            return;
+        }
+        
+        // Test connection to Etch API
+        $test_url = rtrim($target_url, '/') . '/wp-json/b2e/v1/test';
+        
+        $response = wp_remote_get($test_url, array(
+            'headers' => array(
+                'X-API-Key' => $api_key,
+                'Authorization' => 'Basic ' . base64_encode('admin:' . $api_key),
+            ),
+            'timeout' => 10,
+        ));
+        
+        if (is_wp_error($response)) {
+            wp_send_json_error('Connection failed: ' . $response->get_error_message());
+            return;
+        }
+        
+        $response_code = wp_remote_retrieve_response_code($response);
+        $body = wp_remote_retrieve_body($response);
+        
+        if ($response_code === 200) {
+            wp_send_json_success('Connection successful! Etch API is reachable.');
+        } else {
+            wp_send_json_error('Connection failed (HTTP ' . $response_code . '): ' . $body);
         }
     }
 }
