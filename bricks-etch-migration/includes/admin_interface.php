@@ -135,7 +135,7 @@ class B2E_Admin_Interface {
         <div class="wrap">
             <h1><?php _e('Bricks to Etch Migration', 'bricks-etch-migration'); ?></h1>
             
-            <div class="b2e-card" style="border-left: 4px solid #dc3232;">
+            <div class="b2e-card" style="border: var(--e-border);">
                 <h2 style="color: #dc3232;">⚠️ <?php _e('No Compatible Plugin Detected', 'bricks-etch-migration'); ?></h2>
                 <p><?php _e('This plugin requires either <strong>Bricks Builder</strong> or <strong>Etch PageBuilder</strong> to be installed and activated.', 'bricks-etch-migration'); ?></p>
                 

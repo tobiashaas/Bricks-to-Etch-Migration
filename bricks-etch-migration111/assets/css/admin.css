@@ -482,26 +482,29 @@
 
 /* Form Groups */
 .b2e-form-group {
-    margin-bottom: var(--e-space-l);
+    margin-bottom: 20px;
 }
 
 .b2e-form-group label {
     display: block;
-    margin-bottom: var(--e-space-s);
-    font-weight: 400;
+    margin-bottom: 8px;
+    font-weight: 500;
     color: var(--e-light);
-    font-family: 'Inter', sans-serif;
 }
 
-.b2e-form-group input,
+.b2e-form-group input[type="text"],
+.b2e-form-group input[type="url"],
+.b2e-form-group input[type="password"],
 .b2e-form-group textarea,
-.b2e-form-group select {
-    width: 100%;
-    padding: var(--e-space-m);
-    border: 1px solid var(--e-border-color-ultra-light);
-    border-radius: var(--e-border-radius);
-    background: var(--e-base-dark);
+input[type="text"],
+input[type="url"],
+input[type="password"],
+textarea {
+    background-color: transparent;
     color: var(--e-light);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--e-border-radius);
+    padding: 10px;
     font-family: 'Inter', sans-serif;
     font-size: 14px;
     transition: border-color 0.2s ease;
