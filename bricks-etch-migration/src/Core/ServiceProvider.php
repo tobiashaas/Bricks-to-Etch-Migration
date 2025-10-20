@@ -14,6 +14,10 @@ use BricksEtchMigration\Services\CSS\SelectorGeneratorService;
 use BricksEtchMigration\Services\CSS\StyleMapService;
 use BricksEtchMigration\Services\CSS\CSSConverterService;
 use BricksEtchMigration\Services\CSS\CSSPropertyConverter;
+use BricksEtchMigration\Services\Content\BlockGeneratorService;
+use BricksEtchMigration\Services\Content\ContentMigrationService;
+use BricksEtchMigration\Services\API\APIClientService;
+use BricksEtchMigration\UI\AdminPageService;
 
 class ServiceProvider {
     /**
@@ -59,6 +63,33 @@ class ServiceProvider {
                 $c->get('selector_generator'),
                 $c->get('id_generator'),
                 $c->get('property_converter')
+            );
+        });
+        
+        // Content Services
+        $container->register('block_generator', function($c) {
+            return new BlockGeneratorService(
+                $c->get('style_map_service')
+            );
+        });
+        
+        $container->register('content_migration_service', function($c) {
+            return new ContentMigrationService(
+                $c->get('block_generator')
+            );
+        });
+        
+        // API Services
+        $container->register('api_client', function() {
+            return new APIClientService();
+        });
+        
+        // UI Services
+        $container->register('admin_page', function($c) {
+            return new AdminPageService(
+                $c->get('css_converter_service'),
+                $c->get('content_migration_service'),
+                $c->get('api_client')
             );
         });
     }

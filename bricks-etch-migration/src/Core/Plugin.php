@@ -77,17 +77,9 @@ class Plugin {
      * @return void
      */
     public function onPluginsLoaded(): void {
-        // Initialize legacy compatibility layer
-        $this->initLegacySupport();
-    }
-    
-    /**
-     * Initialize legacy support
-     * 
-     * @return void
-     */
-    private function initLegacySupport(): void {
-        // Load legacy classes if needed
-        // This allows gradual migration from old code to new architecture
+        // Initialize admin interface
+        if (is_admin()) {
+            $this->container->get('admin_page');
+        }
     }
 }
