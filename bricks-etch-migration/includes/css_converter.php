@@ -83,6 +83,11 @@ class B2E_CSS_Converter {
                 $etch_styles[$style_id] = $converted_class;
                 $converted_count++;
                 
+                // DEBUG: Log first 3 styles to verify selectors
+                if ($converted_count <= 3) {
+                    error_log('B2E CSS: Style ' . $style_id . ' selector: ' . ($converted_class['selector'] ?? 'NULL'));
+                }
+                
                 // Map Bricks ID to Etch Style ID
                 if (!empty($class['id'])) {
                     $style_map[$class['id']] = $style_id;
@@ -1066,11 +1071,37 @@ class B2E_CSS_Converter {
                 // Create proper REST request with JSON body
                 $request = new \WP_REST_Request('POST', '/etch-api/styles');
                 $request->set_header('Content-Type', 'application/json');
-                $request->set_body(json_encode($merged_styles, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+                $json_body = json_encode($merged_styles, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                $request->set_body($json_body);
+                
+                // DEBUG: Check if JSON encoding breaks selectors
+                $decoded_test = json_decode($json_body, true);
+                $test_keys = array_keys($decoded_test);
+                if (count($test_keys) > 3) {
+                    error_log('B2E CSS JSON TEST: ' . $test_keys[3] . ' selector after json_encode/decode: ' . ($decoded_test[$test_keys[3]]['selector'] ?? 'NULL'));
+                }
                 
                 error_log('B2E: Calling Etch API with ' . count($merged_styles) . ' styles');
                 
+                // DEBUG: Log first 3 styles BEFORE API call
+                $style_keys = array_keys($merged_styles);
+                for ($i = 0; $i < min(3, count($style_keys)); $i++) {
+                    $key = $style_keys[$i];
+                    $style = $merged_styles[$key];
+                    error_log('B2E CSS BEFORE API: ' . $key . ' selector: ' . ($style['selector'] ?? 'NULL'));
+                }
+                
                 $response = $routes->update_styles($request);
+                
+                // DEBUG: Log first 3 styles AFTER API call (from DB)
+                $saved_styles = get_option('etch_styles', array());
+                for ($i = 0; $i < min(3, count($style_keys)); $i++) {
+                    $key = $style_keys[$i];
+                    $saved_style = $saved_styles[$key] ?? null;
+                    if ($saved_style) {
+                        error_log('B2E CSS AFTER API: ' . $key . ' selector: ' . ($saved_style['selector'] ?? 'NULL'));
+                    }
+                }
                 
                 if (is_wp_error($response)) {
                     error_log('B2E: Etch API error: ' . $response->get_error_message());
