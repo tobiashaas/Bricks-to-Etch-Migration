@@ -140,12 +140,12 @@ class B2E_Admin_Interface {
                 <p><?php _e('This plugin requires either <strong>Bricks Builder</strong> or <strong>Etch PageBuilder</strong> to be installed and activated.', 'bricks-etch-migration'); ?></p>
                 
                 <h3><?php _e('What to do:', 'bricks-etch-migration'); ?></h3>
-                <ul style="list-style: disc; margin-left: 20px;">
+                <ul style="list-style: disc; padding-left: var(--e-space-l);">
                     <li><strong><?php _e('On Bricks Site:', 'bricks-etch-migration'); ?></strong> <?php _e('Install and activate Bricks Builder', 'bricks-etch-migration'); ?></li>
                     <li><strong><?php _e('On Etch Site:', 'bricks-etch-migration'); ?></strong> <?php _e('Install and activate Etch PageBuilder', 'bricks-etch-migration'); ?></li>
                 </ul>
                 
-                <p style="margin-top: 20px;">
+                <p>
                     <a href="<?php echo admin_url('plugins.php'); ?>" class="button button-primary">
                         <?php _e('Go to Plugins', 'bricks-etch-migration'); ?>
                     </a>
@@ -560,8 +560,8 @@ class B2E_Admin_Interface {
             confirmToast.style.minWidth = '300px';
             confirmToast.style.textAlign = 'center';
             confirmToast.innerHTML = `
-                <div style="margin-bottom: var(--e-space-l);">
-                    <strong>Clear Migration Logs?</strong><br>
+                <div style="display: flex; flex-direction: column; gap: var(--e-space-s);">
+                    <strong>Clear Migration Logs?</strong>
                     <span style="opacity: 0.8; font-size: 14px;">This action cannot be undone.</span>
                 </div>
                 <div style="display: flex; gap: var(--e-space-m); justify-content: center;">
@@ -709,15 +709,15 @@ class B2E_Admin_Interface {
                 const data = await response.json();
                 
                 if (data.success) {
-                    statusDiv.innerHTML = '<div style="background: var(--e-primary); border: var(--e-border-width) var(--e-border-style) var(--e-border-color); border-radius: var(--e-border-radius); padding: var(--e-space-m) var(--e-space-l); ">✅ Connection successful!</div>';
+                    statusDiv.innerHTML = '<div style="color: var(--e-base); background: var(--e-primary); border: var(--e-border-width) var(--e-border-style) var(--e-border-color); border-radius: var(--e-border-radius); padding: var(--e-space-m) var(--e-space-l); ">✅ Connection successful!</div>';
                     showToast('Connection test successful!', 'success');
                 } else {
-                    statusDiv.innerHTML = '<div style="background: var(--e-warning); border: var(--e-border-width) var(--e-border-style) var(--e-border-color); border-radius: var(--e-border-radius); padding: var(--e-space-m) var(--e-space-l); ">❌ Connection failed: ' + (data.data || 'Unknown error') + '</div>';
+                    statusDiv.innerHTML = '<div style="color: var(--e-base); background: var(--e-warning); border: var(--e-border-width) var(--e-border-style) var(--e-border-color); border-radius: var(--e-border-radius); padding: var(--e-space-m) var(--e-space-l); ">❌ Connection failed: ' + (data.data || 'Unknown error') + '</div>';
                     showToast('Connection test failed', 'error');
                 }
             } catch (error) {
                 console.error('Connection test error:', error);
-                statusDiv.innerHTML = '<div style="background: var(--e-warning); border: var(--e-border-width) var(--e-border-style) var(--e-border-color); border-radius: var(--e-border-radius); padding: var(--e-space-m) var(--e-space-l); ">❌ Connection failed: ' + error.message + '</div>';
+                statusDiv.innerHTML = '<div style="color: var(--e-base); background: var(--e-warning); border: var(--e-border-width) var(--e-border-style) var(--e-border-color); border-radius: var(--e-border-radius); padding: var(--e-space-m) var(--e-space-l); ">❌ Connection failed: ' + error.message + '</div>';
                 showToast('Connection test failed', 'error');
             }
         }
@@ -1002,8 +1002,8 @@ class B2E_Admin_Interface {
             
             // Update steps list with better formatting
             if (progressSteps && Array.isArray(steps) && steps.length > 0) {
-                let stepsHTML = '<div style="max-height: 300px; overflow-y: auto; padding: var(--e-space-m); border-radius: var(--e-border-radius); margin-top: var(--e-space-m);">';
-                stepsHTML += '<ul style="list-style: none; padding: 0; margin: 0; font-family: monospace; font-size: 13px;">';
+                let stepsHTML = '<div style="max-height: 300px; overflow-y: auto; padding: var(--e-space-m); border-radius: var(--e-border-radius);">';
+                stepsHTML += '<ul style="list-style: none; padding: 0; font-family: monospace; font-size: 13px;">';
                 
                 steps.forEach((step, index) => {
                     const isSuccess = step.includes('✅');
@@ -1032,7 +1032,7 @@ class B2E_Admin_Interface {
                             border-radius: var(--e-border-radius);
                             animation: slideIn 0.3s ease-out;
                         ">
-                            <span style="margin-right: var(--e-space-s);">${icon}</span>
+                            <span>${icon}</span>
                             <span>${step.trim()}</span>
                         </li>
                     `;
@@ -1145,9 +1145,9 @@ class B2E_Admin_Interface {
         function showMigrationReport(reportData) {
             const reportHtml = `
                 <div class="b2e-report-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; display: flex; align-items: center; justify-content: center;">
-                    <div class="b2e-report-modal" style="background: var(--e-base); padding: var(--e-space-l); border-radius: var(--e-border-radius); max-width: 600px; max-height: 80vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.3); border: 1px solid var(--e-border-color);">
-                        <h2 style="margin-top: 0; color: var(--e-light);">📊 Migration Report</h2>
-                        <div style="margin-bottom: var(--e-space-l);">
+                    <div class="b2e-report-modal" style="color: var(--e-base); background: var(--e-base); border: var(--e-border-width) var(--e-border-style) var(--e-border-color); border-radius: var(--e-border-radius); padding: var(--e-space-m) var(--e-space-l); max-width: 600px; max-height: 80vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+                        <h2 style="color: var(--e-light);">📊 Migration Report</h2>
+                        <div>
                             <strong>Migration Status:</strong> ${reportData.status || 'Unknown'}<br>
                             <strong>Posts Migrated:</strong> ${reportData.posts_migrated || 0} / ${reportData.posts_available || 0}<br>
                             <strong>Pages Migrated:</strong> ${reportData.pages_migrated || 0} / ${reportData.pages_available || 0}<br>
@@ -1158,8 +1158,8 @@ class B2E_Admin_Interface {
                             <strong>Report Time:</strong> ${reportData.migration_time || 'Unknown'}<br>
                             <strong>Log Entries:</strong> ${reportData.total_entries || 0}<br>
                         </div>
-                        ${reportData.details ? `<div style="margin-bottom: var(--e-space-l);"><strong>Recent Activity:</strong><br><pre style="background: var(--e-base-dark); padding: var(--e-space-m); border-radius: var(--e-border-radius); overflow-x: auto; white-space: pre-wrap; border: 1px solid var(--e-border-color);">${reportData.details}</pre></div>` : ''}
-                        <button onclick="this.closest('.b2e-report-overlay').remove()" style="background: var(--e-primary); color: var(--e-base-dark); border: none; padding: var(--e-space-m) var(--e-space-l); border-radius: var(--e-border-radius); cursor: pointer;">Close Report</button>
+                        ${reportData.details ? `<div><strong>Recent Activity:</strong><br><pre style="color: var(--e-base); background: var(--e-base-dark); border: var(--e-border-width) var(--e-border-style) var(--e-border-color); border-radius: var(--e-border-radius); padding: var(--e-space-m) var(--e-space-l); overflow-x: auto; white-space: pre-wrap;">${reportData.details}</pre></div>` : ''}
+                        <button onclick="this.closest('.b2e-report-overlay').remove()" style="color: var(--e-base); background: var(--e-primary); border: var(--e-border-width) var(--e-border-style) var(--e-border-color); border-radius: var(--e-border-radius); padding: var(--e-space-m) var(--e-space-l); cursor: pointer;">Close Report</button>
                     </div>
                 </div>
             `;
@@ -1265,14 +1265,16 @@ class B2E_Admin_Interface {
             
             <!-- Recent Logs -->
             <div class="b2e-card">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--e-space-l);">
-                    <h3 style="margin: 0;"><?php _e('Recent Migration Logs', 'bricks-etch-migration'); ?></h3>
-                    <button type="button" id="clear-logs" class="b2e-button" style="padding: var(--e-space-s) var(--e-space-m); font-size: 12px;">
-                        <?php _e('Clear Logs', 'bricks-etch-migration'); ?>
-                    </button>
-                    <button type="button" id="generate-report" class="b2e-button" style="padding: var(--e-space-s) var(--e-space-m); font-size: 12px; margin-left: 10px;">
-                        📊 <?php _e('Generate Report', 'bricks-etch-migration'); ?>
-                    </button>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3><?php _e('Recent Migration Logs', 'bricks-etch-migration'); ?></h3>
+                    <div style="display: flex; gap: var(--e-space-m);">
+                        <button type="button" id="clear-logs" class="b2e-button" style="padding: var(--e-space-s) var(--e-space-m); font-size: 12px;">
+                            <?php _e('Clear Logs', 'bricks-etch-migration'); ?>
+                        </button>
+                        <button type="button" id="generate-report" class="b2e-button" style="padding: var(--e-space-s) var(--e-space-m); font-size: 12px;">
+                            📊 <?php _e('Generate Report', 'bricks-etch-migration'); ?>
+                        </button>
+                    </div>
                 </div>
                 <?php $this->render_recent_logs($logs); ?>
             </div>
@@ -1292,10 +1294,10 @@ class B2E_Admin_Interface {
             <p><?php _e('Configure your Etch target site connection using WordPress Application Password.', 'bricks-etch-migration'); ?></p>
             
             <!-- Instructions Box -->
-            <div style="background: #f0f6fc; border: 1px solid #0969da; border-radius: 6px; padding: 16px; margin-bottom: 20px;">
-                <h3 style="margin-top: 0; color: #0969da;">📋 <?php _e('Setup Instructions', 'bricks-etch-migration'); ?></h3>
+            <div style="color: var(--e-base); background: var(--e-primary); border: var(--e-border-width) var(--e-border-style) var(--e-border-color); border-radius: var(--e-border-radius); padding: var(--e-space-m) var(--e-space-l);">
+                <h3>📋 <?php _e('Setup Instructions', 'bricks-etch-migration'); ?></h3>
                 <p><strong><?php _e('On your Etch site:', 'bricks-etch-migration'); ?></strong></p>
-                <ol style="line-height: 1.8; margin-bottom: 10px;">
+                <ol style="line-height: 1.8;">
                     <li><?php _e('Go to Users → Profile', 'bricks-etch-migration'); ?></li>
                     <li><?php _e('Scroll to "Application Passwords"', 'bricks-etch-migration'); ?></li>
                     <li><?php _e('Add new: "B2E Migration"', 'bricks-etch-migration'); ?></li>
@@ -1338,27 +1340,27 @@ class B2E_Admin_Interface {
                 
             </table>
             
-            <div style="margin-top: 20px;">
+            <div style="display: flex; gap: var(--e-space-m);">
                 <button type="button" id="save-settings" class="b2e-button">
                     💾 <?php _e('Save Settings', 'bricks-etch-migration'); ?>
                 </button>
-                <button type="button" id="test-connection" class="b2e-button" style="margin-left: 10px;">
+                <button type="button" id="test-connection" class="b2e-button">
                     🔗 <?php _e('Test Connection', 'bricks-etch-migration'); ?>
                 </button>
-                <button type="button" id="start-migration" class="b2e-button" style="margin-left: 10px;">
+                <button type="button" id="start-migration" class="b2e-button">
                     🚀 <?php _e('Start Migration', 'bricks-etch-migration'); ?>
                 </button>
             </div>
             
-            <div id="connection-status" style="margin-top: 15px; display: none;">
+            <div id="connection-status" style="display: none;">
                 <!-- Connection test result will be displayed here -->
             </div>
             
             <!-- Migration Progress Section -->
-            <div id="migration-progress" style="margin-top: var(--e-space-l); display: none;">
+            <div id="migration-progress" style="display: none;">
                 <h3>📊 <?php _e('Migration Progress', 'bricks-etch-migration'); ?></h3>
-                <div style="background: var(--e-base-dark); border-radius: var(--e-border-radius); padding: var(--e-space-l); margin-top: var(--e-space-m); border: 1px solid var(--e-border-color);">
-                    <div style="margin-bottom: var(--e-space-m);">
+                <div style="color: var(--e-base); background: var(--e-base-dark); border: var(--e-border-width) var(--e-border-style) var(--e-border-color); border-radius: var(--e-border-radius); padding: var(--e-space-m) var(--e-space-l);">
+                    <div>
                         <strong id="progress-text"><?php _e('Initializing...', 'bricks-etch-migration'); ?></strong>
                     </div>
                     <div style="background: var(--e-base-ultra-light); border-radius: var(--e-border-radius); height: 30px; overflow: hidden; border: 1px solid var(--e-border-color);">
