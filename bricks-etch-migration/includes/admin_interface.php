@@ -199,8 +199,8 @@ class B2E_Admin_Interface {
                 </div>
                 
                 <p>
-                    <a href="<?php echo admin_url('profile.php#application-passwords-section'); ?>" class="button button-primary">
-                        🔑 <?php _e('Go to Application Passwords', 'bricks-etch-migration'); ?>
+                    <a href="<?php echo admin_url('profile.php#application-passwords-section'); ?>" class="b2e-button">
+                        <?php _e('Go to Application Passwords', 'bricks-etch-migration'); ?>
                     </a>
                 </p>
             </div>
@@ -209,7 +209,6 @@ class B2E_Admin_Interface {
                 <h3><?php _e('Your Etch Site URL:', 'bricks-etch-migration'); ?></h3>
                 <p><?php _e('Share this URL with your Bricks site:', 'bricks-etch-migration'); ?></p>
                 <input type="text" value="<?php echo esc_url(home_url()); ?>" readonly 
-                       style="width: 100%; font-family: monospace; padding: 10px; background: #f0f0f0;" 
                        onclick="this.select();" />
             </div>
         </div>

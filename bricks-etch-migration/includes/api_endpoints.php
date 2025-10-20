@@ -240,9 +240,30 @@ class B2E_API_Endpoints {
      */
     public static function check_api_key($request) {
         // Try Application Password first (WordPress standard)
+        // Check if Authorization header is present
+        $auth_header = $request->get_header('Authorization');
+        
+        if (!empty($auth_header) && strpos($auth_header, 'Basic ') === 0) {
+            // Extract credentials from Basic Auth
+            $credentials = base64_decode(substr($auth_header, 6));
+            list($username, $password) = explode(':', $credentials, 2);
+            
+            // Remove spaces from password (Application Passwords have spaces for readability)
+            $password = str_replace(' ', '', $password);
+            
+            // Try to authenticate with Application Password
+            $user = wp_authenticate_application_password(null, $username, $password);
+            
+            if (!is_wp_error($user) && $user instanceof WP_User) {
+                // Authentication successful
+                wp_set_current_user($user->ID);
+                return true;
+            }
+        }
+        
+        // Also check if user is already authenticated
         $user = wp_get_current_user();
         if ($user && $user->ID > 0) {
-            // User is authenticated via Application Password
             return true;
         }
         
@@ -250,6 +271,8 @@ class B2E_API_Endpoints {
         $api_key = $request->get_header('X-API-Key');
         
         if (!empty($api_key)) {
+            // Remove spaces from API key
+            $api_key = str_replace(' ', '', $api_key);
             $valid_key = get_option('b2e_api_key');
             
             if ($api_key === $valid_key) {
