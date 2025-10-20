@@ -30,11 +30,15 @@ class B2E_API_Client {
     private function send_request($url, $api_key, $endpoint, $method = 'GET', $data = null) {
         $full_url = rtrim($url, '/') . '/wp-json/b2e/v1' . $endpoint;
         
+        // Remove spaces from API key (Application Passwords have spaces for readability)
+        $clean_api_key = str_replace(' ', '', $api_key);
+        
         $args = array(
             'method' => $method,
             'timeout' => 30,
             'headers' => array(
-                'X-API-Key' => $api_key,
+                'X-API-Key' => $clean_api_key,
+                'Authorization' => 'Basic ' . base64_encode('admin:' . $clean_api_key),
                 'Content-Type' => 'application/json',
             ),
         );

@@ -766,11 +766,5 @@ textarea {
 .wrap p,
 .wrap div,
 .wrap span {
-    color: var(--e-base);
     background: transparent;
-}
-
-.b2e-card.b2e-card p,
-.b2e-card.b2e-card h2 {
-    color: var(--e-light);
 }

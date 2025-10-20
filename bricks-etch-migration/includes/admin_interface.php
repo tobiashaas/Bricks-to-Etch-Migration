@@ -1040,7 +1040,7 @@ class B2E_Admin_Interface {
                             padding: var(--e-space-s) var(--e-space-m); 
                             margin: var(--e-space-xs) 0; 
                             color: ${color};
-                            border: var(--e-border);
+                            border: var(--e-border-width) var(--e-border-style) ${color};
                             border-radius: var(--e-border-radius);
                         ">
                             <span>${icon}</span>

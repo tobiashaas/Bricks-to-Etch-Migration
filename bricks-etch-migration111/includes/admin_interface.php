@@ -135,7 +135,7 @@ class B2E_Admin_Interface {
         <div class="wrap">
             <h1><?php _e('Bricks to Etch Migration', 'bricks-etch-migration'); ?></h1>
             
-            <div class="b2e-card" style="border-left: 4px solid #dc3232;">
+            <div class="b2e-card" style="border: var(--e-border);">
                 <h2 style="color: #dc3232;">⚠️ <?php _e('No Compatible Plugin Detected', 'bricks-etch-migration'); ?></h2>
                 <p><?php _e('This plugin requires either <strong>Bricks Builder</strong> or <strong>Etch PageBuilder</strong> to be installed and activated.', 'bricks-etch-migration'); ?></p>
                 
@@ -169,7 +169,7 @@ class B2E_Admin_Interface {
             
             <?php if (!$is_https && $app_passwords_available): ?>
             <div class="notice notice-warning" style="padding: 15px; background: var(--e-warning); color: var(--e-base);">
-                <h3">⚠️ <?php _e('HTTPS Not Enabled', 'bricks-etch-migration'); ?></h3>
+                <h3>⚠️ <?php _e('HTTPS Not Enabled', 'bricks-etch-migration'); ?></h3>
                 <p><?php _e('Application Passwords normally require HTTPS. However, this plugin has <strong>automatically enabled</strong> Application Passwords for local development.', 'bricks-etch-migration'); ?></p>
                 <p><strong><?php _e('Note:', 'bricks-etch-migration'); ?></strong> <?php _e('For production sites, please enable HTTPS for better security.', 'bricks-etch-migration'); ?></p>
             </div>
@@ -199,8 +199,8 @@ class B2E_Admin_Interface {
                 </div>
                 
                 <p>
-                    <a href="<?php echo admin_url('profile.php#application-passwords-section'); ?>" class="button button-primary">
-                        🔑 <?php _e('Go to Application Passwords', 'bricks-etch-migration'); ?>
+                    <a href="<?php echo admin_url('profile.php#application-passwords-section'); ?>" class="b2e-button">
+                        <?php _e('Go to Application Passwords', 'bricks-etch-migration'); ?>
                     </a>
                 </p>
             </div>
@@ -209,7 +209,6 @@ class B2E_Admin_Interface {
                 <h3><?php _e('Your Etch Site URL:', 'bricks-etch-migration'); ?></h3>
                 <p><?php _e('Share this URL with your Bricks site:', 'bricks-etch-migration'); ?></p>
                 <input type="text" value="<?php echo esc_url(home_url()); ?>" readonly 
-                       style="width: 100%; font-family: monospace; padding: 10px; background: #f0f0f0;" 
                        onclick="this.select();" />
             </div>
         </div>
@@ -728,11 +727,8 @@ class B2E_Admin_Interface {
         async function startMigrationProcess(targetUrl, apiKey) {
             console.log('🚀 Starting BATCH migration process...', { targetUrl });
             
-            // Convert localhost:8081 to b2e-etch for Docker internal communication
+            // Use the URL as-is (Docker conversion happens in PHP backend)
             let apiDomain = targetUrl;
-            if (targetUrl.includes('localhost:8081')) {
-                apiDomain = targetUrl.replace('localhost:8081', 'b2e-etch');
-            }
             
             // Show progress section
             const progressSection = document.getElementById('migration-progress');
@@ -794,6 +790,8 @@ class B2E_Admin_Interface {
             const completedSteps = [...cssSteps];
             let successCount = 0;
             let errorCount = 0;
+            let consecutiveErrors = 0;
+            const MAX_CONSECUTIVE_ERRORS = 5; // Stop after 5 consecutive errors
             
             for (let i = 0; i < posts.length; i++) {
                 const post = posts[i];
@@ -808,12 +806,26 @@ class B2E_Admin_Interface {
                     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
                     
                     successCount++;
+                    consecutiveErrors = 0; // Reset consecutive error counter on success
                     completedSteps.push(`✅ ${post.title} (${post.type}) - ${duration}s`);
                     console.log(`✅ Migrated: ${post.title} in ${duration}s`);
                 } catch (error) {
                     errorCount++;
+                    consecutiveErrors++;
                     completedSteps.push(`❌ ${post.title} (${post.type}): ${error.message}`);
                     console.error(`❌ Failed: ${post.title}`, error);
+                    
+                    // Stop if too many consecutive errors
+                    if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+                        completedSteps.push('');
+                        completedSteps.push(`🛑 MIGRATION STOPPED: ${MAX_CONSECUTIVE_ERRORS} consecutive errors detected`);
+                        completedSteps.push(`⚠️ This usually indicates an authentication or connection problem`);
+                        completedSteps.push(`💡 Please check your API credentials and try again`);
+                        
+                        updateProgress(progress, `🛑 Migration stopped due to errors`, completedSteps);
+                        showToast(`Migration stopped: ${MAX_CONSECUTIVE_ERRORS} consecutive errors`, 'error');
+                        return; // Exit migration
+                    }
                 }
                 
                 // Update progress with completed step
@@ -1028,9 +1040,8 @@ class B2E_Admin_Interface {
                             padding: var(--e-space-s) var(--e-space-m); 
                             margin: var(--e-space-xs) 0; 
                             color: ${color};
-                            border-left: 3px solid ${color};
+                            border: var(--e-border);
                             border-radius: var(--e-border-radius);
-                            animation: slideIn 0.3s ease-out;
                         ">
                             <span>${icon}</span>
                             <span>${step.trim()}</span>
@@ -1039,25 +1050,6 @@ class B2E_Admin_Interface {
                 });
                 
                 stepsHTML += '</ul></div>';
-                
-                // Add CSS animation
-                if (!document.getElementById('progress-animation-style')) {
-                    const style = document.createElement('style');
-                    style.id = 'progress-animation-style';
-                    style.textContent = `
-                        @keyframes slideIn {
-                            from {
-                                opacity: 0;
-                                transform: translateX(-10px);
-                            }
-                            to {
-                                opacity: 1;
-                                transform: translateX(0);
-                            }
-                        }
-                    `;
-                    document.head.appendChild(style);
-                }
                 
                 progressSteps.innerHTML = stepsHTML;
                 
@@ -1314,7 +1306,7 @@ class B2E_Admin_Interface {
                     </th>
                     <td>
                         <input type="url" id="target_url" name="target_url" 
-                               value="<?php echo esc_attr($settings['target_url'] ?? ''); ?>"
+                               value=""
                                placeholder="https://your-etch-site.com"
                                style="width: 100%; max-width: 500px;" />
                         <p class="description">
@@ -1329,7 +1321,7 @@ class B2E_Admin_Interface {
                     </th>
                     <td>
                         <input type="text" id="api_key" name="api_key" 
-                               value="<?php echo esc_attr($settings['api_key'] ?? ''); ?>"
+                               value=""
                                placeholder="b1lP Xz5Z oq2C xcGL L7Kn N4ID"
                                style="width: 100%; max-width: 500px; font-family: monospace;" />
                         <p class="description">
@@ -1359,16 +1351,16 @@ class B2E_Admin_Interface {
             <!-- Migration Progress Section -->
             <div id="migration-progress" style="display: none;">
                 <h3>📊 <?php _e('Migration Progress', 'bricks-etch-migration'); ?></h3>
-                <div style="color: var(--e-base); background: var(--e-base-dark); border: var(--e-border-width) var(--e-border-style) var(--e-border-color); border-radius: var(--e-border-radius); padding: var(--e-space-m) var(--e-space-l);">
+                <div style="color: var(--e-base); background: var(--e-base-dark); border: var(--e-border); border-radius: var(--e-border-radius); padding: var(--e-space-m) var(--e-space-l);">
                     <div>
                         <strong id="progress-text"><?php _e('Initializing...', 'bricks-etch-migration'); ?></strong>
                     </div>
-                    <div style="background: var(--e-base-ultra-light); border-radius: var(--e-border-radius); height: 30px; overflow: hidden; border: 1px solid var(--e-border-color);">
+                    <div style="background: var(--e-base-ultra-light); border-radius: var(--e-border-radius); height: 30px; overflow: hidden; border: var(--e-border);">
                         <div id="progress-bar" style="background: linear-gradient(90deg, #0073aa, #00a0d2); height: 100%; width: 0%; transition: width 0.3s ease; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 12px;">
                             <span id="progress-percentage">0%</span>
                         </div>
                     </div>
-                    <div id="progress-steps" style="margin-top: 15px; font-size: 12px; color: #666;">
+                    <div id="progress-steps">
                         <!-- Migration steps will be displayed here -->
                     </div>
                 </div>
@@ -1458,7 +1450,8 @@ class B2E_Admin_Interface {
         
         // Convert localhost:8081 to b2e-etch for Docker internal communication
         if (strpos($target_url, 'localhost:8081') !== false) {
-            $target_url = str_replace('localhost:8081', 'b2e-etch', $target_url);
+            $target_url = str_replace('http://localhost:8081', 'http://b2e-etch', $target_url);
+            $target_url = str_replace('https://localhost:8081', 'http://b2e-etch', $target_url);
         }
         
         // Validate API key via API client
@@ -1494,7 +1487,8 @@ class B2E_Admin_Interface {
         
         // Convert localhost:8081 to b2e-etch for Docker internal communication
         if (strpos($target_url, 'localhost:8081') !== false) {
-            $target_url = str_replace('localhost:8081', 'b2e-etch', $target_url);
+            $target_url = str_replace('http://localhost:8081', 'http://b2e-etch', $target_url);
+            $target_url = str_replace('https://localhost:8081', 'http://b2e-etch', $target_url);
         }
         
         // Validate migration token on target site
@@ -1727,7 +1721,7 @@ class B2E_Admin_Interface {
                     <div class="b2e-form-group">
                         <label for="target_domain"><?php _e('Target Domain', 'bricks-etch-migration'); ?></label>
                         <input type="url" id="target_domain" name="target_domain" 
-                               value="<?php echo esc_attr(home_url()); ?>"
+                               value=""
                                placeholder="https://your-bricks-site.com" readonly />
                         <p class="description">
                             <?php _e('This is your current Etch site (where this key is generated)', 'bricks-etch-migration'); ?>
@@ -2432,16 +2426,21 @@ class B2E_Admin_Interface {
         // Convert localhost:8081 to b2e-etch for Docker internal communication
         $test_target_url = $target_url;
         if (strpos($target_url, 'localhost:8081') !== false) {
-            $test_target_url = str_replace('localhost:8081', 'b2e-etch', $target_url);
+            // Replace with Docker service name (no port needed, uses internal port 80)
+            $test_target_url = str_replace('http://localhost:8081', 'http://b2e-etch', $target_url);
+            $test_target_url = str_replace('https://localhost:8081', 'http://b2e-etch', $test_target_url);
         }
         
         // Test connection to Etch API (use /auth/test endpoint)
         $test_url = rtrim($test_target_url, '/') . '/wp-json/b2e/v1/auth/test';
         
+        // Remove spaces from API key (Application Passwords have spaces)
+        $clean_api_key = str_replace(' ', '', $api_key);
+        
         $response = wp_remote_get($test_url, array(
             'headers' => array(
-                'X-API-Key' => $api_key,
-                'Authorization' => 'Basic ' . base64_encode('admin:' . $api_key),
+                'X-API-Key' => $clean_api_key,
+                'Authorization' => 'Basic ' . base64_encode('admin:' . $clean_api_key),
             ),
             'timeout' => 10,
         ));
