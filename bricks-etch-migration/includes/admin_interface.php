@@ -1293,7 +1293,7 @@ class B2E_Admin_Interface {
                     </th>
                     <td>
                         <input type="url" id="target_url" name="target_url" 
-                               value="<?php echo esc_attr($settings['target_url'] ?? ''); ?>"
+                               value=""
                                placeholder="https://your-etch-site.com"
                                style="width: 100%; max-width: 500px;" />
                         <p class="description">
