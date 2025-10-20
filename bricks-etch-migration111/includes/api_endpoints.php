@@ -588,10 +588,20 @@ class B2E_API_Endpoints {
         $post = $post_data['post'];
         $etch_content = $post_data['etch_content'];
         
-        // Check if post already exists by post_name (slug)
+        // Check if post already exists by post_title (more reliable than slug)
         $existing_post = null;
-        if (!empty($post['post_name'])) {
-            $existing_post = get_page_by_path($post['post_name'], OBJECT, $post['post_type']);
+        if (!empty($post['post_title'])) {
+            $args = array(
+                'post_type' => $post['post_type'],
+                'post_status' => 'any',
+                'title' => $post['post_title'],
+                'posts_per_page' => 1,
+                'fields' => 'ids'
+            );
+            $posts = get_posts($args);
+            if (!empty($posts)) {
+                $existing_post = get_post($posts[0]);
+            }
         }
         
         // If exists, update it. Otherwise create new.
