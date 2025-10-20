@@ -175,7 +175,7 @@ class B2E_Admin_Interface {
                     <li><?php _e('Use this password as the API Key on your Bricks site', 'bricks-etch-migration'); ?></li>
                 </ol>
                 
-                <div style="background: #f0f6fc; border: 1px solid #0969da; border-radius: 6px; padding: 16px; margin-top: 20px;">
+                <div style="border: 1px solid #0969da; border-radius: var(--e-border-radius); padding: 16px; margin-top: 20px;">
                     <h4 style="margin-top: 0; color: #0969da;">💡 <?php _e('How it works:', 'bricks-etch-migration'); ?></h4>
                     <ul style="margin-bottom: 0; line-height: 1.8;">
                         <li><?php _e('Application Passwords are WordPress standard authentication', 'bricks-etch-migration'); ?></li>

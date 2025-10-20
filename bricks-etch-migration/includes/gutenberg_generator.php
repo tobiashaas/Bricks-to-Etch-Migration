@@ -102,8 +102,12 @@ class B2E_Gutenberg_Generator {
                 return $this->convert_etch_container($element, $children, $element_map);
             
             case 'block':
+                // brxe-block becomes flex-div
+                return $this->convert_etch_flex_div($element, $children, $element_map);
+            
             case 'div':
-                return $this->convert_etch_div($element, $children, $element_map);
+                // Regular div stays as div
+                return $this->convert_etch_simple_div($element, $children, $element_map);
             
             case 'text':
             case 'text-basic':
@@ -260,9 +264,9 @@ class B2E_Gutenberg_Generator {
     }
     
     /**
-     * Convert Bricks Div to Etch Flex-Div (wp:group with proper etchData)
+     * Convert Bricks Block (brxe-block) to Etch Flex-Div (wp:group with proper etchData)
      */
-    private function convert_etch_div($element, $children, $element_map) {
+    private function convert_etch_flex_div($element, $children, $element_map) {
         $classes = $this->get_element_classes($element);
         $label = $element['label'] ?? '';
         
@@ -311,7 +315,56 @@ class B2E_Gutenberg_Generator {
         // Build class attribute for HTML
         $class_attr = !empty($classes) ? ' class="wp-block-group ' . esc_attr(implode(' ', $classes)) . '"' : ' class="wp-block-group"';
         
-        // Etch Div = wp:group
+        // Etch Flex-Div = wp:group with flex-div etchData
+        return '<!-- wp:group ' . $attrs_json . ' -->' . "\n" .
+               '<div' . $class_attr . '>' . "\n" .
+               $children_html .
+               '</div>' . "\n" .
+               '<!-- /wp:group -->';
+    }
+    
+    /**
+     * Convert Bricks Div to simple HTML div (NOT flex-div)
+     */
+    private function convert_etch_simple_div($element, $children, $element_map) {
+        $classes = $this->get_element_classes($element);
+        $label = $element['label'] ?? '';
+        
+        // Convert children
+        $children_html = '';
+        foreach ($children as $child) {
+            $child_html = $this->convert_single_bricks_element($child, $element_map);
+            if (!empty($child_html)) {
+                $children_html .= $child_html . "\n";
+            }
+        }
+        
+        // Get style IDs for this element
+        $style_ids = $this->get_element_style_ids($element);
+        
+        // Build attributes JSON - simple div WITHOUT flex-div
+        $attrs = array(
+            'metadata' => array(
+                'name' => $label ?: 'Div',
+                'etchData' => array(
+                    'origin' => 'etch',
+                    'name' => $label ?: 'Div',
+                    'styles' => $style_ids,
+                    'attributes' => array(), // No special attributes for simple div
+                    'block' => array(
+                        'type' => 'html',
+                        'tag' => 'div'
+                    )
+                )
+            )
+        );
+        
+        $attrs_json = json_encode($attrs, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        
+        // Build class attribute for HTML
+        $class_attr = !empty($classes) ? ' class="wp-block-group ' . esc_attr(implode(' ', $classes)) . '"' : ' class="wp-block-group"';
+        
+        // Simple Div = wp:group WITHOUT flex-div
         return '<!-- wp:group ' . $attrs_json . ' -->' . "\n" .
                '<div' . $class_attr . '>' . "\n" .
                $children_html .
