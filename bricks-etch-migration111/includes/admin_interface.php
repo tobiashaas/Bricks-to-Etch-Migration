@@ -1916,17 +1916,21 @@ class B2E_Admin_Interface {
             return;
         }
         
-        // Check if it has Bricks content
-        $bricks_content = get_post_meta($post_id, '_bricks_page_content_2', true);
-        if (empty($bricks_content)) {
+        // Check if it's media/attachment
+        if ($post->post_type === 'attachment') {
+            // TODO: Implement media migration
             wp_send_json_success(array(
-                'message' => 'Post skipped (no Bricks content)',
+                'message' => 'Media migration not yet implemented',
                 'skipped' => true
             ));
             return;
         }
         
-        // Migrate this single post
+        // Check if it has Bricks content
+        $bricks_content = get_post_meta($post_id, '_bricks_page_content_2', true);
+        $has_bricks = !empty($bricks_content);
+        
+        // Migrate this single post (works for both Bricks and Gutenberg content)
         try {
             // Convert localhost:8081 to b2e-etch for Docker internal communication
             $internal_url = $target_url;
