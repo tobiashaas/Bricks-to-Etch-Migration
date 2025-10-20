@@ -986,8 +986,8 @@ class B2E_Gutenberg_Generator {
         // Convert dynamic data in content
         $content = $this->dynamic_data_converter->convert_content($content);
         
-        // Extract style IDs
-        $style_ids = $this->extract_style_ids($element['settings'] ?? array());
+        // Get style IDs using style map
+        $style_ids = $this->get_element_style_ids($element);
         
         // Use custom label if available, otherwise use element type
         $element_name = !empty($element['label']) ? $element['label'] : ucfirst($element['etch_type']);

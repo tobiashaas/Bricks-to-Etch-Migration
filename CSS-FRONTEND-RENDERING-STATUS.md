@@ -1,7 +1,7 @@
 # CSS Frontend Rendering - Aktueller Stand
 
 **Datum:** 20. Oktober 2025, 00:00 Uhr  
-**Status:** 🟡 In Arbeit - Kritischer Bug identifiziert
+**Status:** ✅ GELÖST - CSS wird korrekt gerendert!
 
 ---
 
@@ -38,20 +38,21 @@ CSS-Styles sollen im Frontend gerendert werden, nachdem Posts von Bricks zu Etch
 
 ## ❌ Das Problem
 
-### Symptom
-CSS-Styles werden **nicht im Frontend gerendert**, obwohl:
-- Posts migriert sind
-- Style-IDs im Content vorhanden sind
-- Styles in `etch_styles` gespeichert sind
+### Lösung (20. Oktober 2025)
 
-### Root Cause
-**Die Selectors in `etch_styles` sind `null`!**
+### Das Problem
+CSS-Styles wurden im Frontend nicht gerendert, weil:
+1. ❌ Style-IDs im Content stimmten nicht mit IDs in `etch_styles` überein
+2. ❌ Alte Funktion `extract_style_ids()` generierte MD5-Hashes statt Style-Map zu nutzen
+3. ❌ Style-Map wurde nicht korrekt zwischen CSS- und Content-Migration übertragen
 
-```json
-{
-  "8f166f7": {
-    "type": "class",
-    "selector": null,  // ❌ Sollte ".klassenname" sein!
+### Die Lösung
+1. ✅ CSS-Konvertierung generiert IDs mit `uniqid()` (wie Etch)
+2. ✅ Style-Map wird erstellt: `Bricks-ID` → `Etch-ID`
+3. ✅ Style-Map wird mit Styles an Etch API gesendet
+4. ✅ Style-Map wird auf Bricks-Seite gespeichert
+5. ✅ Content-Migration nutzt `get_element_style_ids()` mit Style-Map
+6. ✅ IDs im Content stimmen mit IDs in `etch_styles` überein
     "css": "...",
     "readonly": false
   }

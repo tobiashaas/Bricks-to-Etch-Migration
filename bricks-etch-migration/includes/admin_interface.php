@@ -2050,16 +2050,21 @@ class B2E_Admin_Interface {
             // Step 1: Convert Bricks classes to Etch styles
             error_log('🎨 B2E CSS Migration: Step 1 - Converting Bricks classes to Etch styles...');
             $css_converter = new B2E_CSS_Converter();
-            $etch_styles = $css_converter->convert_bricks_classes_to_etch();
+            $result = $css_converter->convert_bricks_classes_to_etch();
             
-            if (is_wp_error($etch_styles)) {
-                error_log('❌ B2E CSS Migration: Converter returned error: ' . $etch_styles->get_error_message());
-                wp_send_json_error($etch_styles->get_error_message());
+            if (is_wp_error($result)) {
+                error_log('❌ B2E CSS Migration: Converter returned error: ' . $result->get_error_message());
+                wp_send_json_error($result->get_error_message());
                 return;
             }
             
-            $styles_count = is_array($etch_styles) ? count($etch_styles) : 0;
+            // Extract styles and style_map from result
+            $etch_styles = $result['styles'] ?? array();
+            $style_map = $result['style_map'] ?? array();
+            
+            $styles_count = count($etch_styles);
             error_log('✅ B2E CSS Migration: Converted ' . $styles_count . ' styles');
+            error_log('✅ B2E CSS Migration: Created style map with ' . count($style_map) . ' entries');
             
             if ($styles_count === 0) {
                 error_log('⚠️ B2E CSS Migration: No styles to migrate (empty array)');
@@ -2070,15 +2075,24 @@ class B2E_Admin_Interface {
                 return;
             }
             
-            // Step 2: Send styles to Etch via API
+            // Step 2: Send styles AND style_map to Etch via API
             error_log('🎨 B2E CSS Migration: Step 2 - Sending ' . $styles_count . ' styles to Etch API...');
             $api_client = new B2E_API_Client();
-            $result = $api_client->send_css_styles($internal_url, $api_key, $etch_styles);
+            // Send complete result (styles + style_map)
+            $api_result = $api_client->send_css_styles($internal_url, $api_key, $result);
             
-            if (is_wp_error($result)) {
-                error_log('❌ B2E CSS Migration: API error: ' . $result->get_error_message());
-                wp_send_json_error('Failed to send styles to Etch: ' . $result->get_error_message());
+            if (is_wp_error($api_result)) {
+                error_log('❌ B2E CSS Migration: API error: ' . $api_result->get_error_message());
+                wp_send_json_error('Failed to send styles to Etch: ' . $api_result->get_error_message());
                 return;
+            }
+            
+            // Step 3: Save style map from API response
+            if (isset($api_result['style_map']) && is_array($api_result['style_map'])) {
+                update_option('b2e_style_map', $api_result['style_map']);
+                error_log('✅ B2E CSS Migration: Saved style map with ' . count($api_result['style_map']) . ' entries');
+            } else {
+                error_log('⚠️ B2E CSS Migration: No style map in API response!');
             }
             
             error_log('✅ B2E CSS Migration: SUCCESS - ' . $styles_count . ' styles migrated');

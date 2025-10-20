@@ -77,9 +77,10 @@ class B2E_CSS_Converter {
         foreach ($bricks_classes as $class) {
             $converted_class = $this->convert_bricks_class_to_etch($class);
             if ($converted_class) {
-                // Use name for hash if available, otherwise use ID
-                $hash_base = !empty($class['name']) ? $class['name'] : $class['id'];
-                $style_id = $this->generate_style_hash($hash_base);
+                // Generate unique ID like Etch does (uniqid is fine!)
+                $style_id = substr(uniqid(), -7);
+                
+                // Add style WITH ID as key (Etch won't overwrite existing IDs!)
                 $etch_styles[$style_id] = $converted_class;
                 $converted_count++;
                 
@@ -123,12 +124,17 @@ class B2E_CSS_Converter {
         
         $total_styles = count($etch_styles);
         error_log('🎨 CSS Converter: Returning ' . $total_styles . ' total styles');
+        error_log('🎨 CSS Converter: Style map has ' . count($style_map) . ' entries');
         
         if ($total_styles === 0) {
             error_log('⚠️ CSS Converter: WARNING - No styles generated!');
         }
         
-        return $etch_styles;
+        // Return both styles AND style map
+        return array(
+            'styles' => $etch_styles,
+            'style_map' => $style_map
+        );
     }
     
     /**
@@ -1037,12 +1043,17 @@ class B2E_CSS_Converter {
     /**
      * Import Etch styles to target site
      */
-    public function import_etch_styles($etch_styles) {
-        if (empty($etch_styles) || !is_array($etch_styles)) {
+    public function import_etch_styles($data) {
+        if (empty($data) || !is_array($data)) {
             return new WP_Error('invalid_styles', 'Invalid styles data provided');
         }
         
+        // Extract styles and style_map from data
+        $etch_styles = $data['styles'] ?? $data; // Fallback to old format
+        $style_map = $data['style_map'] ?? array();
+        
         error_log('B2E: import_etch_styles called with ' . count($etch_styles) . ' styles');
+        error_log('B2E: import_etch_styles received style map with ' . count($style_map) . ' entries');
         
         // Get existing etch_styles (for Etch Editor)
         $existing_styles = get_option('etch_styles', array());
@@ -1054,12 +1065,65 @@ class B2E_CSS_Converter {
         // - etch_styles: Used by Etch's StylesRegister to render styles on pages that use them
         // - etch_global_stylesheets: Only for manually entered global CSS (not for classes)
         
-        // Save via Etch API - this is REQUIRED for proper processing!
-        // The Etch API handles:
-        // - Unicode decoding (\u002d -> -)
-        // - Cache invalidation
-        // - Internal hooks and triggers
-        if (class_exists('Etch\RestApi\Routes\StylesRoutes')) {
+        // TEST: Bypass Etch API to check if selectors are preserved
+        $bypass_api = true; // Set to false to use Etch API again
+        
+        if ($bypass_api) {
+            error_log('B2E: 🚫 BYPASSING Etch API - using direct update_option()');
+            
+            // DEBUG: Log first 3 styles BEFORE saving
+            $style_keys = array_keys($merged_styles);
+            for ($i = 0; $i < min(3, count($style_keys)); $i++) {
+                $key = $style_keys[$i];
+                $style = $merged_styles[$key];
+                error_log('B2E CSS BEFORE SAVE: ' . $key . ' selector: ' . ($style['selector'] ?? 'NULL'));
+            }
+            
+            // Save directly to database
+            $update_result = update_option('etch_styles', $merged_styles);
+            
+            if (!$update_result) {
+                error_log('B2E: ⚠️ update_option returned false (option may already exist with same value)');
+            } else {
+                error_log('B2E: ✅ update_option returned true');
+            }
+            
+            // DEBUG: Log first 3 styles AFTER saving (verify from DB)
+            $saved_styles = get_option('etch_styles', array());
+            error_log('B2E: Retrieved ' . count($saved_styles) . ' styles from DB');
+            
+            for ($i = 0; $i < min(3, count($style_keys)); $i++) {
+                $key = $style_keys[$i];
+                $saved_style = $saved_styles[$key] ?? null;
+                if ($saved_style) {
+                    error_log('B2E CSS AFTER SAVE: ' . $key . ' selector: ' . ($saved_style['selector'] ?? 'NULL'));
+                } else {
+                    error_log('B2E CSS AFTER SAVE: ' . $key . ' NOT FOUND in DB!');
+                }
+            }
+            
+            // Manually trigger cache invalidation
+            wp_cache_delete('etch_styles', 'options');
+            
+            // Trigger CSS rebuild
+            $this->trigger_etch_css_rebuild();
+            
+            error_log('B2E: ✅ Direct save complete - ' . count($merged_styles) . ' styles saved');
+            
+            // Style map was already created during conversion!
+            // Just save it to WordPress options
+            update_option('b2e_style_map', $style_map);
+            error_log('B2E: ✅ Saved style map with ' . count($style_map) . ' entries');
+            
+            // Log first few mappings for debugging
+            $map_entries = array_slice($style_map, 0, 3, true);
+            foreach ($map_entries as $bricks_id => $etch_id) {
+                error_log('B2E: Style Map: ' . $bricks_id . ' → ' . $etch_id);
+            }
+            
+            return true;
+            
+        } elseif (class_exists('Etch\RestApi\Routes\StylesRoutes')) {
             try {
                 $routes = new \Etch\RestApi\Routes\StylesRoutes();
                 

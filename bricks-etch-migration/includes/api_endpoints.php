@@ -632,10 +632,16 @@ class B2E_API_Endpoints {
             return $result;
         }
         
+        // Get the style map from Etch side
+        $style_map = get_option('b2e_style_map', array());
+        
         error_log('✅ API Endpoint: CSS classes imported successfully (' . $styles_count . ' styles)');
+        error_log('📋 API Endpoint: Returning style map with ' . count($style_map) . ' entries');
+        
         return new WP_REST_Response(array(
             'message' => 'CSS classes imported successfully',
             'imported_count' => $styles_count,
+            'style_map' => $style_map, // Return style map to Bricks side!
         ), 200);
     }
     
