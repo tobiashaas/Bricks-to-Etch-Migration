@@ -262,12 +262,12 @@
 }
 
 /* Buttons - Etch Style */
-.b2e-button {
-    background: var(--e-primary);
-    color: var(--e-base);
-    border: var(--e-border-width) var(--e-border-style)  var(--e-primary);
-    padding: var(--e-space-m) var(--e-space-l);
+.b2e-button.b2e-button {
+    background-color: var(--e-primary);
     border-radius: var(--e-border-radius);
+    border: var(--e-border);
+    color: var(--e-base-dark);
+    padding: var(--e-space-m) var(--e-space-l);
     cursor: pointer;
     text-decoration: none;
     display: inline-block;
@@ -275,15 +275,12 @@
     font-family: 'Inter', sans-serif;
     font-weight: 500;
     transition: all 0.2s ease;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-.b2e-button:hover {
-    background: var(--e-primary-hover);
-    color: var(--e-base-dark);
+.b2e-button.b2e-button:hover {
+    background-color: var(--e-base-light);
+    color: var(--e-foreground-color);
     border-color: var(--e-border-color);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 .b2e-button:active {
@@ -748,12 +745,11 @@
 
 /* Override WordPress default styles */
 .wrap,
-.wrap h1,
 .wrap h2,
 .wrap h3,
 .wrap p,
 .wrap div,
 .wrap span {
-    color: var(--e-light);
+    color: var(--e-base);
     background: transparent;
 }

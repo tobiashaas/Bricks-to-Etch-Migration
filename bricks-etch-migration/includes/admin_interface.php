@@ -169,7 +169,7 @@ class B2E_Admin_Interface {
             
             <?php if (!$is_https && $app_passwords_available): ?>
             <div class="notice notice-warning" style="padding: 15px; background: var(--e-warning); color: var(--e-base);">
-                <h3">⚠️ <?php _e('HTTPS Not Enabled', 'bricks-etch-migration'); ?></h3>
+                <h3>⚠️ <?php _e('HTTPS Not Enabled', 'bricks-etch-migration'); ?></h3>
                 <p><?php _e('Application Passwords normally require HTTPS. However, this plugin has <strong>automatically enabled</strong> Application Passwords for local development.', 'bricks-etch-migration'); ?></p>
                 <p><strong><?php _e('Note:', 'bricks-etch-migration'); ?></strong> <?php _e('For production sites, please enable HTTPS for better security.', 'bricks-etch-migration'); ?></p>
             </div>
