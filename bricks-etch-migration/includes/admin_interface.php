@@ -1329,7 +1329,7 @@ class B2E_Admin_Interface {
                     </th>
                     <td>
                         <input type="text" id="api_key" name="api_key" 
-                               value="<?php echo esc_attr($settings['api_key'] ?? ''); ?>"
+                               value=""
                                placeholder="b1lP Xz5Z oq2C xcGL L7Kn N4ID"
                                style="width: 100%; max-width: 500px; font-family: monospace;" />
                         <p class="description">
@@ -1727,7 +1727,7 @@ class B2E_Admin_Interface {
                     <div class="b2e-form-group">
                         <label for="target_domain"><?php _e('Target Domain', 'bricks-etch-migration'); ?></label>
                         <input type="url" id="target_domain" name="target_domain" 
-                               value="<?php echo esc_attr(home_url()); ?>"
+                               value=""
                                placeholder="https://your-bricks-site.com" readonly />
                         <p class="description">
                             <?php _e('This is your current Etch site (where this key is generated)', 'bricks-etch-migration'); ?>
