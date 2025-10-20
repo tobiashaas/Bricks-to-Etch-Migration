@@ -236,22 +236,28 @@ class B2E_API_Endpoints {
     }
     
     /**
-     * Check API key for authentication
+     * Check authentication (Application Password or API Key for backwards compatibility)
      */
     public static function check_api_key($request) {
+        // Try Application Password first (WordPress standard)
+        $user = wp_get_current_user();
+        if ($user && $user->ID > 0) {
+            // User is authenticated via Application Password
+            return true;
+        }
+        
+        // Fallback: Check custom API key (backwards compatibility)
         $api_key = $request->get_header('X-API-Key');
         
-        if (empty($api_key)) {
-            return new WP_Error('missing_api_key', 'API key is required', array('status' => 401));
+        if (!empty($api_key)) {
+            $valid_key = get_option('b2e_api_key');
+            
+            if ($api_key === $valid_key) {
+                return true;
+            }
         }
         
-        $valid_key = get_option('b2e_api_key');
-        
-        if ($api_key !== $valid_key) {
-            return new WP_Error('invalid_api_key', 'Invalid API key', array('status' => 401));
-        }
-        
-        return true;
+        return new WP_Error('unauthorized', 'Authentication required. Use Application Password or API key.', array('status' => 401));
     }
     
     /**
