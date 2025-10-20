@@ -1256,18 +1256,6 @@ class B2E_Admin_Interface {
                     </td>
                 </tr>
                 
-                <tr>
-                    <th scope="row">
-                        <label for="convert_div_to_flex"><?php _e('Conversion Options', 'bricks-etch-migration'); ?></label>
-                    </th>
-                    <td>
-                        <label>
-                            <input type="checkbox" id="convert_div_to_flex" name="convert_div_to_flex" 
-                                   <?php checked($settings['convert_div_to_flex'] ?? true); ?> />
-                            <?php _e('Convert Bricks div elements to Etch flex containers', 'bricks-etch-migration'); ?>
-                        </label>
-                    </td>
-                </tr>
             </table>
             
             <div style="margin-top: 20px;">
