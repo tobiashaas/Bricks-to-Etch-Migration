@@ -690,6 +690,12 @@ class B2E_Admin_Interface {
             
             const data = await response.json();
             
+            console.log('📋 getBricksPosts response:', data);
+            console.log('📋 Total posts returned:', data.data?.posts?.length);
+            console.log('📋 Bricks count:', data.data?.bricks_count);
+            console.log('📋 Gutenberg count:', data.data?.gutenberg_count);
+            console.log('📋 Media count:', data.data?.media_count);
+            
             if (data.success) {
                 return data.data.posts;
             } else {
