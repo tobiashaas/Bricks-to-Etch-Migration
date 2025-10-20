@@ -727,11 +727,8 @@ class B2E_Admin_Interface {
         async function startMigrationProcess(targetUrl, apiKey) {
             console.log('🚀 Starting BATCH migration process...', { targetUrl });
             
-            // Convert localhost:8081 to b2e-etch for Docker internal communication
+            // Use the URL as-is (Docker conversion happens in PHP backend)
             let apiDomain = targetUrl;
-            if (targetUrl.includes('localhost:8081')) {
-                apiDomain = targetUrl.replace('localhost:8081', 'b2e-etch');
-            }
             
             // Show progress section
             const progressSection = document.getElementById('migration-progress');
@@ -1437,7 +1434,8 @@ class B2E_Admin_Interface {
         
         // Convert localhost:8081 to b2e-etch for Docker internal communication
         if (strpos($target_url, 'localhost:8081') !== false) {
-            $target_url = str_replace('localhost:8081', 'b2e-etch', $target_url);
+            $target_url = str_replace('http://localhost:8081', 'http://b2e-etch', $target_url);
+            $target_url = str_replace('https://localhost:8081', 'http://b2e-etch', $target_url);
         }
         
         // Validate API key via API client
@@ -1473,7 +1471,8 @@ class B2E_Admin_Interface {
         
         // Convert localhost:8081 to b2e-etch for Docker internal communication
         if (strpos($target_url, 'localhost:8081') !== false) {
-            $target_url = str_replace('localhost:8081', 'b2e-etch', $target_url);
+            $target_url = str_replace('http://localhost:8081', 'http://b2e-etch', $target_url);
+            $target_url = str_replace('https://localhost:8081', 'http://b2e-etch', $target_url);
         }
         
         // Validate migration token on target site
@@ -2411,7 +2410,9 @@ class B2E_Admin_Interface {
         // Convert localhost:8081 to b2e-etch for Docker internal communication
         $test_target_url = $target_url;
         if (strpos($target_url, 'localhost:8081') !== false) {
-            $test_target_url = str_replace('localhost:8081', 'b2e-etch', $target_url);
+            // Replace with Docker service name (no port needed, uses internal port 80)
+            $test_target_url = str_replace('http://localhost:8081', 'http://b2e-etch', $target_url);
+            $test_target_url = str_replace('https://localhost:8081', 'http://b2e-etch', $test_target_url);
         }
         
         // Test connection to Etch API (use /auth/test endpoint)
