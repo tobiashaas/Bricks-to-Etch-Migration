@@ -775,13 +775,17 @@ class B2E_Admin_Interface {
                 updateProgress(7, '⚠️ CSS migration failed (continuing...)', cssSteps);
             }
             
-            // Step 2.5: Migrate Media
+            // Step 2.5: Migrate Media [UPDATED: 2025-10-20 21:48]
+            console.log('📸 Starting media migration...');
             updateProgress(8, '📸 Migrating media files...', [...cssSteps, 'Transferring images and attachments...']);
             try {
+                console.log('📸 Calling migrateMedia function...');
                 await migrateMedia(apiDomain, apiKey);
+                console.log('📸 Media migration completed successfully');
                 cssSteps.push('✅ Media files migrated successfully');
                 updateProgress(10, '✅ Media migration complete', cssSteps);
             } catch (error) {
+                console.error('📸 Media migration error:', error);
                 cssSteps.push('⚠️ Media migration had errors: ' + error.message);
                 updateProgress(10, '⚠️ Media migration completed with errors', cssSteps);
             }
