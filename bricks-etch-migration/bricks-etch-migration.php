@@ -3,7 +3,7 @@
  * Plugin Name: Bricks to Etch Migration
  * Plugin URI: https://github.com/tobiashaas/Bricks-to-Etch-Migration
  * Description: One-time migration tool for converting Bricks Builder websites to Etch PageBuilder with complete automation.
- * Version: 0.3.7
+ * Version: 0.4.1
  * Author: Tobias Haas
  * License: GPL v2 or later
  * Text Domain: bricks-etch-migration

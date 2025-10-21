@@ -29,14 +29,23 @@ class B2E_Media_Migrator {
      * Migrate all media files from source to target site
      */
     public function migrate_media($target_url, $api_key) {
+        error_log('B2E Media Migration - Starting...');
         $media_files = $this->get_media_files();
+        error_log('B2E Media Migration - Found ' . count($media_files) . ' media files');
         
         if (empty($media_files)) {
-            return true; // No media to migrate
+            error_log('B2E Media Migration - No media files found, returning empty result');
+            return array(
+                'total' => 0,
+                'migrated' => 0,
+                'failed' => 0,
+                'skipped' => 0
+            );
         }
         
         $total_media = count($media_files);
         $migrated_media = 0;
+        error_log('B2E Media Migration - Processing ' . $total_media . ' media files');
         
         // Process in batches to avoid memory issues
         $batch_size = 5; // Process 5 media files at a time
@@ -44,9 +53,12 @@ class B2E_Media_Migrator {
         
         foreach ($batches as $batch_index => $batch) {
             foreach ($batch as $media_id => $media_data) {
+                error_log('B2E Media Migration - Migrating media ID: ' . $media_id . ' (' . $media_data['title'] . ')');
                 $result = $this->migrate_single_media($media_id, $media_data, $target_url, $api_key);
                 
                 if (is_wp_error($result)) {
+                    error_log('B2E Media Migration - ERROR for media ID ' . $media_id . ': ' . $result->get_error_message());
+                    error_log('B2E Media Migration - Error data: ' . print_r($result->get_error_data(), true));
                     $this->error_handler->log_error('E401', array(
                         'media_id' => $media_id,
                         'media_title' => $media_data['title'],
@@ -55,6 +67,8 @@ class B2E_Media_Migrator {
                     ));
                     continue;
                 }
+                
+                error_log('B2E Media Migration - SUCCESS for media ID ' . $media_id);
                 
                 $migrated_media++;
                 
@@ -124,11 +138,19 @@ class B2E_Media_Migrator {
      * Migrate a single media file
      */
     private function migrate_single_media($media_id, $media_data, $target_url, $api_key) {
-        // Download the file from source
-        $file_content = $this->download_file($media_data['file_url']);
+        // Read file directly from filesystem instead of downloading via URL
+        // Use the actual attachment ID from media_data, not the array key
+        $attachment_id = $media_data['id'];
+        $file_path = get_attached_file($attachment_id);
         
-        if (is_wp_error($file_content)) {
-            return $file_content;
+        if (!file_exists($file_path)) {
+            return new WP_Error('file_not_found', 'Media file not found: ' . $file_path . ' (ID: ' . $attachment_id . ')');
+        }
+        
+        $file_content = file_get_contents($file_path);
+        
+        if ($file_content === false) {
+            return new WP_Error('read_failed', 'Failed to read media file: ' . $file_path);
         }
         
         // Prepare media data for API

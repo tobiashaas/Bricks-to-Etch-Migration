@@ -1,5 +1,162 @@
 # Changelog - Bricks to Etch Migration
 
+## [0.5.0] - 2025-10-22 (00:22) - REFACTORING (IN PROGRESS)
+
+### 🔧 Refactoring
+
+#### Modulare Element-Converter Struktur
+- **Neue Ordnerstruktur:**
+  - `includes/converters/` - Conversion Logic
+  - `includes/converters/elements/` - Individual Element Converters
+  - `includes/core/` - Core Functionality
+  - `includes/admin/` - Admin Interface
+  - `includes/ajax/` - AJAX Handlers
+  - `includes/api/` - API Communication
+  - `includes/utils/` - Utilities
+
+#### Element-Converter (NEU)
+- ✅ `class-base-element.php` - Abstract base class for all converters
+- ✅ `class-container.php` - Container element (supports ul, ol, etc.)
+- ✅ `class-section.php` - Section element
+- ✅ `class-heading.php` - Heading element (h1-h6)
+- ✅ `class-paragraph.php` - Paragraph/Text element
+- ✅ `class-image.php` - Image element (uses figure tag!)
+- ✅ `class-div.php` - Div/Flex-Div element (supports li, span, etc.)
+- ✅ `class-element-factory.php` - Factory for creating converters
+
+### 📝 Vorteile
+- **Ein Element = Eine Datei** - Einfacher zu warten
+- **Änderungen nur an einer Stelle** - z.B. Container-Tag-Support
+- **Wiederverwendbarer Code** - Base class mit gemeinsamer Logik
+- **Bessere Testbarkeit** - Jedes Element einzeln testbar
+
+### ⚠️ Status
+- Phase 1: Element-Converter ✅ COMPLETE (00:38)
+- Phase 2: AJAX-Handler - PENDING
+- Phase 3: Admin-Interface - PENDING
+- Phase 4: Utilities - PENDING
+- Phase 5: Integration & Testing - PENDING
+
+### 📄 Dokumentation
+- ✅ `REFACTORING-STATUS.md` erstellt - Umfassender Refactoring-Bericht
+- ✅ Alle Tests dokumentiert und bestanden
+- ✅ Cleanup-Script gefixed - Löscht jetzt alle Styles
+
+---
+
+## [0.4.1] - 2025-10-21 (23:40)
+
+### 🐛 Bug Fixes
+
+#### Listen-Elemente (ul, ol, li) Support
+- **Problem:** Container und Div mit custom tags (ul, ol, li) wurden als `<div>` gerendert
+- **Lösung:** 
+  - `process_container_element()` berücksichtigt jetzt `tag` Setting aus Bricks
+  - `convert_etch_container()` verwendet custom tag in `etchData.block.tag`
+  - Gutenberg `tagName` Attribut wird gesetzt für non-div tags
+- **Geänderte Dateien:**
+  - `includes/gutenberg_generator.php` - Zeilen 1512-1520, 236-269
+
+### 🔧 Technische Details
+
+**Container mit custom tags:**
+```php
+// Bricks
+'settings' => ['tag' => 'ul']
+
+// Etch
+'etchData' => [
+  'block' => ['tag' => 'ul']
+]
+'tagName' => 'ul'  // For Gutenberg
+```
+
+**Frontend Output:**
+```html
+<ul data-etch-element="container" class="my-class">
+  <li>...</li>
+</ul>
+```
+
+---
+
+## [0.4.0] - 2025-10-21 (22:24)
+
+### 🎉 Major Release: CSS-Klassen Frontend-Rendering
+
+**Durchbruch:** CSS-Klassen werden jetzt korrekt im Frontend-HTML gerendert!
+
+### ✨ Neue Features
+
+#### CSS-Klassen in etchData.attributes.class
+- **Kern-Erkenntnis:** Etch rendert CSS-Klassen aus `etchData.attributes.class`, nicht aus Style-IDs
+- Alle Element-Typen unterstützt: Headings, Paragraphs, Images, Sections, Containers, Flex-Divs
+- Neue Funktion: `get_css_classes_from_style_ids()` konvertiert Style-IDs → CSS-Klassen
+
+#### Erweiterte Style-Map
+- Style-Map enthält jetzt: `['bricks_id' => ['id' => 'etch_id', 'selector' => '.css-class']]`
+- Ermöglicht CSS-Klassen-Generierung auf Bricks-Seite
+- Backward-kompatibel mit altem Format
+
+#### Custom CSS Migration Fix
+- Custom CSS (`_cssCustom`) wird jetzt korrekt mit normalen Styles zusammengeführt
+- `parse_custom_css_stylesheet()` verwendet existierende Style-IDs
+- Unterstützt komplexe Selektoren (`.class > *`, Media Queries, etc.)
+
+#### Image-Rendering Fix
+- Images verwenden jetzt `block.tag = 'figure'` statt `'img'`
+- CSS-Klassen auf `<figure>`, nicht auf `<img>`
+- Verhindert doppelte `<img>`-Tags im Frontend
+
+### 🐛 Bug Fixes
+
+#### Kritischer Fix: unset($attributes['class'])
+- Entfernt `unset()` das CSS-Klassen gelöscht hat
+- Betraf alle Container/Section-Elemente
+- Klassen werden jetzt korrekt in `etchData.attributes` behalten
+
+#### Etch-interne Styles überspringen
+- `etch-section-style`, `etch-container-style` werden bei Klassen-Suche übersprungen
+- Verhindert leere Klassen-Strings
+
+### 📚 Dokumentation
+
+Neue Dokumentations-Dateien:
+- `CSS-CLASSES-FINAL-SOLUTION.md` - Vollständige technische Dokumentation
+- `CSS-CLASSES-QUICK-REFERENCE.md` - Schnell-Referenz
+- `MIGRATION-SUCCESS-SUMMARY.md` - Projekt-Zusammenfassung
+- `REFERENCE-POST.md` - Referenz-Post (3411) Dokumentation
+
+### 🔧 Technische Änderungen
+
+**Geänderte Dateien:**
+- `includes/gutenberg_generator.php`
+  - Neue Funktion: `get_css_classes_from_style_ids()`
+  - Headings, Paragraphs, Images: CSS-Klassen in `etchData.attributes.class`
+  - Sections, Containers: `process_*_element()` verwendet neue Funktion
+  - Images: `block.tag = 'figure'`, Klasse auf `<figure>`
+  - Entfernt: `unset($etch_data_attributes['class'])`
+  
+- `includes/css_converter.php`
+  - Erweiterte Style-Map: ID + Selector
+  - `parse_custom_css_stylesheet()` mit `$style_map` Parameter
+  - Custom CSS verwendet existierende Style-IDs
+
+### 🎯 Erfolgs-Kriterien
+
+✅ Alle Element-Typen rendern CSS-Klassen im Frontend
+✅ Custom CSS wird korrekt zusammengeführt
+✅ Images ohne doppelte `<img>`-Tags
+✅ Referenz-Post (3411) bleibt bei Cleanup erhalten
+
+### 🚀 Migration-Workflow
+
+1. Cleanup: `./cleanup-etch.sh` (behält Post 3411)
+2. Migration: "Start Migration" Button
+3. Verifizierung: CSS-Klassen im Frontend prüfen
+
+---
+
 ## [0.3.9] - 2025-10-17 (20:50)
 
 ### 🐛 Critical Fix: API-Key nicht bei Migration verwendet

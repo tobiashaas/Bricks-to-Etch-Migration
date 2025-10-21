@@ -128,34 +128,33 @@ bricks-etch-migration/
 
 ## 📝 Notizen
 
-- **Letzte Änderung**: 18. Oktober 2025, 10:30 Uhr
-- **Aktueller Stand**: 🚧 Classes in DB korrekt, aber Frontend-Rendering fehlt
-- **Nächster Schritt**: Etch REST API verwenden statt direkter DB-Zugriff
-- **Zeitaufwand heute**: ~6 Stunden (CSS, Classes, Etch-Analyse, Debugging)
-- **Gelöstes Problem**: CSS-Konvertierung komplett, Unicode-Escaping gelöst
-- **Backup Branch**: `backup/before-api-refactor` (vor API-Umstellung)
+- **Letzte Änderung**: 21. Oktober 2025, 00:25 Uhr
+- **Aktueller Stand**: 🎉 Alle Features implementiert, Frontend-Rendering Problem bleibt
+- **Nächster Schritt**: Etch Frontend-Rendering untersuchen (warum werden Klassen entfernt?)
+- **Zeitaufwand heute**: ~3 Stunden (Image Labels, Element Labels, className Attribut)
+- **Gelöstes Problem**: Element Labels für Structure Panel, Image Klassen, Heading/Paragraph Klassen
+- **Offenes Problem**: Etch entfernt Klassen beim Frontend-Rendering trotz korrekter DB-Speicherung
 
-### Test-Ergebnisse (18.10.2025, 00:00-01:15)
+### Test-Ergebnisse (21.10.2025, 00:00-00:25)
 
 **✅ Was funktioniert:**
-- ✅ **Element Labels** - Benutzerdefinierte Namen aus Structure Panel werden migriert
-- ✅ **Hierarchische Verschachtelung** - Korrekte Parent-Child-Beziehungen
-- ✅ **Block-Elemente** - brxe-block wird als Container erkannt
-- ✅ **Klassennamen** - Alle Klassen im HTML (inkl. Headings & Paragraphen)
-- ✅ **ACSS-Prefix entfernt** - acss_import_ wird automatisch entfernt
-- ✅ **Leere Utility-Klassen** - Framework-Klassen werden migriert (auch ohne CSS)
-- ✅ **Custom CSS als Raw Stylesheet** - Verschachtelung bleibt erhalten
-- ✅ **Image-Blöcke** - Inline HTML, keine "invalid content" Fehler
-- ✅ **Cache-Invalidierung** - etch_svg_version wird erhöht
-- ✅ **~2211 CSS Styles** migriert (inkl. Framework-Klassen)
+- ✅ **Element Labels in Etch** - Bricks Labels (z.B. "Media", "Feature heading") werden in `metadata.name` gespeichert
+- ✅ **etchData komplett** - Alle Blöcke haben `metadata.etchData` mit origin, name, styles, attributes, block
+- ✅ **Klassen in DB** - Alle Etch Style IDs werden korrekt in HTML gespeichert (z.B. `class="ee30338"`)
+- ✅ **className Attribut** - Klassen werden auch im Block-Attribut `className` gespeichert
+- ✅ **Image Klassen** - Images haben Klassen auf `<img>` Tag (nicht auf `<figure>`)
+- ✅ **Heading/Paragraph Klassen** - Alle Text-Elemente haben Etch Style IDs
+- ✅ **Style Mapping** - Bricks Class IDs werden korrekt zu Etch Style IDs gemappt
+- ✅ **get_element_style_ids()** - Liest aus `_cssGlobalClasses` und verwendet `style_map`
 
-**⚠️ Aktuelles Problem (18.10.2025, 10:30):**
-- ⚠️ **Classes nicht im Frontend** - In DB korrekt, aber Etch rendert sie nicht
-- 🔍 **Root Cause**: Etch ignoriert HTML class-Attribut, nutzt nur etchData.attributes
-- 💡 **Geplante Lösung**: Etch REST API verwenden statt direkter DB-Zugriff
-  - `/wp-json/etch-api/styles?_method=PUT` für Styles
-  - `/wp-json/etch-api/post/{id}/blocks` für Content
-  - Vorteile: Kein Escaping, automatische Trigger, sauberer
+**⚠️ Aktuelles Problem (21.10.2025, 00:25):**
+- ⚠️ **Klassen nicht im Frontend** - In DB korrekt (`<h2 class="wp-block-heading 16bcebd">`), aber Frontend zeigt `<h2>` ohne Klassen
+- 🔍 **Root Cause**: Etch entfernt Klassen beim Frontend-Rendering (vermutlich Filter oder Etch-spezifisches Rendering)
+- 💡 **Mögliche Lösungen**:
+  1. Etch-Filter untersuchen die Klassen entfernen
+  2. Prüfen ob Styles als "used" markiert werden müssen
+  3. Etch REST API verwenden statt direkter DB-Zugriff
+  4. Etch Support kontaktieren für Frontend-Rendering Dokumentation
 
 **🔧 Durchgeführte Fixes:**
 1. Media-Migration: Besseres Logging (failed/skipped counts)

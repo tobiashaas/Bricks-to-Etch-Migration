@@ -18,10 +18,16 @@ class B2E_Content_Parser {
     private $error_handler;
     
     /**
+     * Style map (Bricks ID => Etch ID)
+     */
+    private $style_map;
+    
+    /**
      * Constructor
      */
     public function __construct() {
         $this->error_handler = new B2E_Error_Handler();
+        $this->style_map = get_option('b2e_style_map', array());
     }
     
     /**
@@ -547,7 +553,13 @@ class B2E_Content_Parser {
                 return $this->convert_button_element($settings);
                 
             case 'image':
-                return $this->convert_image_element($settings);
+                return $this->convert_image_element($element);
+                
+            case 'icon':
+                return $this->convert_icon_element($element);
+                
+            case 'form':
+                return $this->convert_form_element($element);
                 
             case 'gutenberg':
                 return $this->convert_gutenberg_element($settings);
@@ -700,7 +712,8 @@ class B2E_Content_Parser {
     /**
      * Convert Bricks image element to Etch image
      */
-    private function convert_image_element($settings) {
+    private function convert_image_element($element) {
+        $settings = $element['settings'] ?? array();
         $src = $settings['image']['url'] ?? '';
         $alt = $settings['image']['alt'] ?? '';
         
@@ -708,14 +721,175 @@ class B2E_Content_Parser {
             return false;
         }
         
+        error_log('B2E Image: Converting image with src: ' . $src);
+        error_log('B2E Image: Element has label: ' . (isset($element['label']) ? $element['label'] : 'NO'));
+        
+        // Get Bricks classes from _cssGlobalClasses
+        $bricks_classes = array();
+        if (!empty($settings['_cssGlobalClasses'])) {
+            $bricks_classes = is_array($settings['_cssGlobalClasses']) ? $settings['_cssGlobalClasses'] : array($settings['_cssGlobalClasses']);
+        } elseif (!empty($element['classes'])) {
+            $bricks_classes = is_array($element['classes']) ? $element['classes'] : array($element['classes']);
+        }
+        
+        error_log('B2E Image: Found ' . count($bricks_classes) . ' Bricks classes');
+        
+        // Convert Bricks class IDs to Etch class names
+        $etch_classes = array();
+        foreach ($bricks_classes as $class_id) {
+            if (isset($this->style_map[$class_id])) {
+                $etch_classes[] = $this->style_map[$class_id];
+                error_log('B2E Image: Mapped class ' . $class_id . ' → ' . $this->style_map[$class_id]);
+            }
+        }
+        
+        // Build class attribute for img tag (not figure!)
+        $class_attr = '';
+        if (!empty($etch_classes)) {
+            $class_attr = ' class="' . esc_attr(implode(' ', $etch_classes)) . '"';
+        }
+        
+        // Build label (caption) if exists - check both element.label and settings.label
+        $label = $element['label'] ?? $settings['label'] ?? '';
+        $caption_html = '';
+        if (!empty($label)) {
+            $caption_html = '<figcaption class="wp-element-caption">' . wp_kses_post($label) . '</figcaption>';
+            error_log('B2E Image: Added caption: ' . $label);
+        } else {
+            error_log('B2E Image: NO CAPTION - element.label=' . (isset($element['label']) ? $element['label'] : 'NOT SET') . ', settings.label=' . (isset($settings['label']) ? $settings['label'] : 'NOT SET'));
+        }
+        
+        // Build HTML with classes on img tag
+        $figure_html = '<figure class="wp-block-image"><img src="' . esc_url($src) . '" alt="' . esc_attr($alt) . '"' . $class_attr . '/>' . $caption_html . '</figure>';
+        
         return array(
             'blockName' => 'core/image',
             'attrs' => array(
                 'url' => esc_url($src),
                 'alt' => sanitize_text_field($alt)
             ),
-            'innerHTML' => '<figure class="wp-block-image"><img src="' . esc_url($src) . '" alt="' . esc_attr($alt) . '"/></figure>',
-            'innerContent' => array('<figure class="wp-block-image"><img src="' . esc_url($src) . '" alt="' . esc_attr($alt) . '"/></figure>')
+            'innerHTML' => $figure_html,
+            'innerContent' => array($figure_html)
+        );
+    }
+    
+    /**
+     * Convert Bricks icon element to Etch SVG element
+     */
+    private function convert_icon_element($element) {
+        $settings = $element['settings'] ?? array();
+        $icon_data = $settings['icon'] ?? array();
+        
+        if (empty($icon_data['icon'])) {
+            return false;
+        }
+        
+        // Get icon class (e.g. "fas fa-arrow-right-long")
+        $icon_class = $icon_data['icon'];
+        
+        // Get Bricks classes and convert to Etch classes
+        $bricks_classes = array();
+        if (!empty($element['classes'])) {
+            $bricks_classes = is_array($element['classes']) ? $element['classes'] : array($element['classes']);
+        }
+        
+        // Convert Bricks class IDs to Etch class names
+        $etch_classes = array();
+        foreach ($bricks_classes as $class_id) {
+            if (isset($this->style_map[$class_id])) {
+                $etch_classes[] = $this->style_map[$class_id];
+            }
+        }
+        
+        // Build class attribute
+        $class_attr = '';
+        if (!empty($etch_classes)) {
+            $class_attr = ' class="' . esc_attr(implode(' ', $etch_classes)) . '"';
+        }
+        
+        // Create Etch SVG element (uses Font Awesome icon classes)
+        // Etch SVG element expects: data-etch-element="svg" and icon class
+        $svg_html = '<svg data-etch-element="svg"' . $class_attr . '><use href="#' . esc_attr($icon_class) . '"></use></svg>';
+        
+        return array(
+            'blockName' => 'etch/svg',
+            'attrs' => array(
+                'icon' => $icon_class
+            ),
+            'innerHTML' => $svg_html,
+            'innerContent' => array($svg_html)
+        );
+    }
+    
+    /**
+     * Convert Bricks form element to HTML comment with form info
+     * Forms need manual recreation in Etch, but we preserve the structure as documentation
+     */
+    private function convert_form_element($element) {
+        $settings = $element['settings'] ?? array();
+        $fields = $settings['fields'] ?? array();
+        
+        if (empty($fields)) {
+            return false;
+        }
+        
+        // Build HTML comment with form structure
+        $comment = "<!-- BRICKS FORM - Manual Recreation Required -->\n";
+        $comment .= "<!-- Form ID: " . ($element['id'] ?? 'unknown') . " -->\n";
+        
+        // Add form fields info
+        $comment .= "<!-- Fields:\n";
+        foreach ($fields as $index => $field) {
+            $field_num = $index + 1;
+            $type = $field['type'] ?? 'text';
+            $label = $field['label'] ?? 'Field ' . $field_num;
+            $placeholder = $field['placeholder'] ?? '';
+            $required = !empty($field['required']) ? ' (Required)' : '';
+            
+            $comment .= "  {$field_num}. {$label}{$required}\n";
+            $comment .= "     Type: {$type}\n";
+            if (!empty($placeholder)) {
+                $comment .= "     Placeholder: {$placeholder}\n";
+            }
+            if ($type === 'checkbox' && !empty($field['options'])) {
+                $comment .= "     Options: " . strip_tags($field['options']) . "\n";
+            }
+        }
+        $comment .= "-->\n";
+        
+        // Add form actions
+        if (!empty($settings['actions'])) {
+            $comment .= "<!-- Actions: " . implode(', ', $settings['actions']) . " -->\n";
+        }
+        
+        // Add email settings
+        if (!empty($settings['emailTo'])) {
+            $comment .= "<!-- Email To: " . $settings['emailTo'] . " -->\n";
+        }
+        if (!empty($settings['emailSubject'])) {
+            $comment .= "<!-- Subject: " . $settings['emailSubject'] . " -->\n";
+        }
+        
+        // Add messages
+        if (!empty($settings['successMessage'])) {
+            $comment .= "<!-- Success Message: " . strip_tags($settings['successMessage']) . " -->\n";
+        }
+        
+        $comment .= "<!-- END BRICKS FORM -->\n";
+        
+        // Add visible placeholder
+        $placeholder_html = '<div style="padding: 2em; background: #f0f0f0; border: 2px dashed #999; border-radius: 8px; text-align: center;">';
+        $placeholder_html .= '<p style="margin: 0; font-weight: bold;">📋 Form: ' . count($fields) . ' Fields</p>';
+        $placeholder_html .= '<p style="margin: 0.5em 0 0; font-size: 0.9em; color: #666;">Manual recreation required in Etch</p>';
+        $placeholder_html .= '</div>';
+        
+        $full_html = $comment . $placeholder_html;
+        
+        return array(
+            'blockName' => 'core/html',
+            'attrs' => array(),
+            'innerHTML' => $full_html,
+            'innerContent' => array($full_html)
         );
     }
     

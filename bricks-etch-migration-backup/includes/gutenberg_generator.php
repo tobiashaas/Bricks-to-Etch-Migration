@@ -159,19 +159,24 @@ class B2E_Gutenberg_Generator {
             }
         }
         
-        // Build Etch-compatible attributes
-        $etch_attributes = array(
-            'data-etch-element' => 'section'
-        );
-        
-        // NOTE: Do NOT add class names to etchData.attributes!
-        // Only use etchData.styles with style IDs
-        
         // Get style IDs for this element
         $style_ids = $this->get_element_style_ids($element);
         
         // Add default section style
         array_unshift($style_ids, 'etch-section-style');
+        
+        // Get CSS classes from style IDs for etchData.attributes.class
+        $css_classes = $this->get_css_classes_from_style_ids($style_ids);
+        
+        // Build Etch-compatible attributes
+        $etch_attributes = array(
+            'data-etch-element' => 'section'
+        );
+        
+        // Add CSS classes if available
+        if (!empty($css_classes)) {
+            $etch_attributes['class'] = $css_classes;
+        }
         
         // Build attributes JSON with FULL Etch structure
         $attrs = array(
@@ -219,19 +224,29 @@ class B2E_Gutenberg_Generator {
             }
         }
         
-        // Build Etch-compatible attributes
-        $etch_attributes = array(
-            'data-etch-element' => 'container'
-        );
-        
-        // NOTE: Do NOT add class names to etchData.attributes!
-        // Only use etchData.styles with style IDs
-        
         // Get style IDs for this element
         $style_ids = $this->get_element_style_ids($element);
         
         // Add default container style
         array_unshift($style_ids, 'etch-container-style');
+        
+        // Get CSS classes from style IDs for etchData.attributes.class
+        $css_classes = $this->get_css_classes_from_style_ids($style_ids);
+        
+        // Get custom tag from element (e.g., ul, ol)
+        $tag = $element['etch_data']['tag'] ?? 'div';
+        
+        error_log("🎯 B2E convert_etch_container: Element ID {$element['id']}, Tag from etch_data: {$tag}");
+        
+        // Build Etch-compatible attributes
+        $etch_attributes = array(
+            'data-etch-element' => 'container'
+        );
+        
+        // Add CSS classes if available
+        if (!empty($css_classes)) {
+            $etch_attributes['class'] = $css_classes;
+        }
         
         // Build attributes JSON with FULL Etch structure
         $attrs = array(
@@ -244,11 +259,16 @@ class B2E_Gutenberg_Generator {
                     'attributes' => $etch_attributes,
                     'block' => array(
                         'type' => 'html',
-                        'tag' => 'div'
+                        'tag' => $tag  // Use custom tag from Bricks
                     )
                 )
             )
         );
+        
+        // Add tagName for Gutenberg if not div
+        if ($tag !== 'div') {
+            $attrs['tagName'] = $tag;
+        }
         
         $attrs_json = json_encode($attrs, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         
@@ -729,19 +749,28 @@ class B2E_Gutenberg_Generator {
     private function get_element_style_ids($element) {
         $style_ids = array();
         
-        error_log('B2E: get_element_style_ids called for element: ' . ($element['name'] ?? 'unknown'));
+        $element_name = $element['name'] ?? 'unknown';
+        error_log('B2E: get_element_style_ids called for element: ' . $element_name);
         
         // Method 1: Get Bricks global class IDs (if available)
         if (isset($element['settings']['_cssGlobalClasses']) && is_array($element['settings']['_cssGlobalClasses'])) {
             // Get style map (Bricks ID => Etch ID)
             $style_map = get_option('b2e_style_map', array());
             
+            error_log('B2E: Element ' . $element_name . ' has ' . count($element['settings']['_cssGlobalClasses']) . ' global classes');
+            
             foreach ($element['settings']['_cssGlobalClasses'] as $bricks_class_id) {
-                // Convert Bricks ID to Etch ID
+                // Convert Bricks ID to Etch ID (handle both old and new format)
                 if (isset($style_map[$bricks_class_id])) {
-                    $style_ids[] = $style_map[$bricks_class_id];
+                    $etch_id = is_array($style_map[$bricks_class_id]) ? $style_map[$bricks_class_id]['id'] : $style_map[$bricks_class_id];
+                    $style_ids[] = $etch_id;
+                    error_log('B2E: Mapped Bricks ID ' . $bricks_class_id . ' → Etch ID ' . $etch_id);
+                } else {
+                    error_log('B2E: WARNING - Bricks ID ' . $bricks_class_id . ' not found in style_map!');
                 }
             }
+        } else {
+            error_log('B2E: Element ' . $element_name . ' has NO _cssGlobalClasses in settings');
         }
         
         // Method 2: Get regular CSS classes and map them to style IDs
@@ -777,10 +806,11 @@ class B2E_Gutenberg_Generator {
                         }
                     }
                     
-                    // Lookup Etch ID in style_map
+                    // Lookup Etch ID in style_map (handle both old and new format)
                     if ($bricks_id && isset($style_map[$bricks_id])) {
-                        $style_ids[] = $style_map[$bricks_id];
-                        error_log('B2E: Found Global Class: ' . $class_name . ' (Bricks ID: ' . $bricks_id . ') → Etch ID: ' . $style_map[$bricks_id]);
+                        $etch_id = is_array($style_map[$bricks_id]) ? $style_map[$bricks_id]['id'] : $style_map[$bricks_id];
+                        $style_ids[] = $etch_id;
+                        error_log('B2E: Found Global Class: ' . $class_name . ' (Bricks ID: ' . $bricks_id . ') → Etch ID: ' . $etch_id);
                     } else {
                         error_log('B2E: Global Class found but no style_map entry: ' . $class_name);
                     }
@@ -793,6 +823,61 @@ class B2E_Gutenberg_Generator {
         return array_unique($style_ids);
     }
     
+    
+    /**
+     * Convert style IDs to CSS class names for etchData.attributes.class
+     * This is the REAL fix! Etch renders classes from attributes.class, not from style IDs!
+     * 
+     * Uses b2e_style_map which now contains both IDs and selectors
+     */
+    private function get_css_classes_from_style_ids($style_ids) {
+        if (empty($style_ids)) {
+            error_log('B2E CSS Classes: No style IDs provided');
+            return '';
+        }
+        
+        // Get style map which now contains selectors
+        $style_map = get_option('b2e_style_map', array());
+        error_log('B2E CSS Classes: Style map has ' . count($style_map) . ' entries');
+        error_log('B2E CSS Classes: Looking for IDs: ' . implode(', ', $style_ids));
+        
+        $class_names = array();
+        
+        foreach ($style_ids as $style_id) {
+            // Skip Etch internal styles (they don't have selectors in our map)
+            if (in_array($style_id, ['etch-section-style', 'etch-container-style', 'etch-block-style'])) {
+                error_log('B2E CSS Classes: Skipping Etch internal style: ' . $style_id);
+                continue;
+            }
+            
+            // Find the Bricks ID for this Etch style ID
+            foreach ($style_map as $bricks_id => $style_data) {
+                // Handle both old format (string) and new format (array)
+                $etch_id = is_array($style_data) ? $style_data['id'] : $style_data;
+                
+                if ($etch_id === $style_id) {
+                    // New format: get selector from style_data
+                    if (is_array($style_data) && !empty($style_data['selector'])) {
+                        $selector = $style_data['selector'];
+                        // Remove leading dot: ".my-class" => "my-class"
+                        $class_name = ltrim($selector, '.');
+                        // Remove pseudo-selectors and attribute selectors
+                        $class_name = preg_replace('/[\[\]:].+$/', '', $class_name);
+                        if (!empty($class_name)) {
+                            $class_names[] = $class_name;
+                            error_log('B2E CSS Classes: Found ' . $style_id . ' → ' . $class_name);
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+        
+        $result = !empty($class_names) ? implode(' ', array_unique($class_names)) : '';
+        error_log('B2E CSS Classes: Result: "' . $result . '"');
+        return $result;
+    }
+    
     /**
      * Generate Gutenberg blocks from Bricks elements (REAL CONVERSION!)
      */
@@ -802,8 +887,8 @@ class B2E_Gutenberg_Generator {
         }
         
         // Add timestamp comment to verify new content is generated
-        $timestamp = '<!-- B2E Generated: ' . date('Y-m-d H:i:s') . ' | NO className | NO attributes.class -->';
-        error_log('B2E: Generating blocks at ' . date('Y-m-d H:i:s') . ' with NEW CODE (no className)');
+        $timestamp = '<!-- B2E Generated: ' . date('Y-m-d H:i:s') . ' | FINAL FIX: CSS classes in etchData.attributes.class -->';
+        error_log('B2E: Generating blocks at ' . date('Y-m-d H:i:s') . ' with FINAL FIX (CSS classes in attributes.class)');
         
         // Build element lookup map (id => element)
         $element_map = array();
@@ -1007,12 +1092,19 @@ class B2E_Gutenberg_Generator {
             return '';
         }
         
+        // Check if this is a semantic tag that should be a group block
+        $group_block_types = array(
+            'section', 'container', 'flex-div', 'iframe',
+            'ul', 'ol', 'li', 'span', 'figure', 'figcaption',
+            'article', 'aside', 'nav', 'header', 'footer', 'main',
+            'blockquote', 'a'
+        );
+        
+        if (in_array($etch_type, $group_block_types)) {
+            return $this->generate_etch_group_block($element, $element_map);
+        }
+        
         switch ($etch_type) {
-            case 'section':
-            case 'container':
-            case 'flex-div':
-            case 'iframe':
-                return $this->generate_etch_group_block($element, $element_map);
                 
             case 'heading':
             case 'paragraph':
@@ -1044,10 +1136,9 @@ class B2E_Gutenberg_Generator {
         // Use custom label if available, otherwise use element type
         $element_name = !empty($element['label']) ? $element['label'] : ucfirst($element['etch_type']);
         
-        // NOTE: Do NOT include class in etchData.attributes!
-        // Only use etchData.styles for styling
+        // IMPORTANT: Keep 'class' in etchData.attributes!
+        // Etch renders CSS classes from attributes.class, not from style IDs
         $etch_data_attributes = $etch_data;
-        unset($etch_data_attributes['class']); // Remove class from attributes
         
         // Build etchData
         $etch_data_array = array(
@@ -1085,10 +1176,10 @@ class B2E_Gutenberg_Generator {
             json_encode($block_attrs, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
         );
         
-        // Add classes to the HTML element
+        // Add classes to the HTML element (including Etch style IDs)
         $classes = array('wp-block-group');
-        if (!empty($class_name)) {
-            $classes[] = $class_name;
+        if (!empty($style_ids)) {
+            $classes = array_merge($classes, $style_ids);
         }
         $class_attr = ' class="' . esc_attr(implode(' ', $classes)) . '"';
         
@@ -1113,48 +1204,124 @@ class B2E_Gutenberg_Generator {
         // Convert dynamic data in content
         $content = $this->dynamic_data_converter->convert_content($content);
         
+        // Get style IDs for this element
+        $style_ids = $this->get_element_style_ids($element);
+        
         switch ($etch_type) {
             case 'heading':
                 $level = $etch_data['level'] ?? 'h2';
-                $class = !empty($etch_data['class']) ? ' class="' . esc_attr($etch_data['class']) . '"' : '';
                 
-                // Build block attributes
-                $block_attrs = array('level' => intval(str_replace('h', '', $level)));
-                // NOTE: Do NOT set className! Only use etchData.styles
+                // Build class attribute for HTML (wp-block-heading only)
+                $class_attr = ' class="wp-block-heading"';
+                
+                // Get element label for Etch metadata
+                $element_label = !empty($element['label']) ? $element['label'] : 'Heading';
+                
+                // Get CSS classes from style IDs for etchData.attributes.class
+                $css_classes = $this->get_css_classes_from_style_ids($style_ids);
+                
+                // Build block attributes with CSS classes in attributes.class
+                $block_attrs = array(
+                    'level' => intval(str_replace('h', '', $level)),
+                    'metadata' => array(
+                        'name' => $element_label,
+                        'etchData' => array(
+                            'origin' => 'etch',
+                            'name' => $element_label,
+                            'styles' => $style_ids,
+                            'attributes' => !empty($css_classes) ? array('class' => $css_classes) : array(),
+                            'block' => array(
+                                'type' => 'html',
+                                'tag' => $level,
+                            ),
+                        )
+                    )
+                );
                 
                 return sprintf(
                     '<!-- wp:heading %s -->',
                     json_encode($block_attrs, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
                 ) . "\n" . 
-                '<' . $level . $class . '>' . $content . '</' . $level . '>' . "\n" .
+                '<' . $level . $class_attr . '>' . $content . '</' . $level . '>' . "\n" .
                 '<!-- /wp:heading -->';
                 
             case 'paragraph':
-                $class = !empty($etch_data['class']) ? ' class="' . esc_attr($etch_data['class']) . '"' : '';
+                // No class attribute for paragraphs
+                $class_attr = '';
                 
-                // Build block attributes
-                $block_attrs = array();
-                // NOTE: Do NOT set className! Only use etchData.styles
+                // Get element label for Etch metadata
+                $element_label = !empty($element['label']) ? $element['label'] : 'Paragraph';
+                
+                // Get CSS classes from style IDs for etchData.attributes.class
+                $css_classes = $this->get_css_classes_from_style_ids($style_ids);
+                
+                // Build block attributes with CSS classes in attributes.class
+                $block_attrs = array(
+                    'metadata' => array(
+                        'name' => $element_label,
+                        'etchData' => array(
+                            'origin' => 'etch',
+                            'name' => $element_label,
+                            'styles' => $style_ids,
+                            'attributes' => !empty($css_classes) ? array('class' => $css_classes) : array(),
+                            'block' => array(
+                                'type' => 'html',
+                                'tag' => 'p',
+                            ),
+                        )
+                    )
+                );
                 
                 $attrs_json = !empty($block_attrs) ? ' ' . json_encode($block_attrs, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : '';
                 
                 return '<!-- wp:paragraph' . $attrs_json . ' -->' . "\n" .
-                       '<p' . $class . '>' . $content . '</p>' . "\n" .
+                       '<p' . $class_attr . '>' . $content . '</p>' . "\n" .
                        '<!-- /wp:paragraph -->';
                        
             case 'image':
                 $src = $etch_data['src'] ?? '';
                 $alt = $etch_data['alt'] ?? '';
-                $class = !empty($etch_data['class']) ? ' ' . esc_attr($etch_data['class']) : '';
                 
                 if (empty($src)) {
                     return ''; // Skip images without source
                 }
                 
+                // Get style IDs for this element (not from etch_data!)
+                $img_style_ids = $this->get_element_style_ids($element);
+                
+                // Get CSS classes from style IDs
+                $img_css_classes = $this->get_css_classes_from_style_ids($img_style_ids);
+                $img_class_attr = !empty($img_css_classes) ? ' class="wp-block-image ' . esc_attr($img_css_classes) . '"' : ' class="wp-block-image"';
+                
+                // Get element label for Etch metadata (not HTML caption!)
+                $element_label = !empty($element['label']) ? $element['label'] : 'Image';
+                
+                // Build block attributes WITH class in etchData.attributes
+                // Etch needs the class in attributes to render it on the figure
+                $block_attrs = array(
+                    'metadata' => array(
+                        'name' => $element_label,
+                        'etchData' => array(
+                            'origin' => 'etch',
+                            'name' => $element_label,
+                            'styles' => $img_style_ids,
+                            'attributes' => !empty($img_css_classes) ? array('class' => $img_css_classes) : array(),
+                            'block' => array(
+                                'type' => 'html',
+                                'tag' => 'figure',
+                            ),
+                        )
+                    )
+                );
+                
                 // Gutenberg expects inline HTML for images (no line breaks)
-                return '<!-- wp:image -->' . "\n" .
-                       '<figure class="wp-block-image' . $class . '"><img src="' . esc_url($src) . '" alt="' . esc_attr($alt) . '"/></figure>' . "\n" .
-                       '<!-- /wp:image -->';
+                // Apply CSS classes to <figure>, not <img>
+                return sprintf(
+                    '<!-- wp:image %s -->',
+                    json_encode($block_attrs, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+                ) . "\n" .
+                '<figure' . $img_class_attr . '><img src="' . esc_url($src) . '" alt="' . esc_attr($alt) . '"/></figure>' . "\n" .
+                '<!-- /wp:image -->';
                        
             case 'button':
                 $href = $etch_data['href'] ?? '#';
@@ -1255,6 +1422,20 @@ class B2E_Gutenberg_Generator {
      * Get HTML tag for Etch element type
      */
     private function get_html_tag($etch_type) {
+        // Semantic HTML tags - return as-is
+        $semantic_tags = array(
+            'ul', 'ol', 'li',
+            'span', 'figure', 'figcaption',
+            'article', 'aside', 'nav',
+            'header', 'footer', 'main',
+            'p', 'blockquote', 'a'
+        );
+        
+        if (in_array($etch_type, $semantic_tags)) {
+            return $etch_type;
+        }
+        
+        // Special Etch elements
         switch ($etch_type) {
             case 'section':
                 return 'section';
@@ -1313,10 +1494,16 @@ class B2E_Gutenberg_Generator {
      * Process section element
      */
     private function process_section_element($element, $post_id) {
+        // Get style IDs for this element
+        $style_ids = $this->get_element_style_ids($element);
+        
+        // Get CSS classes from style IDs
+        $css_classes = $this->get_css_classes_from_style_ids($style_ids);
+        
         $element['etch_type'] = 'section';
         $element['etch_data'] = array(
             'data-etch-element' => 'section',
-            'class' => $this->extract_css_classes($element['settings']),
+            'class' => $css_classes,
         );
         
         return $element;
@@ -1326,10 +1513,22 @@ class B2E_Gutenberg_Generator {
      * Process container element
      */
     private function process_container_element($element, $post_id) {
+        // Get style IDs for this element
+        $style_ids = $this->get_element_style_ids($element);
+        
+        // Get CSS classes from style IDs
+        $css_classes = $this->get_css_classes_from_style_ids($style_ids);
+        
+        // Check if container has a custom tag (e.g., ul, ol)
+        $tag = $element['settings']['tag'] ?? 'div';
+        
+        error_log("🔧 B2E Container: Element ID {$element['id']}, Tag: {$tag}, Settings: " . print_r($element['settings'], true));
+        
         $element['etch_type'] = 'container';
         $element['etch_data'] = array(
             'data-etch-element' => 'container',
-            'class' => $this->extract_css_classes($element['settings']),
+            'class' => $css_classes,
+            'tag' => $tag,  // Preserve custom tag
         );
         
         return $element;
@@ -1339,6 +1538,31 @@ class B2E_Gutenberg_Generator {
      * Process div element
      */
     private function process_div_element($element, $post_id) {
+        // Check if this is actually a semantic HTML element
+        $tag = $element['settings']['tag'] ?? 'div';
+        
+        // Preserve semantic HTML tags
+        $semantic_tags = array(
+            'ul', 'ol', 'li',           // Lists
+            'span',                      // Inline
+            'figure', 'figcaption',     // Figure
+            'article', 'aside', 'nav',  // Semantic sections
+            'header', 'footer', 'main', // Page structure
+            'p', 'blockquote',          // Text
+            'a',                         // Links
+        );
+        
+        if (in_array($tag, $semantic_tags)) {
+            // Keep semantic HTML element
+            $element['etch_type'] = $tag;
+            $element['etch_data'] = array(
+                'tag' => $tag,
+                'class' => $this->extract_css_classes($element['settings']),
+            );
+            return $element;
+        }
+        
+        // Regular div handling
         $settings = get_option('b2e_settings', array());
         $convert_div_to_flex = $settings['convert_div_to_flex'] ?? true;
         

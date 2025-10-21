@@ -30,7 +30,11 @@ class B2E_CSS_Converter {
      * Generates Etch-compatible etch_styles array structure
      */
     public function convert_bricks_classes_to_etch() {
+        error_log('🎨 CSS Converter: Starting conversion...');
+        
         $bricks_classes = get_option('bricks_global_classes', array());
+        error_log('🎨 CSS Converter: Found ' . count($bricks_classes) . ' Bricks classes');
+        
         $etch_styles = array();
         $style_map = array(); // Maps Bricks ID => Etch Style ID
         
@@ -69,24 +73,40 @@ class B2E_CSS_Converter {
         }
         
         // Step 2: Convert user classes (without custom CSS for now)
+        $converted_count = 0;
         foreach ($bricks_classes as $class) {
             $converted_class = $this->convert_bricks_class_to_etch($class);
             if ($converted_class) {
-                // Use name for hash if available, otherwise use ID
-                $hash_base = !empty($class['name']) ? $class['name'] : $class['id'];
-                $style_id = $this->generate_style_hash($hash_base);
-                $etch_styles[$style_id] = $converted_class;
+                // Generate unique ID like Etch does (uniqid is fine!)
+                $style_id = substr(uniqid(), -7);
                 
-                // Map Bricks ID to Etch Style ID
+                // Add style WITH ID as key (Etch won't overwrite existing IDs!)
+                $etch_styles[$style_id] = $converted_class;
+                $converted_count++;
+                
+                // DEBUG: Log first 3 styles to verify selectors
+                if ($converted_count <= 3) {
+                    error_log('B2E CSS: Style ' . $style_id . ' selector: ' . ($converted_class['selector'] ?? 'NULL'));
+                }
+                
+                // Map Bricks ID to Etch Style ID + Selector
+                // Store both ID and selector so we can use them on Bricks side
                 if (!empty($class['id'])) {
-                    $style_map[$class['id']] = $style_id;
+                    $style_map[$class['id']] = array(
+                        'id' => $style_id,
+                        'selector' => $converted_class['selector'] ?? ''
+                    );
                 }
             }
         }
+        error_log('🎨 CSS Converter: Converted ' . $converted_count . ' user classes');
         
         // Step 3: Parse custom CSS stylesheet and merge with existing styles
+        error_log('B2E CSS: Custom CSS stylesheet length: ' . strlen($custom_css_stylesheet));
         if (!empty($custom_css_stylesheet)) {
-            $custom_styles = $this->parse_custom_css_stylesheet($custom_css_stylesheet);
+            error_log('B2E CSS: Parsing custom CSS stylesheet...');
+            $custom_styles = $this->parse_custom_css_stylesheet($custom_css_stylesheet, $style_map);
+            error_log('B2E CSS: Found ' . count($custom_styles) . ' custom styles');
             
             // Merge custom CSS with existing styles (combine CSS for same selector)
             foreach ($custom_styles as $style_id => $custom_style) {
@@ -103,10 +123,13 @@ class B2E_CSS_Converter {
                     } elseif (!empty($custom_css)) {
                         $etch_styles[$style_id]['css'] = $custom_css;
                     }
+                    
+                    error_log('B2E CSS: Merged custom CSS for ' . $custom_style['selector']);
                 } else {
                     // New style from custom CSS - convert to logical properties
                     $custom_style['css'] = $this->convert_to_logical_properties($custom_style['css']);
                     $etch_styles[$style_id] = $custom_style;
+                    error_log('B2E CSS: Added new custom CSS style for ' . $custom_style['selector']);
                 }
             }
         }
@@ -114,7 +137,19 @@ class B2E_CSS_Converter {
         // Save style map for use during content migration
         update_option('b2e_style_map', $style_map);
         
-        return $etch_styles;
+        $total_styles = count($etch_styles);
+        error_log('🎨 CSS Converter: Returning ' . $total_styles . ' total styles');
+        error_log('🎨 CSS Converter: Style map has ' . count($style_map) . ' entries');
+        
+        if ($total_styles === 0) {
+            error_log('⚠️ CSS Converter: WARNING - No styles generated!');
+        }
+        
+        // Return both styles AND style map
+        return array(
+            'styles' => $etch_styles,
+            'style_map' => $style_map
+        );
     }
     
     /**
@@ -219,8 +254,10 @@ class B2E_CSS_Converter {
             }
         }
         
-        // Border
-        if (!empty($settings['border'])) {
+        // Border (Bricks uses _border)
+        if (!empty($settings['_border'])) {
+            $css_properties = array_merge($css_properties, $this->convert_border($settings['_border']));
+        } elseif (!empty($settings['border'])) {
             $css_properties = array_merge($css_properties, $this->convert_border($settings['border']));
         }
         
@@ -241,7 +278,7 @@ class B2E_CSS_Converter {
         // Position
         $css_properties = array_merge($css_properties, $this->convert_position($settings));
         
-        // Transform & Effects
+        // Transform & Effects (includes _transform, _boxShadow, _cssFilters, etc.)
         $css_properties = array_merge($css_properties, $this->convert_effects($settings));
         
         // Custom CSS is handled separately in parse_custom_css_stylesheet()
@@ -339,8 +376,17 @@ class B2E_CSS_Converter {
     private function convert_border($border) {
         $css = array();
         
+        // Border width - can be string or array
         if (!empty($border['width'])) {
-            $css[] = 'border-width: ' . $border['width'] . ';';
+            if (is_string($border['width'])) {
+                $css[] = 'border-width: ' . $border['width'] . ';';
+            } elseif (is_array($border['width'])) {
+                $top = $border['width']['top'] ?? '0';
+                $right = $border['width']['right'] ?? '0';
+                $bottom = $border['width']['bottom'] ?? '0';
+                $left = $border['width']['left'] ?? '0';
+                $css[] = 'border-width: ' . $top . ' ' . $right . ' ' . $bottom . ' ' . $left . ';';
+            }
         }
         
         if (!empty($border['style'])) {
@@ -354,8 +400,17 @@ class B2E_CSS_Converter {
             }
         }
         
+        // Border radius - can be string or array
         if (!empty($border['radius'])) {
-            $css[] = 'border-radius: ' . $border['radius'] . ';';
+            if (is_string($border['radius'])) {
+                $css[] = 'border-radius: ' . $border['radius'] . ';';
+            } elseif (is_array($border['radius'])) {
+                $top = $border['radius']['top'] ?? '0';
+                $right = $border['radius']['right'] ?? '0';
+                $bottom = $border['radius']['bottom'] ?? '0';
+                $left = $border['radius']['left'] ?? '0';
+                $css[] = 'border-radius: ' . $top . ' ' . $right . ' ' . $bottom . ' ' . $left . ';';
+            }
         }
         
         return $css;
@@ -778,30 +833,87 @@ class B2E_CSS_Converter {
     private function convert_effects($settings) {
         $css = array();
         
+        // Transform - can be string or array
         if (!empty($settings['_transform'])) {
-            $css[] = 'transform: ' . $settings['_transform'] . ';';
+            if (is_string($settings['_transform'])) {
+                $css[] = 'transform: ' . $settings['_transform'] . ';';
+            } elseif (is_array($settings['_transform'])) {
+                $transform_parts = array();
+                if (!empty($settings['_transform']['translateX'])) $transform_parts[] = 'translateX(' . $settings['_transform']['translateX'] . 'px)';
+                if (!empty($settings['_transform']['translateY'])) $transform_parts[] = 'translateY(' . $settings['_transform']['translateY'] . 'px)';
+                if (!empty($settings['_transform']['scaleX'])) $transform_parts[] = 'scaleX(' . $settings['_transform']['scaleX'] . ')';
+                if (!empty($settings['_transform']['scaleY'])) $transform_parts[] = 'scaleY(' . $settings['_transform']['scaleY'] . ')';
+                if (!empty($settings['_transform']['rotateX'])) $transform_parts[] = 'rotateX(' . $settings['_transform']['rotateX'] . 'deg)';
+                if (!empty($settings['_transform']['rotateY'])) $transform_parts[] = 'rotateY(' . $settings['_transform']['rotateY'] . 'deg)';
+                if (!empty($settings['_transform']['rotateZ'])) $transform_parts[] = 'rotateZ(' . $settings['_transform']['rotateZ'] . 'deg)';
+                if (!empty($settings['_transform']['skewX'])) $transform_parts[] = 'skewX(' . $settings['_transform']['skewX'] . 'deg)';
+                if (!empty($settings['_transform']['skewY'])) $transform_parts[] = 'skewY(' . $settings['_transform']['skewY'] . 'deg)';
+                if (!empty($transform_parts)) {
+                    $css[] = 'transform: ' . implode(' ', $transform_parts) . ';';
+                }
+            }
         }
         
-        if (!empty($settings['_transition'])) {
+        // Transform origin
+        if (!empty($settings['_transformOrigin'])) {
+            $css[] = 'transform-origin: ' . $settings['_transformOrigin'] . ';';
+        }
+        
+        // Transition - usually string
+        if (!empty($settings['_transition']) && is_string($settings['_transition'])) {
             $css[] = 'transition: ' . $settings['_transition'] . ';';
         }
         
-        if (!empty($settings['_cssTransition'])) {
+        if (!empty($settings['_cssTransition']) && is_string($settings['_cssTransition'])) {
             $css[] = 'transition: ' . $settings['_cssTransition'] . ';';
         }
         
-        if (!empty($settings['_filter'])) {
+        // CSS Filters - array format
+        if (!empty($settings['_cssFilters']) && is_array($settings['_cssFilters'])) {
+            $filter_parts = array();
+            if (isset($settings['_cssFilters']['blur'])) $filter_parts[] = 'blur(' . $settings['_cssFilters']['blur'] . 'px)';
+            if (isset($settings['_cssFilters']['brightness'])) $filter_parts[] = 'brightness(' . $settings['_cssFilters']['brightness'] . '%)';
+            if (isset($settings['_cssFilters']['contrast'])) $filter_parts[] = 'contrast(' . $settings['_cssFilters']['contrast'] . '%)';
+            if (isset($settings['_cssFilters']['hue-rotate'])) $filter_parts[] = 'hue-rotate(' . $settings['_cssFilters']['hue-rotate'] . 'deg)';
+            if (isset($settings['_cssFilters']['invert'])) $filter_parts[] = 'invert(' . $settings['_cssFilters']['invert'] . '%)';
+            if (isset($settings['_cssFilters']['opacity'])) $filter_parts[] = 'opacity(' . $settings['_cssFilters']['opacity'] . '%)';
+            if (isset($settings['_cssFilters']['saturate'])) $filter_parts[] = 'saturate(' . $settings['_cssFilters']['saturate'] . '%)';
+            if (isset($settings['_cssFilters']['sepia'])) $filter_parts[] = 'sepia(' . $settings['_cssFilters']['sepia'] . '%)';
+            if (!empty($filter_parts)) {
+                $css[] = 'filter: ' . implode(' ', $filter_parts) . ';';
+            }
+        }
+        
+        // Filter - string format
+        if (!empty($settings['_filter']) && is_string($settings['_filter'])) {
             $css[] = 'filter: ' . $settings['_filter'] . ';';
         }
         
-        if (!empty($settings['_backdropFilter'])) {
+        // Backdrop filter - usually string
+        if (!empty($settings['_backdropFilter']) && is_string($settings['_backdropFilter'])) {
             $css[] = 'backdrop-filter: ' . $settings['_backdropFilter'] . ';';
         }
         
+        // Box shadow - can be string or array
         if (!empty($settings['_boxShadow'])) {
-            $css[] = 'box-shadow: ' . $settings['_boxShadow'] . ';';
+            if (is_string($settings['_boxShadow'])) {
+                $css[] = 'box-shadow: ' . $settings['_boxShadow'] . ';';
+            } elseif (is_array($settings['_boxShadow']) && !empty($settings['_boxShadow']['values'])) {
+                $shadow = $settings['_boxShadow']['values'];
+                $color = '';
+                if (!empty($settings['_boxShadow']['color'])) {
+                    $color = is_array($settings['_boxShadow']['color']) ? ($settings['_boxShadow']['color']['raw'] ?? '') : $settings['_boxShadow']['color'];
+                }
+                $inset = !empty($settings['_boxShadow']['inset']) ? 'inset ' : '';
+                $offsetX = $shadow['offsetX'] ?? '0';
+                $offsetY = $shadow['offsetY'] ?? '0';
+                $blur = $shadow['blur'] ?? '0';
+                $spread = $shadow['spread'] ?? '0';
+                $css[] = 'box-shadow: ' . $inset . $offsetX . 'px ' . $offsetY . 'px ' . $blur . 'px ' . $spread . 'px ' . $color . ';';
+            }
         }
         
+        // Text shadow - can be string or array
         if (!empty($settings['_textShadow'])) {
             $css[] = 'text-shadow: ' . $settings['_textShadow'] . ';';
         }
@@ -945,67 +1057,49 @@ class B2E_CSS_Converter {
     
     /**
      * Parse custom CSS stylesheet and extract individual rules per selector
+     * Now handles media queries and nested rules properly
      */
-    private function parse_custom_css_stylesheet($stylesheet) {
+    private function parse_custom_css_stylesheet($stylesheet, $style_map = array()) {
         $styles = array();
         
-        // Remove comments
-        $stylesheet = preg_replace('/\/\*.*?\*\//s', '', $stylesheet);
+        // Don't remove comments yet - we need them to identify sections
+        $original_stylesheet = $stylesheet;
         
-        // Simple regex to extract CSS rules: selector { properties }
-        // This handles basic selectors and nested rules
-        preg_match_all('/([^{]+)\{([^}]+)\}/s', $stylesheet, $matches, PREG_SET_ORDER);
+        // Extract the first class name from the stylesheet to use as base
+        preg_match('/\.([a-zA-Z0-9_-]+)/', $stylesheet, $first_class_match);
+        if (empty($first_class_match)) {
+            return $styles;
+        }
         
-        foreach ($matches as $match) {
-            $selector = trim($match[1]);
-            $css = trim($match[2]);
-            
-            if (empty($selector) || empty($css)) {
-                continue;
-            }
-            
-            // Extract class name from selector (e.g., ".my-class" or ".my-class > *")
-            // Use the base class for the hash
-            if (preg_match('/\.([a-zA-Z0-9_-]+)/', $selector, $class_match)) {
-                $class_name = $class_match[1];
-                $style_id = $this->generate_style_hash($class_name);
-                
-                // If this selector has child selectors (e.g., ".class > *"), store as raw CSS
-                if (strpos($selector, ' ') !== false || strpos($selector, '>') !== false) {
-                    // Complex selector - store the full rule
-                    $full_rule = $selector . ' { ' . $css . ' }';
-                    
-                    if (isset($styles[$style_id])) {
-                        // Append to existing style
-                        $styles[$style_id]['css'] .= "\n" . $full_rule;
-                    } else {
-                        // Create new style with the base selector
-                        $styles[$style_id] = array(
-                            'type' => 'class',
-                            'selector' => '.' . $class_name,
-                            'collection' => 'default',
-                            'css' => $full_rule,
-                            'readonly' => false,
-                        );
-                    }
-                } else {
-                    // Simple selector - store just the properties
-                    if (isset($styles[$style_id])) {
-                        // Append to existing style
-                        $styles[$style_id]['css'] .= "\n  " . $css;
-                    } else {
-                        // Create new style
-                        $styles[$style_id] = array(
-                            'type' => 'class',
-                            'selector' => $selector,
-                            'collection' => 'default',
-                            'css' => $css,
-                            'readonly' => false,
-                        );
-                    }
-                }
+        $class_name = $first_class_match[1];
+        
+        // Find the existing style ID for this class from style_map
+        $style_id = null;
+        foreach ($style_map as $bricks_id => $style_data) {
+            $selector = is_array($style_data) ? $style_data['selector'] : '';
+            // Match selector (with or without leading dot)
+            if ($selector === '.' . $class_name || $selector === $class_name) {
+                $style_id = is_array($style_data) ? $style_data['id'] : $style_data;
+                error_log('B2E CSS: Found existing style ID ' . $style_id . ' for custom CSS class ' . $class_name);
+                break;
             }
         }
+        
+        // If no existing style found, generate new ID
+        if (!$style_id) {
+            $style_id = $this->generate_style_hash($class_name);
+            error_log('B2E CSS: Generated new style ID ' . $style_id . ' for custom CSS class ' . $class_name);
+        }
+        
+        // For custom CSS, store the ENTIRE stylesheet as-is
+        // Etch can handle media queries and nested selectors
+        $styles[$style_id] = array(
+            'type' => 'class',
+            'selector' => '.' . $class_name,
+            'collection' => 'default',
+            'css' => trim($original_stylesheet),
+            'readonly' => false,
+        );
         
         return $styles;
     }
@@ -1014,59 +1108,264 @@ class B2E_CSS_Converter {
      * Generate 7-character hash ID for styles
      */
     private function generate_style_hash($class_name) {
-        return substr(md5($class_name), 0, 7);
+        // Use the same ID generation as Etch: substr(uniqid(), -7)
+        // Note: This generates random IDs, not deterministic ones
+        // But it matches Etch's format exactly
+        return substr(uniqid(), -7);
     }
     
     /**
      * Import Etch styles to target site
      */
-    public function import_etch_styles($etch_styles) {
-        if (empty($etch_styles) || !is_array($etch_styles)) {
+    public function import_etch_styles($data) {
+        if (empty($data) || !is_array($data)) {
             return new WP_Error('invalid_styles', 'Invalid styles data provided');
         }
         
-        // Get existing etch_styles
+        // Extract styles and style_map from data
+        $etch_styles = $data['styles'] ?? $data; // Fallback to old format
+        $style_map = $data['style_map'] ?? array();
+        
+        error_log('B2E: import_etch_styles called with ' . count($etch_styles) . ' styles');
+        error_log('B2E: import_etch_styles received style map with ' . count($style_map) . ' entries');
+        
+        // Get existing etch_styles (for Etch Editor)
         $existing_styles = get_option('etch_styles', array());
         
         // Merge with new styles
         $merged_styles = array_merge($existing_styles, $etch_styles);
         
-        // Save via Etch API instead of direct DB access
-        // This ensures proper handling and triggers all Etch hooks
-        if (class_exists('Etch\RestApi\Routes\StylesRoutes')) {
+        // NOTE: We only save to etch_styles, NOT etch_global_stylesheets
+        // - etch_styles: Used by Etch's StylesRegister to render styles on pages that use them
+        // - etch_global_stylesheets: Only for manually entered global CSS (not for classes)
+        
+        // TEST: Bypass Etch API to check if selectors are preserved
+        $bypass_api = true; // Set to false to use Etch API again
+        
+        if ($bypass_api) {
+            error_log('B2E: 🚫 BYPASSING Etch API - using direct update_option()');
+            
+            // DEBUG: Log first 3 styles BEFORE saving
+            $style_keys = array_keys($merged_styles);
+            for ($i = 0; $i < min(3, count($style_keys)); $i++) {
+                $key = $style_keys[$i];
+                $style = $merged_styles[$key];
+                error_log('B2E CSS BEFORE SAVE: ' . $key . ' selector: ' . ($style['selector'] ?? 'NULL'));
+            }
+            
+            // Save directly to database
+            $update_result = update_option('etch_styles', $merged_styles);
+            
+            if (!$update_result) {
+                error_log('B2E: ⚠️ update_option returned false (option may already exist with same value)');
+            } else {
+                error_log('B2E: ✅ update_option returned true');
+            }
+            
+            // DEBUG: Log first 3 styles AFTER saving (verify from DB)
+            $saved_styles = get_option('etch_styles', array());
+            error_log('B2E: Retrieved ' . count($saved_styles) . ' styles from DB');
+            
+            for ($i = 0; $i < min(3, count($style_keys)); $i++) {
+                $key = $style_keys[$i];
+                $saved_style = $saved_styles[$key] ?? null;
+                if ($saved_style) {
+                    error_log('B2E CSS AFTER SAVE: ' . $key . ' selector: ' . ($saved_style['selector'] ?? 'NULL'));
+                } else {
+                    error_log('B2E CSS AFTER SAVE: ' . $key . ' NOT FOUND in DB!');
+                }
+            }
+            
+            // Manually trigger cache invalidation
+            wp_cache_delete('etch_styles', 'options');
+            
+            // Trigger CSS rebuild
+            $this->trigger_etch_css_rebuild();
+            
+            error_log('B2E: ✅ Direct save complete - ' . count($merged_styles) . ' styles saved');
+            
+            // Style map was already created during conversion!
+            // Just save it to WordPress options
+            update_option('b2e_style_map', $style_map);
+            error_log('B2E: ✅ Saved style map with ' . count($style_map) . ' entries');
+            
+            // Log first few mappings for debugging
+            $map_entries = array_slice($style_map, 0, 3, true);
+            foreach ($map_entries as $bricks_id => $etch_id) {
+                error_log('B2E: Style Map: ' . $bricks_id . ' → ' . $etch_id);
+            }
+            
+            return true;
+            
+        } elseif (class_exists('Etch\RestApi\Routes\StylesRoutes')) {
             try {
                 $routes = new \Etch\RestApi\Routes\StylesRoutes();
+                
+                // Create proper REST request with JSON body
                 $request = new \WP_REST_Request('POST', '/etch-api/styles');
-                $request->set_body(json_encode($merged_styles, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+                $request->set_header('Content-Type', 'application/json');
+                $json_body = json_encode($merged_styles, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                $request->set_body($json_body);
+                
+                // DEBUG: Check if JSON encoding breaks selectors
+                $decoded_test = json_decode($json_body, true);
+                $test_keys = array_keys($decoded_test);
+                if (count($test_keys) > 3) {
+                    error_log('B2E CSS JSON TEST: ' . $test_keys[3] . ' selector after json_encode/decode: ' . ($decoded_test[$test_keys[3]]['selector'] ?? 'NULL'));
+                }
+                
+                error_log('B2E: Calling Etch API with ' . count($merged_styles) . ' styles');
+                
+                // DEBUG: Log first 3 styles BEFORE API call
+                $style_keys = array_keys($merged_styles);
+                for ($i = 0; $i < min(3, count($style_keys)); $i++) {
+                    $key = $style_keys[$i];
+                    $style = $merged_styles[$key];
+                    error_log('B2E CSS BEFORE API: ' . $key . ' selector: ' . ($style['selector'] ?? 'NULL'));
+                }
                 
                 $response = $routes->update_styles($request);
                 
+                // DEBUG: Log first 3 styles AFTER API call (from DB)
+                $saved_styles = get_option('etch_styles', array());
+                for ($i = 0; $i < min(3, count($style_keys)); $i++) {
+                    $key = $style_keys[$i];
+                    $saved_style = $saved_styles[$key] ?? null;
+                    if ($saved_style) {
+                        error_log('B2E CSS AFTER API: ' . $key . ' selector: ' . ($saved_style['selector'] ?? 'NULL'));
+                    }
+                }
+                
                 if (is_wp_error($response)) {
+                    error_log('B2E: Etch API error: ' . $response->get_error_message());
                     return new WP_Error('api_failed', 'Etch API error: ' . $response->get_error_message());
                 }
                 
-                // API call successful - Etch handles cache invalidation internally
+                error_log('B2E: Etch API success - styles saved and processed');
+                
+                // Trigger Etch CSS rebuild
+                $this->trigger_etch_css_rebuild();
+                
+                // API call successful - Etch handles everything internally
                 return true;
                 
             } catch (Exception $e) {
+                error_log('B2E: Etch API exception: ' . $e->getMessage());
                 return new WP_Error('api_exception', 'Exception calling Etch API: ' . $e->getMessage());
             }
         } else {
             // Fallback to direct DB access if Etch API not available
+            error_log('B2E: WARNING - Etch API not available, using fallback (styles may not render correctly)');
+            
             $result = update_option('etch_styles', $merged_styles);
             
-            if (!$result) {
+            if (!$result && empty($existing_styles)) {
                 return new WP_Error('save_failed', 'Failed to save styles to database');
             }
             
-            // Manual cache invalidation for fallback method
+            // Manual cache invalidation for fallback
             $current_version = get_option('etch_svg_version', 1);
             update_option('etch_svg_version', $current_version + 1);
             wp_cache_delete('etch_global_data', 'etch');
             wp_cache_flush();
             
+            // Trigger Etch CSS rebuild
+            $this->trigger_etch_css_rebuild();
+            
             return true;
         }
+    }
+    
+    /**
+     * Trigger Etch CSS rebuild
+     * Forces Etch to regenerate CSS files from styles
+     */
+    private function trigger_etch_css_rebuild() {
+        error_log('B2E: Triggering Etch CSS rebuild...');
+        
+        // Method 1: Increment SVG version (forces cache invalidation)
+        $current_version = get_option('etch_svg_version', 1);
+        $new_version = $current_version + 1;
+        update_option('etch_svg_version', $new_version);
+        error_log('B2E: Updated etch_svg_version from ' . $current_version . ' to ' . $new_version);
+        
+        // Method 2: Clear all Etch caches
+        wp_cache_delete('etch_global_data', 'etch');
+        wp_cache_delete('etch_styles', 'etch');
+        wp_cache_flush();
+        error_log('B2E: Cleared Etch caches');
+        
+        // Method 3: Trigger WordPress actions that Etch might listen to
+        do_action('etch_styles_updated');
+        do_action('etch_rebuild_css');
+        error_log('B2E: Triggered Etch action hooks');
+        
+        // Note: We don't call Etch's internal classes directly because:
+        // - StylesheetService has protected constructor (Singleton)
+        // - StylesRegister handles rendering automatically when blocks are processed
+        // - Cache invalidation via etch_svg_version is sufficient
+        
+        error_log('B2E: CSS rebuild trigger complete');
+    }
+    
+    /**
+     * Save styles to etch_global_stylesheets for frontend rendering
+     * 
+     * Etch uses etch_global_stylesheets to render CSS in the frontend
+     * This converts our etch_styles format to the global stylesheet format
+     */
+    private function save_to_global_stylesheets($etch_styles) {
+        error_log('B2E: Saving to etch_global_stylesheets for frontend rendering...');
+        
+        // Get existing global stylesheets
+        $existing_global = get_option('etch_global_stylesheets', array());
+        
+        // Convert etch_styles format to global stylesheet format
+        // Global stylesheets format: array of {name, css} objects
+        $new_stylesheets = array();
+        
+        foreach ($etch_styles as $style_id => $style) {
+            // Skip element styles (they're built-in)
+            if (isset($style['type']) && $style['type'] === 'element') {
+                continue;
+            }
+            
+            // Create stylesheet entry
+            $stylesheet_name = isset($style['selector']) ? $style['selector'] : $style_id;
+            $stylesheet_css = isset($style['css']) ? $style['css'] : '';
+            
+            // Skip empty styles
+            if (empty($stylesheet_css)) {
+                continue;
+            }
+            
+            // Wrap CSS with selector if not already wrapped
+            if (!empty($stylesheet_name) && strpos($stylesheet_css, $stylesheet_name) === false) {
+                $wrapped_css = $stylesheet_name . ' { ' . $stylesheet_css . ' }';
+            } else {
+                $wrapped_css = $stylesheet_css;
+            }
+            
+            $new_stylesheets[$style_id] = array(
+                'name' => $stylesheet_name,
+                'css' => $wrapped_css
+            );
+        }
+        
+        // Merge with existing global stylesheets
+        $merged_global = array_merge($existing_global, $new_stylesheets);
+        
+        // Save to database
+        $result = update_option('etch_global_stylesheets', $merged_global);
+        
+        if ($result) {
+            error_log('B2E: Saved ' . count($new_stylesheets) . ' stylesheets to etch_global_stylesheets');
+            error_log('B2E: Total global stylesheets: ' . count($merged_global));
+        } else {
+            error_log('B2E: WARNING - Failed to update etch_global_stylesheets');
+        }
+        
+        return $result;
     }
     
     /**

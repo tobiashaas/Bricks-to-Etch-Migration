@@ -775,14 +775,21 @@ class B2E_Admin_Interface {
                 updateProgress(7, '⚠️ CSS migration failed (continuing...)', cssSteps);
             }
             
-            // Step 2.5: Migrate Media [UPDATED: 2025-10-20 21:48]
+            // Step 2.5: Migrate Media [UPDATED: 2025-10-20 21:53]
             console.log('📸 Starting media migration...');
             updateProgress(8, '📸 Migrating media files...', [...cssSteps, 'Transferring images and attachments...']);
             try {
                 console.log('📸 Calling migrateMedia function...');
-                await migrateMedia(apiDomain, apiKey);
-                console.log('📸 Media migration completed successfully');
-                cssSteps.push('✅ Media files migrated successfully');
+                const mediaResult = await migrateMedia(apiDomain, apiKey);
+                console.log('📸 Media migration result:', mediaResult);
+                console.log('📸 Media migrated:', mediaResult?.migrated || 0);
+                console.log('📸 Media failed:', mediaResult?.failed || 0);
+                console.log('📸 Media total:', mediaResult?.total || 0);
+                console.log('📸 Media timestamp:', mediaResult?.timestamp || 'NO TIMESTAMP');
+                console.log('📸 Media debug:', mediaResult?.debug || 'NO DEBUG');
+                
+                const mediaSummary = `Migrated: ${mediaResult?.migrated || 0}, Failed: ${mediaResult?.failed || 0}, Total: ${mediaResult?.total || 0}`;
+                cssSteps.push(`✅ Media migration complete - ${mediaSummary}`);
                 updateProgress(10, '✅ Media migration complete', cssSteps);
             } catch (error) {
                 console.error('📸 Media migration error:', error);
@@ -2183,7 +2190,10 @@ class B2E_Admin_Interface {
      * AJAX handler to migrate CSS
      */
     public function ajax_migrate_css() {
-        error_log('🎨 B2E CSS Migration: AJAX handler called');
+        error_log('========================================');
+        error_log('🎨 B2E CSS Migration: AJAX handler called - START');
+        error_log('🎨 B2E CSS Migration: POST data: ' . print_r($_POST, true));
+        error_log('========================================');
         
         // Verify nonce
         if (!check_ajax_referer('b2e_nonce', 'nonce', false)) {
@@ -2281,8 +2291,11 @@ class B2E_Admin_Interface {
      * AJAX handler to migrate media files
      */
     public function ajax_migrate_media() {
+        error_log('🎬 B2E AJAX: ajax_migrate_media called');
+        
         // Verify nonce
         if (!check_ajax_referer('b2e_nonce', 'nonce', false)) {
+            error_log('❌ B2E AJAX: Invalid nonce');
             wp_send_json_error('Invalid nonce');
             return;
         }
@@ -2291,7 +2304,10 @@ class B2E_Admin_Interface {
         $target_url = sanitize_url($_POST['target_url'] ?? '');
         $api_key = sanitize_text_field($_POST['api_key'] ?? '');
         
+        error_log('🎬 B2E AJAX: target_url=' . $target_url . ', api_key=' . substr($api_key, 0, 20) . '...');
+        
         if (empty($target_url) || empty($api_key)) {
+            error_log('❌ B2E AJAX: Missing required parameters');
             wp_send_json_error('Missing required parameters');
             return;
         }
@@ -2310,21 +2326,29 @@ class B2E_Admin_Interface {
         
         // Migrate media
         try {
+            error_log('🎬 B2E AJAX: About to create B2E_Media_Migrator');
             $media_migrator = new B2E_Media_Migrator();
+            error_log('🎬 B2E AJAX: Calling migrate_media with URL: ' . $internal_url);
             $result = $media_migrator->migrate_media($internal_url, $api_key);
+            error_log('🎬 B2E AJAX: migrate_media returned: ' . print_r($result, true));
             
             if (is_wp_error($result)) {
+                error_log('❌ B2E AJAX: Result is WP_Error');
                 wp_send_json_error($result->get_error_message());
             } else {
+                error_log('✅ B2E AJAX: Sending success response');
                 wp_send_json_success(array(
                     'message' => 'Media migrated successfully',
                     'migrated' => $result['migrated'] ?? 0,
                     'failed' => $result['failed'] ?? 0,
                     'skipped' => $result['skipped'] ?? 0,
-                    'total' => $result['total'] ?? 0
+                    'total' => $result['total'] ?? 0,
+                    'timestamp' => current_time('mysql'),
+                    'debug' => 'AJAX called at ' . current_time('mysql')
                 ));
             }
         } catch (Exception $e) {
+            error_log('❌ B2E AJAX: Exception: ' . $e->getMessage());
             wp_send_json_error('Exception: ' . $e->getMessage());
         }
     }

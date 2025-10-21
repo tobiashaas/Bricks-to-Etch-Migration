@@ -794,6 +794,17 @@ class B2E_API_Endpoints {
      */
     public static function import_media_file($request) {
         try {
+            // Load required WordPress admin files
+            if (!function_exists('wp_handle_sideload')) {
+                require_once(ABSPATH . 'wp-admin/includes/file.php');
+            }
+            if (!function_exists('wp_generate_attachment_metadata')) {
+                require_once(ABSPATH . 'wp-admin/includes/image.php');
+            }
+            if (!function_exists('media_handle_sideload')) {
+                require_once(ABSPATH . 'wp-admin/includes/media.php');
+            }
+            
             $media_data = $request->get_json_params();
             
             if (empty($media_data)) {

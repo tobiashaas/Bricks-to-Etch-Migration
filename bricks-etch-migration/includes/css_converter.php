@@ -89,17 +89,24 @@ class B2E_CSS_Converter {
                     error_log('B2E CSS: Style ' . $style_id . ' selector: ' . ($converted_class['selector'] ?? 'NULL'));
                 }
                 
-                // Map Bricks ID to Etch Style ID
+                // Map Bricks ID to Etch Style ID + Selector
+                // Store both ID and selector so we can use them on Bricks side
                 if (!empty($class['id'])) {
-                    $style_map[$class['id']] = $style_id;
+                    $style_map[$class['id']] = array(
+                        'id' => $style_id,
+                        'selector' => $converted_class['selector'] ?? ''
+                    );
                 }
             }
         }
         error_log('🎨 CSS Converter: Converted ' . $converted_count . ' user classes');
         
         // Step 3: Parse custom CSS stylesheet and merge with existing styles
+        error_log('B2E CSS: Custom CSS stylesheet length: ' . strlen($custom_css_stylesheet));
         if (!empty($custom_css_stylesheet)) {
-            $custom_styles = $this->parse_custom_css_stylesheet($custom_css_stylesheet);
+            error_log('B2E CSS: Parsing custom CSS stylesheet...');
+            $custom_styles = $this->parse_custom_css_stylesheet($custom_css_stylesheet, $style_map);
+            error_log('B2E CSS: Found ' . count($custom_styles) . ' custom styles');
             
             // Merge custom CSS with existing styles (combine CSS for same selector)
             foreach ($custom_styles as $style_id => $custom_style) {
@@ -116,10 +123,13 @@ class B2E_CSS_Converter {
                     } elseif (!empty($custom_css)) {
                         $etch_styles[$style_id]['css'] = $custom_css;
                     }
+                    
+                    error_log('B2E CSS: Merged custom CSS for ' . $custom_style['selector']);
                 } else {
                     // New style from custom CSS - convert to logical properties
                     $custom_style['css'] = $this->convert_to_logical_properties($custom_style['css']);
                     $etch_styles[$style_id] = $custom_style;
+                    error_log('B2E CSS: Added new custom CSS style for ' . $custom_style['selector']);
                 }
             }
         }
@@ -244,8 +254,10 @@ class B2E_CSS_Converter {
             }
         }
         
-        // Border
-        if (!empty($settings['border'])) {
+        // Border (Bricks uses _border)
+        if (!empty($settings['_border'])) {
+            $css_properties = array_merge($css_properties, $this->convert_border($settings['_border']));
+        } elseif (!empty($settings['border'])) {
             $css_properties = array_merge($css_properties, $this->convert_border($settings['border']));
         }
         
@@ -266,7 +278,7 @@ class B2E_CSS_Converter {
         // Position
         $css_properties = array_merge($css_properties, $this->convert_position($settings));
         
-        // Transform & Effects
+        // Transform & Effects (includes _transform, _boxShadow, _cssFilters, etc.)
         $css_properties = array_merge($css_properties, $this->convert_effects($settings));
         
         // Custom CSS is handled separately in parse_custom_css_stylesheet()
@@ -364,8 +376,17 @@ class B2E_CSS_Converter {
     private function convert_border($border) {
         $css = array();
         
+        // Border width - can be string or array
         if (!empty($border['width'])) {
-            $css[] = 'border-width: ' . $border['width'] . ';';
+            if (is_string($border['width'])) {
+                $css[] = 'border-width: ' . $border['width'] . ';';
+            } elseif (is_array($border['width'])) {
+                $top = $border['width']['top'] ?? '0';
+                $right = $border['width']['right'] ?? '0';
+                $bottom = $border['width']['bottom'] ?? '0';
+                $left = $border['width']['left'] ?? '0';
+                $css[] = 'border-width: ' . $top . ' ' . $right . ' ' . $bottom . ' ' . $left . ';';
+            }
         }
         
         if (!empty($border['style'])) {
@@ -379,8 +400,17 @@ class B2E_CSS_Converter {
             }
         }
         
+        // Border radius - can be string or array
         if (!empty($border['radius'])) {
-            $css[] = 'border-radius: ' . $border['radius'] . ';';
+            if (is_string($border['radius'])) {
+                $css[] = 'border-radius: ' . $border['radius'] . ';';
+            } elseif (is_array($border['radius'])) {
+                $top = $border['radius']['top'] ?? '0';
+                $right = $border['radius']['right'] ?? '0';
+                $bottom = $border['radius']['bottom'] ?? '0';
+                $left = $border['radius']['left'] ?? '0';
+                $css[] = 'border-radius: ' . $top . ' ' . $right . ' ' . $bottom . ' ' . $left . ';';
+            }
         }
         
         return $css;
@@ -803,30 +833,87 @@ class B2E_CSS_Converter {
     private function convert_effects($settings) {
         $css = array();
         
+        // Transform - can be string or array
         if (!empty($settings['_transform'])) {
-            $css[] = 'transform: ' . $settings['_transform'] . ';';
+            if (is_string($settings['_transform'])) {
+                $css[] = 'transform: ' . $settings['_transform'] . ';';
+            } elseif (is_array($settings['_transform'])) {
+                $transform_parts = array();
+                if (!empty($settings['_transform']['translateX'])) $transform_parts[] = 'translateX(' . $settings['_transform']['translateX'] . 'px)';
+                if (!empty($settings['_transform']['translateY'])) $transform_parts[] = 'translateY(' . $settings['_transform']['translateY'] . 'px)';
+                if (!empty($settings['_transform']['scaleX'])) $transform_parts[] = 'scaleX(' . $settings['_transform']['scaleX'] . ')';
+                if (!empty($settings['_transform']['scaleY'])) $transform_parts[] = 'scaleY(' . $settings['_transform']['scaleY'] . ')';
+                if (!empty($settings['_transform']['rotateX'])) $transform_parts[] = 'rotateX(' . $settings['_transform']['rotateX'] . 'deg)';
+                if (!empty($settings['_transform']['rotateY'])) $transform_parts[] = 'rotateY(' . $settings['_transform']['rotateY'] . 'deg)';
+                if (!empty($settings['_transform']['rotateZ'])) $transform_parts[] = 'rotateZ(' . $settings['_transform']['rotateZ'] . 'deg)';
+                if (!empty($settings['_transform']['skewX'])) $transform_parts[] = 'skewX(' . $settings['_transform']['skewX'] . 'deg)';
+                if (!empty($settings['_transform']['skewY'])) $transform_parts[] = 'skewY(' . $settings['_transform']['skewY'] . 'deg)';
+                if (!empty($transform_parts)) {
+                    $css[] = 'transform: ' . implode(' ', $transform_parts) . ';';
+                }
+            }
         }
         
-        if (!empty($settings['_transition'])) {
+        // Transform origin
+        if (!empty($settings['_transformOrigin'])) {
+            $css[] = 'transform-origin: ' . $settings['_transformOrigin'] . ';';
+        }
+        
+        // Transition - usually string
+        if (!empty($settings['_transition']) && is_string($settings['_transition'])) {
             $css[] = 'transition: ' . $settings['_transition'] . ';';
         }
         
-        if (!empty($settings['_cssTransition'])) {
+        if (!empty($settings['_cssTransition']) && is_string($settings['_cssTransition'])) {
             $css[] = 'transition: ' . $settings['_cssTransition'] . ';';
         }
         
-        if (!empty($settings['_filter'])) {
+        // CSS Filters - array format
+        if (!empty($settings['_cssFilters']) && is_array($settings['_cssFilters'])) {
+            $filter_parts = array();
+            if (isset($settings['_cssFilters']['blur'])) $filter_parts[] = 'blur(' . $settings['_cssFilters']['blur'] . 'px)';
+            if (isset($settings['_cssFilters']['brightness'])) $filter_parts[] = 'brightness(' . $settings['_cssFilters']['brightness'] . '%)';
+            if (isset($settings['_cssFilters']['contrast'])) $filter_parts[] = 'contrast(' . $settings['_cssFilters']['contrast'] . '%)';
+            if (isset($settings['_cssFilters']['hue-rotate'])) $filter_parts[] = 'hue-rotate(' . $settings['_cssFilters']['hue-rotate'] . 'deg)';
+            if (isset($settings['_cssFilters']['invert'])) $filter_parts[] = 'invert(' . $settings['_cssFilters']['invert'] . '%)';
+            if (isset($settings['_cssFilters']['opacity'])) $filter_parts[] = 'opacity(' . $settings['_cssFilters']['opacity'] . '%)';
+            if (isset($settings['_cssFilters']['saturate'])) $filter_parts[] = 'saturate(' . $settings['_cssFilters']['saturate'] . '%)';
+            if (isset($settings['_cssFilters']['sepia'])) $filter_parts[] = 'sepia(' . $settings['_cssFilters']['sepia'] . '%)';
+            if (!empty($filter_parts)) {
+                $css[] = 'filter: ' . implode(' ', $filter_parts) . ';';
+            }
+        }
+        
+        // Filter - string format
+        if (!empty($settings['_filter']) && is_string($settings['_filter'])) {
             $css[] = 'filter: ' . $settings['_filter'] . ';';
         }
         
-        if (!empty($settings['_backdropFilter'])) {
+        // Backdrop filter - usually string
+        if (!empty($settings['_backdropFilter']) && is_string($settings['_backdropFilter'])) {
             $css[] = 'backdrop-filter: ' . $settings['_backdropFilter'] . ';';
         }
         
+        // Box shadow - can be string or array
         if (!empty($settings['_boxShadow'])) {
-            $css[] = 'box-shadow: ' . $settings['_boxShadow'] . ';';
+            if (is_string($settings['_boxShadow'])) {
+                $css[] = 'box-shadow: ' . $settings['_boxShadow'] . ';';
+            } elseif (is_array($settings['_boxShadow']) && !empty($settings['_boxShadow']['values'])) {
+                $shadow = $settings['_boxShadow']['values'];
+                $color = '';
+                if (!empty($settings['_boxShadow']['color'])) {
+                    $color = is_array($settings['_boxShadow']['color']) ? ($settings['_boxShadow']['color']['raw'] ?? '') : $settings['_boxShadow']['color'];
+                }
+                $inset = !empty($settings['_boxShadow']['inset']) ? 'inset ' : '';
+                $offsetX = $shadow['offsetX'] ?? '0';
+                $offsetY = $shadow['offsetY'] ?? '0';
+                $blur = $shadow['blur'] ?? '0';
+                $spread = $shadow['spread'] ?? '0';
+                $css[] = 'box-shadow: ' . $inset . $offsetX . 'px ' . $offsetY . 'px ' . $blur . 'px ' . $spread . 'px ' . $color . ';';
+            }
         }
         
+        // Text shadow - can be string or array
         if (!empty($settings['_textShadow'])) {
             $css[] = 'text-shadow: ' . $settings['_textShadow'] . ';';
         }
@@ -970,67 +1057,49 @@ class B2E_CSS_Converter {
     
     /**
      * Parse custom CSS stylesheet and extract individual rules per selector
+     * Now handles media queries and nested rules properly
      */
-    private function parse_custom_css_stylesheet($stylesheet) {
+    private function parse_custom_css_stylesheet($stylesheet, $style_map = array()) {
         $styles = array();
         
-        // Remove comments
-        $stylesheet = preg_replace('/\/\*.*?\*\//s', '', $stylesheet);
+        // Don't remove comments yet - we need them to identify sections
+        $original_stylesheet = $stylesheet;
         
-        // Simple regex to extract CSS rules: selector { properties }
-        // This handles basic selectors and nested rules
-        preg_match_all('/([^{]+)\{([^}]+)\}/s', $stylesheet, $matches, PREG_SET_ORDER);
+        // Extract the first class name from the stylesheet to use as base
+        preg_match('/\.([a-zA-Z0-9_-]+)/', $stylesheet, $first_class_match);
+        if (empty($first_class_match)) {
+            return $styles;
+        }
         
-        foreach ($matches as $match) {
-            $selector = trim($match[1]);
-            $css = trim($match[2]);
-            
-            if (empty($selector) || empty($css)) {
-                continue;
-            }
-            
-            // Extract class name from selector (e.g., ".my-class" or ".my-class > *")
-            // Use the base class for the hash
-            if (preg_match('/\.([a-zA-Z0-9_-]+)/', $selector, $class_match)) {
-                $class_name = $class_match[1];
-                $style_id = $this->generate_style_hash($class_name);
-                
-                // If this selector has child selectors (e.g., ".class > *"), store as raw CSS
-                if (strpos($selector, ' ') !== false || strpos($selector, '>') !== false) {
-                    // Complex selector - store the full rule
-                    $full_rule = $selector . ' { ' . $css . ' }';
-                    
-                    if (isset($styles[$style_id])) {
-                        // Append to existing style
-                        $styles[$style_id]['css'] .= "\n" . $full_rule;
-                    } else {
-                        // Create new style with the base selector
-                        $styles[$style_id] = array(
-                            'type' => 'class',
-                            'selector' => '.' . $class_name,
-                            'collection' => 'default',
-                            'css' => $full_rule,
-                            'readonly' => false,
-                        );
-                    }
-                } else {
-                    // Simple selector - store just the properties
-                    if (isset($styles[$style_id])) {
-                        // Append to existing style
-                        $styles[$style_id]['css'] .= "\n  " . $css;
-                    } else {
-                        // Create new style
-                        $styles[$style_id] = array(
-                            'type' => 'class',
-                            'selector' => $selector,
-                            'collection' => 'default',
-                            'css' => $css,
-                            'readonly' => false,
-                        );
-                    }
-                }
+        $class_name = $first_class_match[1];
+        
+        // Find the existing style ID for this class from style_map
+        $style_id = null;
+        foreach ($style_map as $bricks_id => $style_data) {
+            $selector = is_array($style_data) ? $style_data['selector'] : '';
+            // Match selector (with or without leading dot)
+            if ($selector === '.' . $class_name || $selector === $class_name) {
+                $style_id = is_array($style_data) ? $style_data['id'] : $style_data;
+                error_log('B2E CSS: Found existing style ID ' . $style_id . ' for custom CSS class ' . $class_name);
+                break;
             }
         }
+        
+        // If no existing style found, generate new ID
+        if (!$style_id) {
+            $style_id = $this->generate_style_hash($class_name);
+            error_log('B2E CSS: Generated new style ID ' . $style_id . ' for custom CSS class ' . $class_name);
+        }
+        
+        // For custom CSS, store the ENTIRE stylesheet as-is
+        // Etch can handle media queries and nested selectors
+        $styles[$style_id] = array(
+            'type' => 'class',
+            'selector' => '.' . $class_name,
+            'collection' => 'default',
+            'css' => trim($original_stylesheet),
+            'readonly' => false,
+        );
         
         return $styles;
     }
