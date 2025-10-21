@@ -39,6 +39,8 @@
 
 ### 📄 Dokumentation
 - ✅ `REFACTORING-STATUS.md` erstellt - Umfassender Refactoring-Bericht
+- ✅ `includes/converters/README.md` erstellt - Converter-Dokumentation (00:44)
+- ✅ `PROJECT-RULES.md` aktualisiert - Converter-Dokumentations-Regel hinzugefügt
 - ✅ Alle Tests dokumentiert und bestanden
 - ✅ Cleanup-Script gefixed - Löscht jetzt alle Styles
 

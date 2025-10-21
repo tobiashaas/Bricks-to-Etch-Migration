@@ -35,6 +35,13 @@
 - ✅ Include description comment at top of file
 - ✅ Clean up after testing
 
+### 6. Converter Documentation
+- ✅ All converter changes MUST be documented in `includes/converters/README.md`
+- ✅ Always add timestamp when updating
+- ✅ Remove old/outdated information - keep it clean!
+- ✅ Document: Purpose, Features, Examples, Important Changes
+- ✅ New converters: Add section with full documentation
+
 ---
 
 ## 📁 File Structure
