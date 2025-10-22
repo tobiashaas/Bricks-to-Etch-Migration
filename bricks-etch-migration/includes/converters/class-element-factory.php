@@ -50,6 +50,8 @@ class B2E_Element_Factory {
         require_once $elements_dir . 'class-paragraph.php';
         require_once $elements_dir . 'class-image.php';
         require_once $elements_dir . 'class-div.php';
+        require_once $elements_dir . 'class-button.php';
+        require_once $elements_dir . 'class-icon.php';
     }
     
     /**
@@ -59,6 +61,19 @@ class B2E_Element_Factory {
      * @return B2E_Base_Element|null Element converter
      */
     public function get_converter($element_type) {
+        // Elements to skip (not shown in frontend or not supported)
+        $skip_elements = array(
+            'fr-notes',      // Bricks Builder notes (not frontend)
+            'code',          // Code blocks (TODO)
+            'form',          // Forms (TODO)
+            'map',           // Maps (TODO)
+        );
+        
+        // Skip elements silently
+        if (in_array($element_type, $skip_elements)) {
+            return null;
+        }
+        
         // Map Bricks element types to converter classes
         $type_map = array(
             'container' => 'B2E_Element_Container',
@@ -69,6 +84,8 @@ class B2E_Element_Factory {
             'image' => 'B2E_Element_Image',
             'div' => 'B2E_Element_Div',
             'block' => 'B2E_Element_Div', // Bricks 'block' = Etch 'flex-div'
+            'button' => 'B2E_Button_Converter',
+            'icon' => 'B2E_Icon_Converter',
         );
         
         // Get converter class

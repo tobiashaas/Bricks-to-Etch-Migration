@@ -41,20 +41,55 @@ class B2E_Element_Image extends B2E_Base_Element {
         $image_url = $element['settings']['image']['url'] ?? '';
         $alt_text = $element['settings']['alt'] ?? '';
         
-        // Build Etch attributes
-        $etch_attributes = array();
+        // Build Etch structure with nestedData for img
+        // Styles and classes go on the IMG, not the FIGURE!
+        $img_attributes = array(
+            'src' => $image_url,
+            'alt' => $alt_text
+        );
         
         if (!empty($css_classes)) {
-            $etch_attributes['class'] = $css_classes;
+            $img_attributes['class'] = $css_classes;
         }
         
-        // IMPORTANT: Use 'figure' tag, not 'img'!
-        $tag = 'figure';
+        $etch_data = array(
+            'origin' => 'etch',
+            'block' => array(
+                'type' => 'html',
+                'tag' => 'figure'
+            ),
+            'nestedData' => array(
+                'img' => array(
+                    'origin' => 'etch',
+                    'attributes' => $img_attributes,
+                    'block' => array(
+                        'type' => 'html',
+                        'tag' => 'img'
+                    )
+                )
+            )
+        );
+        
+        // Add styles to img nestedData
+        if (!empty($style_ids)) {
+            $etch_data['nestedData']['img']['styles'] = $style_ids;
+        }
+        
+        // Add label if present
+        if (!empty($label)) {
+            $etch_data['name'] = $label;
+        }
         
         // Build block attributes
-        $attrs = $this->build_attributes($label, $style_ids, $etch_attributes, $tag);
+        $attrs = array(
+            'metadata' => array(
+                'etchData' => $etch_data
+            ),
+            'sizeSlug' => 'full',
+            'linkDestination' => 'none'
+        );
         
-        // Add image-specific attributes
+        // Add image ID
         if ($image_id) {
             $attrs['id'] = $image_id;
         }
@@ -64,12 +99,8 @@ class B2E_Element_Image extends B2E_Base_Element {
         
         // Build block HTML
         $html = '<!-- wp:image ' . $attrs_json . ' -->' . "\n";
-        $html .= '<figure class="wp-block-image">';
-        $html .= '<img src="' . esc_url($image_url) . '" alt="' . esc_attr($alt_text) . '"';
-        if ($image_id) {
-            $html .= ' class="wp-image-' . $image_id . '"';
-        }
-        $html .= ' />';
+        $html .= '<figure class="wp-block-image size-full">';
+        $html .= '<img src="' . esc_url($image_url) . '" alt="' . esc_attr($alt_text) . '" />';
         $html .= '</figure>' . "\n";
         $html .= '<!-- /wp:image -->';
         

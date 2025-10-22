@@ -25,6 +25,87 @@ class B2E_CSS_Converter {
     }
     
     /**
+     * Convert Bricks breakpoint name to Etch media query
+     * Uses modern range syntax and to-rem() function
+     * Desktop-first approach: styles cascade down unless overridden
+     * 
+     * @param string $breakpoint Bricks breakpoint name
+     * @return string|false Media query or false if unknown
+     */
+    private function get_media_query_for_breakpoint($breakpoint) {
+        // Bricks uses desktop-first (max-width), but we convert to min-width
+        // for better cascading behavior in Etch
+        // 
+        // Desktop-first with cascading:
+        // - Desktop styles apply to all screens
+        // - Tablet styles override desktop for smaller screens
+        // - Mobile styles override tablet for even smaller screens
+        $breakpoints = array(
+            // Desktop: 1200px and up
+            // Applies to all screens 1200px+
+            'desktop' => '@media (width >= to-rem(1200px))',
+            
+            // Tablet Landscape: 992px and up
+            // Overrides desktop for screens 992px-1199px
+            'tablet_landscape' => '@media (width >= to-rem(992px))',
+            
+            // Tablet Portrait: 768px and up
+            // Overrides tablet landscape for screens 768px-991px
+            'tablet_portrait' => '@media (width >= to-rem(768px))',
+            
+            // Mobile Landscape: 479px and up
+            // Overrides tablet for screens 479px-767px
+            'mobile_landscape' => '@media (width >= to-rem(479px))',
+            
+            // Mobile Portrait: 0-478px only
+            // Overrides everything for smallest screens
+            'mobile_portrait' => '@media (width <= to-rem(478px))',
+        );
+        
+        return isset($breakpoints[$breakpoint]) ? $breakpoints[$breakpoint] : false;
+    }
+    
+    /**
+     * Check if class should be excluded from migration
+     * 
+     * @param array $class Bricks class
+     * @return bool True if should be excluded
+     */
+    private function should_exclude_class($class) {
+        $class_name = !empty($class['name']) ? $class['name'] : '';
+        
+        // Skip if no name
+        if (empty($class_name)) {
+            return true;
+        }
+        
+        // Blacklist prefixes
+        $excluded_prefixes = array(
+            'brxe-',        // Bricks Element classes
+            'bricks-',      // Bricks System classes
+            'brx-',         // Bricks Utility classes
+            'wp-',          // WordPress default classes
+            'wp-block-',    // Gutenberg block classes
+            'has-',         // Gutenberg utility classes
+            'is-',          // Gutenberg state classes
+            'woocommerce-', // WooCommerce classes
+            'wc-',          // WooCommerce short prefix
+            'product-',     // WooCommerce product classes
+            'cart-',        // WooCommerce cart classes
+            'checkout-',    // WooCommerce checkout classes
+        );
+        
+        foreach ($excluded_prefixes as $prefix) {
+            if (strpos($class_name, $prefix) === 0) {
+                error_log('🎨 CSS Converter: Excluding class: ' . $class_name . ' (prefix: ' . $prefix . ')');
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
      * Convert Bricks global classes to Etch format
      * 
      * Generates Etch-compatible etch_styles array structure
@@ -47,15 +128,52 @@ class B2E_CSS_Converter {
         
         // Step 1: Collect all custom CSS into a temporary stylesheet
         $custom_css_stylesheet = '';
+        $breakpoint_css_map = array(); // Store breakpoint CSS per class
         
-        // Collect custom CSS from global classes
+        // Collect custom CSS from global classes (skip excluded classes!)
         foreach ($bricks_classes as $class) {
+            // Skip excluded classes
+            if ($this->should_exclude_class($class)) {
+                continue;
+            }
+            
+            $class_name = !empty($class['name']) ? $class['name'] : $class['id'];
+            $class_name = preg_replace('/^acss_import_/', '', $class_name);
+            $bricks_id = $class['id'];
+            
+            // Collect main custom CSS
             if (!empty($class['settings']['_cssCustom'])) {
-                $class_name = !empty($class['name']) ? $class['name'] : $class['id'];
-                $class_name = preg_replace('/^acss_import_/', '', $class_name);
-                
                 $custom_css = str_replace('%root%', '.' . $class_name, $class['settings']['_cssCustom']);
                 $custom_css_stylesheet .= "\n" . $custom_css . "\n";
+            }
+            
+            // Collect breakpoint-specific custom CSS (store separately!)
+            // Bricks stores these as _cssCustom:breakpoint_name
+            foreach ($class['settings'] as $key => $value) {
+                if (strpos($key, '_cssCustom:') === 0 && !empty($value)) {
+                    $breakpoint = str_replace('_cssCustom:', '', $key);
+                    
+                    // Convert Bricks breakpoint names to media queries
+                    $media_query = $this->get_media_query_for_breakpoint($breakpoint);
+                    
+                    if ($media_query) {
+                        // Extract just the CSS properties (remove the class wrapper)
+                        $custom_css = str_replace('%root%', '.' . $class_name, $value);
+                        
+                        // Extract content from .class-name { content }
+                        if (preg_match('/\.' . preg_quote($class_name, '/') . '\s*\{([^}]*)\}/s', $custom_css, $match)) {
+                            $css_content = trim($match[1]);
+                            
+                            // Store by Bricks ID so we can add it later
+                            if (!isset($breakpoint_css_map[$bricks_id])) {
+                                $breakpoint_css_map[$bricks_id] = array();
+                            }
+                            $breakpoint_css_map[$bricks_id][] = $media_query . " {\n  " . $css_content . "\n}";
+                            
+                            error_log('B2E CSS: Found breakpoint CSS for ' . $class_name . ' (' . $breakpoint . ')');
+                        }
+                    }
+                }
             }
         }
         
@@ -74,7 +192,14 @@ class B2E_CSS_Converter {
         
         // Step 2: Convert user classes (without custom CSS for now)
         $converted_count = 0;
+        $excluded_count = 0;
         foreach ($bricks_classes as $class) {
+            // Skip excluded classes
+            if ($this->should_exclude_class($class)) {
+                $excluded_count++;
+                continue;
+            }
+            
             $converted_class = $this->convert_bricks_class_to_etch($class);
             if ($converted_class) {
                 // Generate unique ID like Etch does (uniqid is fine!)
@@ -134,10 +259,32 @@ class B2E_CSS_Converter {
             }
         }
         
+        // Step 4: Add breakpoint-specific CSS to styles
+        if (!empty($breakpoint_css_map)) {
+            error_log('B2E CSS: Adding breakpoint CSS for ' . count($breakpoint_css_map) . ' classes');
+            
+            foreach ($breakpoint_css_map as $bricks_id => $media_queries) {
+                // Find the Etch style ID for this Bricks ID
+                if (isset($style_map[$bricks_id])) {
+                    $style_id = $style_map[$bricks_id]['id'];
+                    
+                    if (isset($etch_styles[$style_id])) {
+                        // Append media queries to existing CSS
+                        foreach ($media_queries as $media_query) {
+                            $etch_styles[$style_id]['css'] .= "\n\n" . $media_query;
+                        }
+                        error_log('B2E CSS: Added ' . count($media_queries) . ' media queries to style ' . $style_id);
+                    }
+                }
+            }
+        }
+        
         // Save style map for use during content migration
         update_option('b2e_style_map', $style_map);
         
         $total_styles = count($etch_styles);
+        error_log('🎨 CSS Converter: Converted ' . $converted_count . ' classes');
+        error_log('🎨 CSS Converter: Excluded ' . $excluded_count . ' classes (Bricks/WP/Woo)');
         error_log('🎨 CSS Converter: Returning ' . $total_styles . ' total styles');
         error_log('🎨 CSS Converter: Style map has ' . count($style_map) . ' entries');
         
@@ -577,8 +724,10 @@ class B2E_CSS_Converter {
         $css = array();
         
         // Flex container properties
-        if (!empty($settings['_flexDirection'])) {
-            $css[] = 'flex-direction: ' . $settings['_flexDirection'] . ';';
+        // _direction is an alias for _flexDirection in Bricks
+        $flex_direction = $settings['_flexDirection'] ?? $settings['_direction'] ?? '';
+        if (!empty($flex_direction)) {
+            $css[] = 'flex-direction: ' . $flex_direction . ';';
         }
         
         if (!empty($settings['_flexWrap'])) {
@@ -930,11 +1079,36 @@ class B2E_CSS_Converter {
             $css[] = 'isolation: ' . $settings['_isolation'] . ';';
         }
         
+        if (!empty($settings['_cursor'])) {
+            $css[] = 'cursor: ' . $settings['_cursor'] . ';';
+        }
+        
+        if (!empty($settings['_mixBlendMode'])) {
+            $css[] = 'mix-blend-mode: ' . $settings['_mixBlendMode'] . ';';
+        }
+        
+        if (!empty($settings['_pointerEvents'])) {
+            $css[] = 'pointer-events: ' . $settings['_pointerEvents'] . ';';
+        }
+        
+        if (!empty($settings['_scrollSnapType'])) {
+            $css[] = 'scroll-snap-type: ' . $settings['_scrollSnapType'] . ';';
+        }
+        
+        if (!empty($settings['_scrollSnapAlign'])) {
+            $css[] = 'scroll-snap-align: ' . $settings['_scrollSnapAlign'] . ';';
+        }
+        
+        if (!empty($settings['_scrollSnapStop'])) {
+            $css[] = 'scroll-snap-stop: ' . $settings['_scrollSnapStop'] . ';';
+        }
+        
         return $css;
     }
     
     /**
      * Convert physical properties to logical properties in CSS
+     * IMPORTANT: Does NOT convert media queries - only CSS properties!
      */
     private function convert_to_logical_properties($css) {
         // Map of physical to logical properties
@@ -959,7 +1133,7 @@ class B2E_CSS_Converter {
             'right' => 'inset-inline-end',
             'bottom' => 'inset-block-end',
             'left' => 'inset-inline-start',
-            // Size
+            // Size (but NOT in media queries!)
             'width' => 'inline-size',
             'height' => 'block-size',
             'min-width' => 'min-inline-size',
@@ -968,10 +1142,28 @@ class B2E_CSS_Converter {
             'max-height' => 'max-block-size',
         );
         
-        // Replace each physical property with logical equivalent
+        // Extract and temporarily replace media queries to protect them
+        $media_queries = array();
+        $placeholder_prefix = '___MEDIA_QUERY_';
+        $placeholder_count = 0;
+        
+        // Extract media queries
+        $css = preg_replace_callback('/@media[^{]+\{[^}]*\}/s', function($match) use (&$media_queries, &$placeholder_count, $placeholder_prefix) {
+            $placeholder = $placeholder_prefix . $placeholder_count . '___';
+            $media_queries[$placeholder] = $match[0];
+            $placeholder_count++;
+            return $placeholder;
+        }, $css);
+        
+        // Replace each physical property with logical equivalent (only outside media queries)
         foreach ($property_map as $physical => $logical) {
             // Match property with colon and optional whitespace
             $css = preg_replace('/\b' . preg_quote($physical, '/') . '\s*:/i', $logical . ':', $css);
+        }
+        
+        // Restore media queries (unchanged)
+        foreach ($media_queries as $placeholder => $original) {
+            $css = str_replace($placeholder, $original, $css);
         }
         
         return $css;
@@ -1062,46 +1254,339 @@ class B2E_CSS_Converter {
     private function parse_custom_css_stylesheet($stylesheet, $style_map = array()) {
         $styles = array();
         
-        // Don't remove comments yet - we need them to identify sections
-        $original_stylesheet = $stylesheet;
-        
-        // Extract the first class name from the stylesheet to use as base
-        preg_match('/\.([a-zA-Z0-9_-]+)/', $stylesheet, $first_class_match);
-        if (empty($first_class_match)) {
+        // Find ALL unique class names in the stylesheet
+        preg_match_all('/\.([a-zA-Z0-9_-]+)/', $stylesheet, $all_class_matches);
+        if (empty($all_class_matches[1])) {
             return $styles;
         }
         
-        $class_name = $first_class_match[1];
+        // Get unique class names
+        $class_names = array_unique($all_class_matches[1]);
         
-        // Find the existing style ID for this class from style_map
-        $style_id = null;
-        foreach ($style_map as $bricks_id => $style_data) {
-            $selector = is_array($style_data) ? $style_data['selector'] : '';
-            // Match selector (with or without leading dot)
-            if ($selector === '.' . $class_name || $selector === $class_name) {
-                $style_id = is_array($style_data) ? $style_data['id'] : $style_data;
-                error_log('B2E CSS: Found existing style ID ' . $style_id . ' for custom CSS class ' . $class_name);
-                break;
+        foreach ($class_names as $class_name) {
+            // Extract all CSS rules for this specific class
+            $class_css = $this->extract_css_for_class($stylesheet, $class_name);
+            
+            if (empty(trim($class_css))) {
+                continue;
+            }
+            
+            // Find the existing style ID for this class from style_map
+            $style_id = null;
+            foreach ($style_map as $bricks_id => $style_data) {
+                $selector = is_array($style_data) ? $style_data['selector'] : '';
+                // Match selector (with or without leading dot)
+                if ($selector === '.' . $class_name || $selector === $class_name) {
+                    $style_id = is_array($style_data) ? $style_data['id'] : $style_data;
+                    error_log('B2E CSS: Found existing style ID ' . $style_id . ' for custom CSS class ' . $class_name);
+                    break;
+                }
+            }
+            
+            // If no existing style found, skip this class (it's not in our style map)
+            if (!$style_id) {
+                error_log('B2E CSS: Skipping custom CSS for ' . $class_name . ' (not in style map)');
+                continue;
+            }
+            
+            // Convert nested selectors to use & (ampersand) for proper CSS nesting
+            $converted_css = $this->convert_nested_selectors_to_ampersand($class_css, $class_name);
+            
+            // Store the custom CSS for this class
+            $styles[$style_id] = array(
+                'type' => 'class',
+                'selector' => '.' . $class_name,
+                'collection' => 'default',
+                'css' => trim($converted_css),
+                'readonly' => false,
+            );
+        }
+        
+        return $styles;
+    }
+    
+    /**
+     * Extract all CSS rules for a specific class from stylesheet
+     * Supports media queries and nested rules
+     */
+    private function extract_css_for_class($stylesheet, $class_name) {
+        $escaped_class = preg_quote($class_name, '/');
+        $css_parts = array();
+        
+        // Split stylesheet into lines for easier processing
+        $lines = explode("\n", $stylesheet);
+        $current_media = null;
+        $media_content = '';
+        $brace_count = 0;
+        $in_media = false;
+        
+        for ($i = 0; $i < count($lines); $i++) {
+            $line = $lines[$i];
+            
+            // Check for media query start
+            if (preg_match('/@media\s+([^{]+)\{/', $line, $media_match)) {
+                $current_media = '@media ' . trim($media_match[1]);
+                $media_content = '';
+                $brace_count = 1;
+                $in_media = true;
+                continue;
+            }
+            
+            // If we're in a media query, collect content
+            if ($in_media) {
+                // Count braces to know when media query ends
+                $brace_count += substr_count($line, '{');
+                $brace_count -= substr_count($line, '}');
+                
+                // Check if this line contains our class
+                if (preg_match('/\.' . $escaped_class . '/', $line)) {
+                    $media_content .= $line . "\n";
+                } else {
+                    $media_content .= $line . "\n";
+                }
+                
+                // Media query ended
+                if ($brace_count <= 0) {
+                    // Check if media query contains our class
+                    if (preg_match('/\.' . $escaped_class . '/', $media_content)) {
+                        $css_parts[] = $current_media . " {\n" . trim($media_content) . "\n}";
+                    }
+                    $in_media = false;
+                    $current_media = null;
+                    $media_content = '';
+                }
+                continue;
+            }
+            
+            // Not in media query - check for direct class rules
+            if (preg_match('/\.' . $escaped_class . '([^{]*)\{/', $line)) {
+                // Start of a rule for our class
+                $rule = $line . "\n";
+                $brace_count = substr_count($line, '{') - substr_count($line, '}');
+                
+                // Collect until rule ends
+                while ($brace_count > 0 && $i < count($lines) - 1) {
+                    $i++;
+                    $line = $lines[$i];
+                    $rule .= $line . "\n";
+                    $brace_count += substr_count($line, '{');
+                    $brace_count -= substr_count($line, '}');
+                }
+                
+                $css_parts[] = trim($rule);
             }
         }
         
-        // If no existing style found, generate new ID
-        if (!$style_id) {
-            $style_id = $this->generate_style_hash($class_name);
-            error_log('B2E CSS: Generated new style ID ' . $style_id . ' for custom CSS class ' . $class_name);
+        return implode("\n\n", $css_parts);
+    }
+    
+    /**
+     * Convert nested selectors to use & (ampersand) for CSS nesting
+     * 
+     * Combines multiple rules for the same class into nested CSS:
+     * 
+     * Input:
+     * .my-class { padding: 1rem; }
+     * .my-class > * { color: red; }
+     * 
+     * Output:
+     * padding: 1rem;
+     * 
+     * & > * {
+     *   color: red;
+     * }
+     * 
+     * @param string $css Custom CSS
+     * @param string $class_name Base class name (without dot)
+     * @return string Converted CSS
+     */
+    private function convert_nested_selectors_to_ampersand($css, $class_name) {
+        $escaped_class = preg_quote($class_name, '/');
+        
+        // Parse all CSS rules for this class
+        $rules = array();
+        $main_css = '';
+        $media_queries = array();
+        
+        // First, extract media queries with proper brace counting
+        $media_queries = $this->extract_media_queries($css, $class_name);
+        
+        // Remove media queries from main CSS
+        foreach ($media_queries as $mq) {
+            $css = str_replace($mq['original'], '', $css);
         }
         
-        // For custom CSS, store the ENTIRE stylesheet as-is
-        // Etch can handle media queries and nested selectors
-        $styles[$style_id] = array(
-            'type' => 'class',
-            'selector' => '.' . $class_name,
-            'collection' => 'default',
-            'css' => trim($original_stylesheet),
-            'readonly' => false,
-        );
+        // Pattern to match CSS rules: .selector { ... }
+        // This handles multi-line rules properly
+        // Capture everything between class name and opening brace
+        $pattern = '/\.' . $escaped_class . '([^{]*?)\{([^}]*)\}/s';
         
-        return $styles;
+        if (preg_match_all($pattern, $css, $matches, PREG_SET_ORDER)) {
+            foreach ($matches as $match) {
+                $selector_suffix = $match[1]; // e.g., " > *", ":hover", " .child", ""
+                $rule_content = trim($match[2]);
+                
+                // Check if this is the main selector (no suffix or only whitespace)
+                if (empty(trim($selector_suffix))) {
+                    // This is the main selector (.my-class { ... })
+                    $main_css .= $rule_content . "\n";
+                } else {
+                    // This is a nested selector (.my-class > *, .my-class:hover, etc.)
+                    // Convert to & syntax
+                    $trimmed_suffix = trim($selector_suffix);
+                    
+                    // Add space after & for combinators (>, +, ~) and descendant selectors
+                    if (preg_match('/^[>+~]/', $trimmed_suffix) || preg_match('/^[.#\[]/', $trimmed_suffix)) {
+                        $nested_selector = '& ' . $trimmed_suffix;
+                    } else {
+                        // Pseudo-classes/elements (:hover, ::before) - no space
+                        $nested_selector = '&' . $trimmed_suffix;
+                    }
+                    
+                    $rules[] = array(
+                        'selector' => $nested_selector,
+                        'css' => $rule_content
+                    );
+                }
+            }
+        }
+        
+        // Build the final nested CSS
+        $result = trim($main_css);
+        
+        // Add nested rules
+        foreach ($rules as $rule) {
+            if (!empty($result)) {
+                $result .= "\n\n";
+            }
+            $result .= $rule['selector'] . " {\n  " . trim($rule['css']) . "\n}";
+        }
+        
+        // Add media queries
+        foreach ($media_queries as $media) {
+            if (!empty($result)) {
+                $result .= "\n\n";
+            }
+            $result .= $media['condition'] . " {\n  " . $media['css'] . "\n}";
+        }
+        
+        // If no rules were found, just convert inline selectors
+        if (empty($result)) {
+            $result = preg_replace('/\.' . $escaped_class . '(\s+[>+~]|\s+[.#\[]|::|:)/', '&$1', $css);
+        }
+        
+        error_log('B2E CSS: Converted nested selectors for .' . $class_name);
+        
+        return $result;
+    }
+    
+    /**
+     * Extract media queries from CSS with proper brace counting
+     * 
+     * @param string $css CSS content
+     * @param string $class_name Class name to look for
+     * @return array Array of media queries with 'condition', 'css', and 'original'
+     */
+    private function extract_media_queries($css, $class_name) {
+        $media_queries = array();
+        $pos = 0;
+        $length = strlen($css);
+        
+        while ($pos < $length) {
+            // Find next @media
+            $media_pos = strpos($css, '@media', $pos);
+            if ($media_pos === false) {
+                break;
+            }
+            
+            // Find opening brace
+            $open_brace = strpos($css, '{', $media_pos);
+            if ($open_brace === false) {
+                break;
+            }
+            
+            // Extract media condition
+            $media_condition = trim(substr($css, $media_pos + 6, $open_brace - $media_pos - 6));
+            
+            // Count braces to find matching closing brace
+            $brace_count = 1;
+            $i = $open_brace + 1;
+            $content_start = $i;
+            
+            while ($i < $length && $brace_count > 0) {
+                if ($css[$i] === '{') {
+                    $brace_count++;
+                } elseif ($css[$i] === '}') {
+                    $brace_count--;
+                }
+                $i++;
+            }
+            
+            if ($brace_count === 0) {
+                // Extract content (without outer braces)
+                $media_content = substr($css, $content_start, $i - $content_start - 1);
+                
+                // Check if this media query contains our class
+                if (strpos($media_content, '.' . $class_name) !== false) {
+                    // Convert selectors to & syntax
+                    $converted_content = $this->convert_selectors_in_media_query($media_content, $class_name);
+                    
+                    $media_queries[] = array(
+                        'condition' => '@media ' . $media_condition,
+                        'css' => trim($converted_content),
+                        'original' => substr($css, $media_pos, $i - $media_pos)
+                    );
+                }
+            }
+            
+            $pos = $i;
+        }
+        
+        return $media_queries;
+    }
+    
+    /**
+     * Convert selectors inside media query to & syntax
+     */
+    private function convert_selectors_in_media_query($media_content, $class_name) {
+        $escaped_class = preg_quote($class_name, '/');
+        $rules = array();
+        
+        error_log('B2E CSS: Converting media query content for .' . $class_name);
+        error_log('B2E CSS: Media content length: ' . strlen($media_content));
+        
+        // Pattern to match CSS rules inside media query
+        $pattern = '/\.' . $escaped_class . '([^{]*?)\{([^}]*)\}/s';
+        
+        if (preg_match_all($pattern, $media_content, $matches, PREG_SET_ORDER)) {
+            error_log('B2E CSS: Found ' . count($matches) . ' rules in media query');
+            
+            foreach ($matches as $match) {
+                $selector_suffix = trim($match[1]);
+                $rule_content = trim($match[2]);
+                
+                error_log('B2E CSS: Rule content: ' . $rule_content);
+                
+                // Convert to & syntax
+                if (preg_match('/^[>+~]/', $selector_suffix) || preg_match('/^[.#\[]/', $selector_suffix)) {
+                    $nested_selector = '& ' . $selector_suffix;
+                } else if (!empty($selector_suffix)) {
+                    $nested_selector = '&' . $selector_suffix;
+                } else {
+                    // Main selector inside media query - just use &
+                    $nested_selector = '&';
+                }
+                
+                $rules[] = $nested_selector . " {\n    " . $rule_content . "\n  }";
+            }
+        } else {
+            error_log('B2E CSS: NO MATCH in media query for .' . $class_name);
+        }
+        
+        $result = implode("\n\n  ", $rules);
+        error_log('B2E CSS: Media query result length: ' . strlen($result));
+        
+        return $result;
     }
     
     /**

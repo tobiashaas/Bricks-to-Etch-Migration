@@ -3,7 +3,7 @@
  * Plugin Name: Bricks to Etch Migration
  * Plugin URI: https://github.com/tobiashaas/Bricks-to-Etch-Migration
  * Description: One-time migration tool for converting Bricks Builder websites to Etch PageBuilder with complete automation.
- * Version: 0.5.1
+ * Version: 0.5.3
  * Author: Tobias Haas
  * License: GPL v2 or later
  * Text Domain: bricks-etch-migration
@@ -31,6 +31,10 @@ require_once B2E_PLUGIN_DIR . 'includes/error_handler.php';
 require_once B2E_PLUGIN_DIR . 'includes/plugin_detector.php';
 require_once B2E_PLUGIN_DIR . 'includes/content_parser.php';
 require_once B2E_PLUGIN_DIR . 'includes/css_converter.php';
+
+// Load Element Converters (NEW - v0.5.0) - BEFORE Gutenberg Generator
+require_once B2E_PLUGIN_DIR . 'includes/converters/class-element-factory.php';
+
 require_once B2E_PLUGIN_DIR . 'includes/gutenberg_generator.php';
 require_once B2E_PLUGIN_DIR . 'includes/dynamic_data_converter.php';
 require_once B2E_PLUGIN_DIR . 'includes/api_client.php';

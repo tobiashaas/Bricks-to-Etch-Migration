@@ -1,5 +1,168 @@
 # Changelog - Bricks to Etch Migration
 
+## [0.5.3] - 2025-10-22 (23:24) - Media Queries, Missing Properties & Element Converters
+
+### 🎯 Media Query Fixes
+
+#### Breakpoint-spezifisches CSS
+- ✅ **Breakpoint CSS wird jetzt korrekt migriert**
+  - Bricks Breakpoints (`_cssCustom:mobile_portrait`, etc.) werden zu Media Queries konvertiert
+  - CSS Properties werden direkt in Media Query eingefügt (ohne zusätzliche Wrapper)
+  - Breakpoint CSS wird nach Custom CSS Merge hinzugefügt
+
+#### Media Query Extraktion
+- ✅ **Verschachtelte Media Queries funktionieren jetzt**
+  - Neue Funktion: `extract_media_queries()` mit manuellem Klammern-Zählen
+  - Regex konnte verschachtelte Regeln nicht handhaben
+  - Alle Regeln innerhalb von Media Queries werden jetzt korrekt extrahiert
+
+#### Etch's moderne Media Query Syntax
+- ✅ **Bricks Breakpoints → Etch Range Syntax**
+  - `mobile_portrait`: `@media (width <= to-rem(478px))`
+  - `mobile_landscape`: `@media (width >= to-rem(479px))`
+  - `tablet_portrait`: `@media (width >= to-rem(768px))`
+  - `tablet_landscape`: `@media (width >= to-rem(992px))`
+  - `desktop`: `@media (width >= to-rem(1200px))`
+  - Desktop-First mit Kaskadierung nach unten
+  - `to-rem()` Funktion wird von Etch automatisch verarbeitet
+
+#### Logical Properties in Media Queries
+- ✅ **Media Queries werden NICHT zu Logical Properties konvertiert**
+  - `@media (min-width: 768px)` bleibt `min-width` (nicht `min-inline-size`)
+  - Logical Properties nur für CSS Properties, nicht für Media Queries
+  - Media Queries werden vor Konvertierung extrahiert und geschützt
+
+### 🔧 Fehlende CSS Properties
+
+#### Neue Properties hinzugefügt
+- ✅ `_direction` → `flex-direction` (Alias für `_flexDirection`)
+- ✅ `_cursor` → `cursor`
+- ✅ `_mixBlendMode` → `mix-blend-mode`
+- ✅ `_pointerEvents` → `pointer-events`
+- ✅ `_scrollSnapType` → `scroll-snap-type`
+- ✅ `_scrollSnapAlign` → `scroll-snap-align`
+- ✅ `_scrollSnapStop` → `scroll-snap-stop`
+
+### 🆕 Element Converters
+
+#### Button Element Converter
+- ✅ **Bricks Button → Etch Link (Paragraph mit nested Link)**
+  - Text aus `settings.text` extrahiert
+  - Link aus `settings.link` extrahiert (Array und String Format)
+  - Style Mapping: `btn--primary`, `btn--secondary`, `btn--outline`
+  - Converter gibt STRING zurück (nicht Array)
+  - CSS Klassen werden korrekt kombiniert
+
+#### Image Element Converter
+- ✅ **Bricks Image → Gutenberg Image mit Etch metadata**
+  - Styles und Klassen auf `nestedData.img` (nicht auf `figure`)
+  - `figure` ist nur Wrapper
+  - Keine `wp-image-XX` Klasse auf `<img>` Tag
+  - `size-full` und `linkDestination: none` hinzugefügt
+  - Space vor `/>` für Gutenberg Validierung
+
+#### Icon Element Converter
+- ✅ **Placeholder erstellt** (zeigt `[Icon: library:name]`)
+- ⏸️ **TODO:** Richtige Icon Konvertierung implementieren
+
+#### Skip-Liste für nicht unterstützte Elemente
+- ✅ **Elemente werden still übersprungen** (keine Logs)
+  - `fr-notes` - Bricks Builder Notizen (nicht frontend)
+  - `code` - Code Blocks (TODO)
+  - `form` - Forms (TODO - Etch hat keine)
+  - `map` - Maps (TODO - Etch hat keine)
+
+### 📝 Technical Changes
+- **Neue Dateien:**
+  - `includes/converters/elements/class-button.php` - Button Converter
+  - `includes/converters/elements/class-icon.php` - Icon Converter (Placeholder)
+- **CSS Converter:**
+  - `convert_to_logical_properties()` - Media Queries werden geschützt
+  - `get_media_query_for_breakpoint()` - Etch Range Syntax mit `to-rem()`
+  - `extract_media_queries()` - Klammern-Zählung für verschachtelte Regeln
+  - `convert_flexbox()` - `_direction` Alias Support
+  - `convert_effects()` - Cursor, Mix-Blend-Mode, Pointer-Events, Scroll-Snap
+- **Element Factory:**
+  - Skip-Liste für nicht unterstützte Elemente
+  - Icon Converter registriert
+- **Image Converter:**
+  - Komplett umgebaut: nestedData.img Struktur
+  - Keine wp-image-XX Klasse mehr
+
+---
+
+## [0.5.2] - 2025-10-22 (21:08) - Custom CSS & Nested CSS
+
+### 🎨 Custom CSS Migration - FIXED
+
+#### Problem gelöst
+- **Custom CSS wurde nicht migriert** - Nur normale CSS Properties kamen in Etch an
+- **Ursache 1:** Custom CSS wurde für ALLE Klassen gesammelt (auch Blacklist), aber Blacklist-Klassen wurden beim Konvertieren übersprungen → keine Zuordnung im `$style_map`
+- **Ursache 2:** `parse_custom_css_stylesheet()` verarbeitete nur die ERSTE Klasse im Stylesheet, alle anderen wurden ignoriert
+
+#### Lösung
+1. ✅ **Custom CSS nur für erlaubte Klassen sammeln**
+   - Blacklist-Check VOR dem Sammeln von Custom CSS
+   - Nur Klassen die konvertiert werden, bekommen Custom CSS
+   
+2. ✅ **Alle Klassen im Stylesheet verarbeiten**
+   - Neue Funktion: `extract_css_for_class()` - Extrahiert CSS für jede Klasse separat
+   - `parse_custom_css_stylesheet()` findet ALLE Klassen und verarbeitet jede einzeln
+
+### 🎯 Nested CSS mit & (Ampersand)
+
+#### Feature: Automatisches CSS Nesting
+- **Konvertiert mehrere Regeln** für die gleiche Klasse zu Nested CSS
+- **Intelligente & Syntax:**
+  - `& > *` - Leerzeichen bei Combinators (>, +, ~)
+  - `& .child` - Leerzeichen bei Descendant Selectors
+  - `&:hover` - Kein Leerzeichen bei Pseudo-Classes
+  - `&::before` - Kein Leerzeichen bei Pseudo-Elements
+
+#### Beispiel
+**Input (Bricks):**
+```css
+.my-class {
+    padding: 1rem;
+}
+.my-class > * {
+    color: red;
+}
+```
+
+**Output (Etch):**
+```css
+padding: 1rem;
+
+& > * {
+  color: red;
+}
+```
+
+### 🚫 CSS Class Blacklist
+
+#### Ausgeschlossene Klassen
+- **Bricks:** `brxe-*`, `bricks-*`, `brx-*`
+- **WordPress/Gutenberg:** `wp-*`, `wp-block-*`, `has-*`, `is-*`
+- **WooCommerce:** `woocommerce-*`, `wc-*`, `product-*`, `cart-*`, `checkout-*`
+
+#### Logging
+- Zeigt Anzahl konvertierter Klassen
+- Zeigt Anzahl ausgeschlossener Klassen
+
+### 📊 Statistik
+- ✅ **1134 Klassen** erfolgreich migriert
+- ✅ **1 Klasse** ausgeschlossen (Blacklist)
+- ✅ **Custom CSS** mit Nested Syntax funktioniert
+- ✅ **Alle Tests** bestanden
+
+### 🧪 Tests
+- ✅ `tests/test-nested-css-conversion.php` - 5/5 Tests bestanden
+- ✅ Live Migration Test erfolgreich
+- ✅ Custom CSS im Frontend verifiziert
+
+---
+
 ## [0.5.1] - 2025-10-22 (19:20) - Phase 2: AJAX Handlers
 
 ### 🔧 Refactoring
