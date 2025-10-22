@@ -3,7 +3,7 @@
  * Plugin Name: Bricks to Etch Migration
  * Plugin URI: https://github.com/tobiashaas/Bricks-to-Etch-Migration
  * Description: One-time migration tool for converting Bricks Builder websites to Etch PageBuilder with complete automation.
- * Version: 0.4.1
+ * Version: 0.5.1
  * Author: Tobias Haas
  * License: GPL v2 or later
  * Text Domain: bricks-etch-migration
@@ -44,6 +44,9 @@ require_once B2E_PLUGIN_DIR . 'includes/migration_token_manager.php';
 require_once B2E_PLUGIN_DIR . 'includes/migration_manager.php';
 require_once B2E_PLUGIN_DIR . 'includes/admin_interface.php';
 
+// Load AJAX handlers (NEW - v0.5.1)
+require_once B2E_PLUGIN_DIR . 'includes/ajax/class-ajax-handler.php';
+
 // Main plugin class
 class Bricks_Etch_Migration {
     
@@ -56,6 +59,11 @@ class Bricks_Etch_Migration {
      * Admin interface instance
      */
     private $admin_interface = null;
+    
+    /**
+     * AJAX handler instance (NEW - v0.5.1)
+     */
+    private $ajax_handler = null;
     
     /**
      * Get single instance
@@ -115,6 +123,9 @@ class Bricks_Etch_Migration {
         if (!isset($this->admin_interface)) {
             $this->admin_interface = new B2E_Admin_Interface(false);
         }
+        
+        // Initialize AJAX handlers (NEW - v0.5.1)
+        $this->ajax_handler = new B2E_Ajax_Handler();
         
         // Initialize error handler
         new B2E_Error_Handler();

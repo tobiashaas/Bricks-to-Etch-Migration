@@ -11,8 +11,8 @@
 Ziel: Modulare, wartbare Struktur mit separaten Element-Convertern
 
 ### **Fortschritt:**
-- ✅ Phase 1: Element-Converter - **COMPLETE**
-- 🔄 Phase 2: AJAX-Handler - **PENDING**
+- ✅ Phase 1: Element-Converter - **COMPLETE** (2025-10-22 00:38)
+- ✅ Phase 2: AJAX-Handler - **COMPLETE** (2025-10-22 19:20)
 - 🔄 Phase 3: Admin-Interface - **PENDING**
 - 🔄 Phase 4: Utilities - **PENDING**
 - 🔄 Phase 5: Integration & Testing - **PENDING**
@@ -152,15 +152,15 @@ includes/converters/
 
 ---
 
-## 🔄 Phase 2: AJAX-Handler (PENDING)
+## ✅ Phase 2: AJAX-Handler (COMPLETE)
 
-**Status:** Not Started  
-**Priorität:** Medium
+**Updated:** 2025-10-22 19:20
 
-### **Geplante Struktur:**
+### **Neue Struktur erstellt:**
 
 ```
 includes/ajax/
+├── class-base-ajax-handler.php     # Abstract base class
 ├── class-ajax-handler.php          # Main AJAX handler
 └── handlers/
     ├── class-css-ajax.php          # CSS migration AJAX
@@ -169,20 +169,80 @@ includes/ajax/
     └── class-validation-ajax.php   # Token validation AJAX
 ```
 
-### **Zu refactoren:**
+### **Implementierte Features:**
 
-- [ ] `admin_interface.php` - AJAX-Handler auslagern
-  - `ajax_migrate_css()` → `class-css-ajax.php`
-  - `ajax_migrate_batch()` → `class-content-ajax.php`
-  - `ajax_migrate_media()` → `class-media-ajax.php`
-  - `ajax_get_bricks_posts()` → `class-content-ajax.php`
-  - `ajax_validate_migration_token()` → `class-validation-ajax.php`
+#### ✅ Base AJAX Handler
+- **Datei:** `class-base-ajax-handler.php`
+- **Features:**
+  - Abstract base class für alle AJAX-Handler
+  - `verify_nonce()` - Nonce verification
+  - `check_capability()` - Capability checks
+  - `verify_request()` - Combined nonce + capability check
+  - `get_post()` - POST parameter helper
+  - `sanitize_url()` / `sanitize_text()` - Sanitization helpers
+  - `log()` - Logging helper
+
+#### ✅ CSS AJAX Handler
+- **Datei:** `handlers/class-css-ajax.php`
+- **Endpoints:** `wp_ajax_b2e_migrate_css`
+- **Features:**
+  - CSS migration von Bricks zu Etch
+  - Style map creation
+  - API communication
+  - Docker URL conversion (localhost → b2e-etch)
+
+#### ✅ Content AJAX Handler
+- **Datei:** `handlers/class-content-ajax.php`
+- **Endpoints:** 
+  - `wp_ajax_b2e_migrate_batch` - Batch migration
+  - `wp_ajax_b2e_get_bricks_posts` - Get content list
+- **Features:**
+  - Single post migration
+  - Content list (Bricks + Gutenberg + Media)
+  - Docker URL conversion
+
+#### ✅ Media AJAX Handler
+- **Datei:** `handlers/class-media-ajax.php`
+- **Endpoints:** `wp_ajax_b2e_migrate_media`
+- **Features:**
+  - Media file migration
+  - Progress tracking
+  - Docker URL conversion
+
+#### ✅ Validation AJAX Handler
+- **Datei:** `handlers/class-validation-ajax.php`
+- **Endpoints:**
+  - `wp_ajax_b2e_validate_api_key` - API key validation
+  - `wp_ajax_b2e_validate_migration_token` - Token validation
+- **Features:**
+  - API key verification
+  - Migration token verification
+  - Docker URL conversion
+
+#### ✅ Main AJAX Handler
+- **Datei:** `class-ajax-handler.php`
+- **Features:**
+  - Lädt alle Handler-Klassen
+  - Initialisiert alle Handler
+  - Zentrale Handler-Verwaltung
+
+### **Integration:**
+
+- Plugin-Hauptdatei lädt AJAX-Handler automatisch
+- Alle Handler werden bei Plugin-Initialisierung registriert
+- Alte AJAX-Handler in `admin_interface.php` bleiben vorerst (Kompatibilität)
 
 ### **Vorteile:**
 
-- Klare Trennung von Verantwortlichkeiten
-- Einfacher zu testen
-- Bessere Übersicht
+- **Klare Trennung:** Jeder Handler in eigener Datei
+- **Wiederverwendbar:** Base class mit gemeinsamer Logik
+- **Einfach erweiterbar:** Neue Handler einfach hinzufügen
+- **Bessere Testbarkeit:** Jeder Handler einzeln testbar
+- **Docker-Support:** Automatische URL-Konvertierung
+
+### **Wichtige Änderungen:**
+
+**2025-10-22 19:20:** Phase 2 complete - Alle AJAX-Handler refactored
 
 ---
 

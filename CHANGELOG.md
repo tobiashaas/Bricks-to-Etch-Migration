@@ -1,5 +1,44 @@
 # Changelog - Bricks to Etch Migration
 
+## [0.5.1] - 2025-10-22 (19:20) - Phase 2: AJAX Handlers
+
+### 🔧 Refactoring
+
+#### Modulare AJAX-Handler Struktur
+- **Neue Ordnerstruktur:**
+  - `includes/ajax/` - AJAX Handler
+  - `includes/ajax/handlers/` - Individual AJAX Handlers
+  
+#### AJAX-Handler (NEU)
+- ✅ `class-base-ajax-handler.php` - Abstract base class
+- ✅ `class-ajax-handler.php` - Main AJAX handler (initialisiert alle)
+- ✅ `handlers/class-css-ajax.php` - CSS migration handler
+- ✅ `handlers/class-content-ajax.php` - Content migration handler
+- ✅ `handlers/class-media-ajax.php` - Media migration handler
+- ✅ `handlers/class-validation-ajax.php` - API key & token validation
+
+### 📝 Features
+- **Base Handler:** Gemeinsame Logik für alle AJAX-Handler
+  - Nonce verification
+  - Capability checks
+  - URL sanitization
+  - Logging
+- **Modulare Struktur:** Jeder Handler in eigener Datei
+- **Docker URL Conversion:** Automatische localhost → b2e-etch Konvertierung
+
+### 🔄 Integration
+- Plugin-Hauptdatei lädt AJAX-Handler automatisch
+- Alle Handler werden bei Plugin-Initialisierung registriert
+- Alte AJAX-Handler in admin_interface.php bleiben vorerst (Kompatibilität)
+
+### ⚠️ Status
+- Phase 2: AJAX-Handler ✅ COMPLETE (19:20)
+- Phase 3: Admin-Interface - PENDING
+- Phase 4: Utilities - PENDING
+- Phase 5: Integration & Testing - PENDING
+
+---
+
 ## [0.5.0] - 2025-10-22 (00:22) - REFACTORING (IN PROGRESS)
 
 ### 🔧 Refactoring
