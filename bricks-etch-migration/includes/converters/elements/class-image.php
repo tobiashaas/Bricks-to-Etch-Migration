@@ -54,10 +54,6 @@ class B2E_Element_Image extends B2E_Base_Element {
         
         $etch_data = array(
             'origin' => 'etch',
-            'block' => array(
-                'type' => 'html',
-                'tag' => 'figure'
-            ),
             'nestedData' => array(
                 'img' => array(
                     'origin' => 'etch',

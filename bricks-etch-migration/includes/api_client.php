@@ -25,6 +25,22 @@ class B2E_API_Client {
     }
     
     /**
+     * Save API credentials to WordPress options
+     * Single source of truth for credential storage
+     * 
+     * @param string $target_url Target site URL
+     * @param string $api_username Username for authentication
+     * @param string $api_key API key/Application Password
+     */
+    public static function save_api_credentials($target_url, $api_username, $api_key) {
+        $settings = get_option('b2e_settings', array());
+        $settings['target_url'] = $target_url;
+        $settings['api_username'] = $api_username;
+        $settings['api_key'] = $api_key;
+        update_option('b2e_settings', $settings);
+    }
+    
+    /**
      * Send request to target site
      */
     private function send_request($url, $api_key, $endpoint, $method = 'GET', $data = null) {
@@ -33,12 +49,21 @@ class B2E_API_Client {
         // Remove spaces from API key (Application Passwords have spaces for readability)
         $clean_api_key = str_replace(' ', '', $api_key);
         
+        // Get username from settings or default to 'admin'
+        $settings = get_option('b2e_settings', array());
+        $auth_username = !empty($settings['api_username']) ? $settings['api_username'] : 'admin';
+        
+        // Debug log
+        error_log('🔐 B2E API Client: Using username: ' . $auth_username);
+        error_log('🔐 B2E API Client: Full URL: ' . $full_url);
+        error_log('🔐 B2E API Client: Auth header: Basic ' . base64_encode($auth_username . ':' . $clean_api_key));
+        
         $args = array(
             'method' => $method,
             'timeout' => 30,
             'headers' => array(
                 'X-API-Key' => $clean_api_key,
-                'Authorization' => 'Basic ' . base64_encode('admin:' . $clean_api_key),
+                'Authorization' => 'Basic ' . base64_encode($auth_username . ':' . $clean_api_key),
                 'Content-Type' => 'application/json',
             ),
         );

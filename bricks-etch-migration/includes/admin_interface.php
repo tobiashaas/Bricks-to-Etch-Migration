@@ -288,15 +288,16 @@ class B2E_Admin_Interface {
                 if (e.target.id === 'start-migration') {
                     console.log('🔍 B2E Debug - Start migration button clicked');
                     const targetUrl = document.getElementById('target_url').value.trim();
+                    const apiUsername = document.getElementById('api_username').value.trim();
                     const apiKey = document.getElementById('api_key').value.trim();
                     
-                    if (!targetUrl || !apiKey) {
-                        showToast('Please enter Etch Site URL and Application Password first.', 'warning');
+                    if (!targetUrl || !apiUsername || !apiKey) {
+                        showToast('Please enter Etch Site URL, Username and Application Password first.', 'warning');
                         return;
                     }
                     
-                    // Start migration with URL and API key
-                    startMigrationProcess(targetUrl, apiKey);
+                    // Start migration with URL, username and API key
+                    startMigrationProcess(targetUrl, apiUsername, apiKey);
                 }
                 if (e.target.id === 'generate-migration-key') {
                     console.log('🔍 B2E Debug - Generate key button clicked - showing test toast');
@@ -641,9 +642,10 @@ class B2E_Admin_Interface {
          */
         async function saveSettings() {
             const targetUrl = document.getElementById('target_url').value.trim();
+            const apiUsername = document.getElementById('api_username').value.trim();
             const apiKey = document.getElementById('api_key').value.trim();
             
-            if (!targetUrl || !apiKey) {
+            if (!targetUrl || !apiUsername || !apiKey) {
                 showToast('Please fill in all required fields', 'warning');
                 return;
             }
@@ -657,6 +659,7 @@ class B2E_Admin_Interface {
                     body: new URLSearchParams({
                         action: 'b2e_save_settings',
                         target_url: targetUrl,
+                        api_username: apiUsername,
                         api_key: apiKey,
                         nonce: '<?php echo wp_create_nonce('b2e_save_settings'); ?>'
                     })
@@ -665,7 +668,10 @@ class B2E_Admin_Interface {
                 const data = await response.json();
                 
                 if (data.success) {
-                    showToast('Settings saved successfully!', 'success');
+                    showToast('Settings saved! Testing connection...', 'success');
+                    
+                    // Automatically test connection after saving
+                    await testConnectionAfterSave(targetUrl, apiUsername, apiKey);
                 } else {
                     showToast('Failed to save settings: ' + (data.data || 'Unknown error'), 'error');
                 }
@@ -676,13 +682,69 @@ class B2E_Admin_Interface {
         }
         
         /**
+         * Test connection after saving settings
+         */
+        async function testConnectionAfterSave(targetUrl, apiUsername, apiKey) {
+            const startButton = document.getElementById('start-migration');
+            
+            try {
+                const response = await fetch('<?php echo admin_url('admin-ajax.php'); ?>', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        action: 'b2e_test_connection',
+                        target_url: targetUrl,
+                        api_username: apiUsername,
+                        api_key: apiKey,
+                        nonce: '<?php echo wp_create_nonce('b2e_test_connection'); ?>'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('✅ Connection successful! You can now start migration.', 'success');
+                    
+                    // Enable migration button
+                    if (startButton) {
+                        startButton.disabled = false;
+                        startButton.style.opacity = '1';
+                        startButton.style.cursor = 'pointer';
+                    }
+                } else {
+                    showToast('❌ Connection failed: ' + (data.data || 'Unknown error'), 'error');
+                    
+                    // Disable migration button
+                    if (startButton) {
+                        startButton.disabled = true;
+                        startButton.style.opacity = '0.5';
+                        startButton.style.cursor = 'not-allowed';
+                    }
+                }
+            } catch (error) {
+                console.error('Connection test error:', error);
+                showToast('Connection test failed', 'error');
+                
+                // Disable migration button
+                if (startButton) {
+                    startButton.disabled = true;
+                    startButton.style.opacity = '0.5';
+                    startButton.style.cursor = 'not-allowed';
+                }
+            }
+        }
+        
+        /**
          * Test connection to Etch site
          */
         async function testConnection() {
             const targetUrl = document.getElementById('target_url').value.trim();
+            const apiUsername = document.getElementById('api_username').value.trim();
             const apiKey = document.getElementById('api_key').value.trim();
             
-            if (!targetUrl || !apiKey) {
+            if (!targetUrl || !apiUsername || !apiKey) {
                 showToast('Please fill in all required fields', 'warning');
                 return;
             }
@@ -700,6 +762,7 @@ class B2E_Admin_Interface {
                     body: new URLSearchParams({
                         action: 'b2e_test_connection',
                         target_url: targetUrl,
+                        api_username: apiUsername,
                         api_key: apiKey,
                         nonce: '<?php echo wp_create_nonce('b2e_test_connection'); ?>'
                     })
@@ -724,8 +787,8 @@ class B2E_Admin_Interface {
         /**
          * Start the migration process (BATCH VERSION)
          */
-        async function startMigrationProcess(targetUrl, apiKey) {
-            console.log('🚀 Starting BATCH migration process...', { targetUrl });
+        async function startMigrationProcess(targetUrl, apiUsername, apiKey) {
+            console.log('🚀 Starting BATCH migration process...', { targetUrl, apiUsername });
             
             // Use the URL as-is (Docker conversion happens in PHP backend)
             let apiDomain = targetUrl;
@@ -766,7 +829,7 @@ class B2E_Admin_Interface {
             updateProgress(5, '🎨 Migrating CSS styles...', [...initialSteps, 'Converting Bricks classes to Etch styles...']);
             let cssSteps = [...initialSteps];
             try {
-                await migrateCSSStyles(apiDomain, apiKey);
+                await migrateCSSStyles(apiDomain, apiUsername, apiKey);
                 cssSteps.push('✅ CSS styles migrated successfully');
                 updateProgress(7, '✅ CSS migration complete', cssSteps);
             } catch (error) {
@@ -780,7 +843,7 @@ class B2E_Admin_Interface {
             updateProgress(8, '📸 Migrating media files...', [...cssSteps, 'Transferring images and attachments...']);
             try {
                 console.log('📸 Calling migrateMedia function...');
-                const mediaResult = await migrateMedia(apiDomain, apiKey);
+                const mediaResult = await migrateMedia(apiDomain, apiUsername, apiKey);
                 console.log('📸 Media migration result:', mediaResult);
                 console.log('📸 Media migrated:', mediaResult?.migrated || 0);
                 console.log('📸 Media failed:', mediaResult?.failed || 0);
@@ -813,7 +876,7 @@ class B2E_Admin_Interface {
                 
                 try {
                     const startTime = Date.now();
-                    await migratePost(post.id, apiDomain, apiKey);
+                    await migratePost(post.id, apiDomain, apiUsername, apiKey);
                     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
                     
                     successCount++;
@@ -899,15 +962,17 @@ class B2E_Admin_Interface {
         /**
          * Migrate CSS styles
          */
-        async function migrateCSSStyles(apiDomain, apiKey) {
+        async function migrateCSSStyles(apiDomain, apiUsername, apiKey) {
             console.log('🎨 Frontend: Starting CSS migration...');
             console.log('🎨 Frontend: API Domain:', apiDomain);
+            console.log('🎨 Frontend: API Username:', apiUsername);
             console.log('🎨 Frontend: API Key:', apiKey.substring(0, 20) + '...');
             
             const formData = new FormData();
             formData.append('action', 'b2e_migrate_css');
             formData.append('nonce', b2e_ajax.nonce);
             formData.append('target_url', apiDomain);
+            formData.append('api_username', apiUsername);
             formData.append('api_key', apiKey);
             
             console.log('🎨 Frontend: Sending AJAX request to:', b2e_ajax.ajax_url);
@@ -933,10 +998,11 @@ class B2E_Admin_Interface {
         /**
          * Migrate media files
          */
-        async function migrateMedia(apiDomain, apiKey) {
+        async function migrateMedia(apiDomain, apiUsername, apiKey) {
             const formData = new FormData();
             formData.append('action', 'b2e_migrate_media');
             formData.append('nonce', b2e_ajax.nonce);
+            formData.append('api_username', apiUsername);
             formData.append('target_url', apiDomain);
             formData.append('api_key', apiKey);
             
@@ -957,10 +1023,11 @@ class B2E_Admin_Interface {
         /**
          * Migrate single post
          */
-        async function migratePost(postId, apiDomain, apiKey) {
+        async function migratePost(postId, apiDomain, apiUsername, apiKey) {
             const formData = new FormData();
             formData.append('action', 'b2e_migrate_batch');
             formData.append('nonce', b2e_ajax.nonce);
+            formData.append('api_username', apiUsername);
             formData.append('post_id', postId);
             formData.append('target_url', apiDomain);
             formData.append('api_key', apiKey);
@@ -1328,6 +1395,21 @@ class B2E_Admin_Interface {
                 
                 <tr>
                     <th scope="row">
+                        <label for="api_username"><?php _e('Username', 'bricks-etch-migration'); ?> *</label>
+                    </th>
+                    <td>
+                        <input type="text" id="api_username" name="api_username" 
+                               value=""
+                               placeholder="admin"
+                               style="width: 100%; max-width: 500px;" />
+                        <p class="description">
+                            <?php _e('The username on your Etch site (usually "admin" or your admin username)', 'bricks-etch-migration'); ?>
+                        </p>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <th scope="row">
                         <label for="api_key"><?php _e('Application Password', 'bricks-etch-migration'); ?> *</label>
                     </th>
                     <td>
@@ -1345,14 +1427,14 @@ class B2E_Admin_Interface {
             
             <div style="display: flex; gap: var(--e-space-m);">
                 <button type="button" id="save-settings" class="b2e-button">
-                    💾 <?php _e('Save Settings', 'bricks-etch-migration'); ?>
+                    💾 <?php _e('Save Settings & Test Connection', 'bricks-etch-migration'); ?>
                 </button>
-                <button type="button" id="test-connection" class="b2e-button">
-                    🔗 <?php _e('Test Connection', 'bricks-etch-migration'); ?>
-                </button>
-                <button type="button" id="start-migration" class="b2e-button">
+                <button type="button" id="start-migration" class="b2e-button" disabled style="opacity: 0.5; cursor: not-allowed;">
                     🚀 <?php _e('Start Migration', 'bricks-etch-migration'); ?>
                 </button>
+                <p class="description" style="margin-top: 8px; font-style: italic;">
+                    <?php _e('Save your settings first to enable migration', 'bricks-etch-migration'); ?>
+                </p>
             </div>
             
             <div id="connection-status" style="display: none;">
@@ -2070,12 +2152,16 @@ class B2E_Admin_Interface {
         // Get parameters
         $post_id = intval($_POST['post_id'] ?? 0);
         $target_url = sanitize_url($_POST['target_url'] ?? '');
+        $api_username = sanitize_text_field($_POST['api_username'] ?? '');
         $api_key = sanitize_text_field($_POST['api_key'] ?? '');
         
-        if (empty($post_id) || empty($target_url) || empty($api_key)) {
+        if (empty($post_id) || empty($target_url) || empty($api_username) || empty($api_key)) {
             wp_send_json_error('Missing required parameters');
             return;
         }
+        
+        // Save credentials using central function
+        B2E_API_Client::save_api_credentials($target_url, $api_username, $api_key);
         
         // Get the post
         $post = get_post($post_id);
@@ -2106,11 +2192,10 @@ class B2E_Admin_Interface {
                 $internal_url = str_replace('localhost:8081', 'b2e-etch', $target_url);
             }
             
-            // Save settings temporarily with internal URL
-            update_option('b2e_settings', array(
-                'target_url' => $internal_url,
-                'api_key' => $api_key
-            ), false);
+            // Update target_url to internal URL (keep other settings)
+            $settings = get_option('b2e_settings', array());
+            $settings['target_url'] = $internal_url;
+            update_option('b2e_settings', $settings, false);
             
             $migration_manager = new B2E_Migration_Manager();
             $result = $migration_manager->migrate_single_post($post);
@@ -2204,15 +2289,19 @@ class B2E_Admin_Interface {
         
         // Get parameters
         $target_url = sanitize_url($_POST['target_url'] ?? '');
+        $api_username = sanitize_text_field($_POST['api_username'] ?? '');
         $api_key = sanitize_text_field($_POST['api_key'] ?? '');
         
-        error_log('🎨 B2E CSS Migration: target_url=' . $target_url . ', api_key=' . substr($api_key, 0, 20) . '...');
+        error_log('🎨 B2E CSS Migration: target_url=' . $target_url . ', username=' . $api_username . ', api_key=' . substr($api_key, 0, 20) . '...');
         
-        if (empty($target_url) || empty($api_key)) {
+        if (empty($target_url) || empty($api_username) || empty($api_key)) {
             error_log('❌ B2E CSS Migration: Missing required parameters');
             wp_send_json_error('Missing required parameters');
             return;
         }
+        
+        // Save credentials using central function
+        B2E_API_Client::save_api_credentials($target_url, $api_username, $api_key);
         
         // Convert localhost:8081 to b2e-etch for Docker internal communication
         $internal_url = $target_url;
@@ -2220,11 +2309,10 @@ class B2E_Admin_Interface {
             $internal_url = str_replace('localhost:8081', 'b2e-etch', $target_url);
         }
         
-        // Save settings temporarily with internal URL
-        update_option('b2e_settings', array(
-            'target_url' => $internal_url,
-            'api_key' => $api_key
-        ), false);
+        // Update target_url to internal URL (keep other settings)
+        $settings = get_option('b2e_settings', array());
+        $settings['target_url'] = $internal_url;
+        update_option('b2e_settings', $settings, false);
         
         // Migrate CSS
         try {
@@ -2302,15 +2390,19 @@ class B2E_Admin_Interface {
         
         // Get parameters
         $target_url = sanitize_url($_POST['target_url'] ?? '');
+        $api_username = sanitize_text_field($_POST['api_username'] ?? '');
         $api_key = sanitize_text_field($_POST['api_key'] ?? '');
         
-        error_log('🎬 B2E AJAX: target_url=' . $target_url . ', api_key=' . substr($api_key, 0, 20) . '...');
+        error_log('🎬 B2E AJAX: target_url=' . $target_url . ', username=' . $api_username . ', api_key=' . substr($api_key, 0, 20) . '...');
         
-        if (empty($target_url) || empty($api_key)) {
+        if (empty($target_url) || empty($api_username) || empty($api_key)) {
             error_log('❌ B2E AJAX: Missing required parameters');
             wp_send_json_error('Missing required parameters');
             return;
         }
+        
+        // Save credentials using central function
+        B2E_API_Client::save_api_credentials($target_url, $api_username, $api_key);
         
         // Convert localhost:8081 to b2e-etch for Docker internal communication
         $internal_url = $target_url;
@@ -2318,11 +2410,10 @@ class B2E_Admin_Interface {
             $internal_url = str_replace('localhost:8081', 'b2e-etch', $target_url);
         }
         
-        // Save settings temporarily with internal URL
-        update_option('b2e_settings', array(
-            'target_url' => $internal_url,
-            'api_key' => $api_key
-        ), false);
+        // Update target_url to internal URL (keep other settings)
+        $settings = get_option('b2e_settings', array());
+        $settings['target_url'] = $internal_url;
+        update_option('b2e_settings', $settings, false);
         
         // Migrate media
         try {
@@ -2416,18 +2507,16 @@ class B2E_Admin_Interface {
         }
         
         $target_url = isset($_POST['target_url']) ? sanitize_text_field($_POST['target_url']) : '';
+        $api_username = isset($_POST['api_username']) ? sanitize_text_field($_POST['api_username']) : '';
         $api_key = isset($_POST['api_key']) ? sanitize_text_field($_POST['api_key']) : '';
         
-        if (empty($target_url) || empty($api_key)) {
+        if (empty($target_url) || empty($api_username) || empty($api_key)) {
             wp_send_json_error('Please fill in all required fields');
             return;
         }
         
-        // Save settings
-        $settings = get_option('b2e_settings', array());
-        $settings['target_url'] = $target_url;
-        $settings['api_key'] = $api_key;
-        update_option('b2e_settings', $settings);
+        // Save settings using central function
+        B2E_API_Client::save_api_credentials($target_url, $api_username, $api_key);
         
         wp_send_json_success('Settings saved successfully');
     }
@@ -2444,12 +2533,16 @@ class B2E_Admin_Interface {
         }
         
         $target_url = isset($_POST['target_url']) ? sanitize_text_field($_POST['target_url']) : '';
+        $api_username = isset($_POST['api_username']) ? sanitize_text_field($_POST['api_username']) : '';
         $api_key = isset($_POST['api_key']) ? sanitize_text_field($_POST['api_key']) : '';
         
-        if (empty($target_url) || empty($api_key)) {
+        if (empty($target_url) || empty($api_username) || empty($api_key)) {
             wp_send_json_error('Please fill in all required fields');
             return;
         }
+        
+        // Save credentials using central function
+        B2E_API_Client::save_api_credentials($target_url, $api_username, $api_key);
         
         // Convert localhost:8081 to b2e-etch for Docker internal communication
         $test_target_url = $target_url;

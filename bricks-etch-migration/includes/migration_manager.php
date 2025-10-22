@@ -814,13 +814,16 @@ class B2E_Migration_Manager {
             $api_url = rtrim($target_url, '/') . '/wp-json/wp/v2/' . $post_type_endpoint;
         }
         
+        // Get username from settings
+        $settings = get_option('b2e_settings', array());
+        $auth_username = !empty($settings['api_username']) ? $settings['api_username'] : 'admin';
+        
         // Send to WordPress REST API
         // Note: This requires Application Password or other auth method
-        // For now, we'll use the API key as Basic Auth (needs to be configured on Etch side)
         $response = wp_remote_post($api_url, array(
             'headers' => array(
                 'Content-Type' => 'application/json',
-                'Authorization' => 'Basic ' . base64_encode('admin:' . $api_key),
+                'Authorization' => 'Basic ' . base64_encode($auth_username . ':' . $api_key),
             ),
             'body' => json_encode($post_data),
             'timeout' => 30,

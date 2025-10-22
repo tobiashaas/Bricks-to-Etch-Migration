@@ -45,6 +45,7 @@ class B2E_Media_Migrator {
         
         $total_media = count($media_files);
         $migrated_media = 0;
+        $skipped_media = 0;
         error_log('B2E Media Migration - Processing ' . $total_media . ' media files');
         
         // Process in batches to avoid memory issues
@@ -53,6 +54,14 @@ class B2E_Media_Migrator {
         
         foreach ($batches as $batch_index => $batch) {
             foreach ($batch as $media_id => $media_data) {
+                // Check if media was already migrated (deduplication)
+                $existing_mapping = $this->get_media_mapping($media_id);
+                if ($existing_mapping) {
+                    error_log('B2E Media Migration - SKIPPED media ID: ' . $media_id . ' (already migrated as ID: ' . $existing_mapping . ')');
+                    $skipped_media++;
+                    continue;
+                }
+                
                 error_log('B2E Media Migration - Migrating media ID: ' . $media_id . ' (' . $media_data['title'] . ')');
                 $result = $this->migrate_single_media($media_id, $media_data, $target_url, $api_key);
                 
@@ -82,10 +91,13 @@ class B2E_Media_Migrator {
             usleep(200000); // 0.2 seconds
         }
         
+        error_log('B2E Media Migration - Complete: Total=' . $total_media . ', Migrated=' . $migrated_media . ', Skipped=' . $skipped_media . ', Failed=' . ($total_media - $migrated_media - $skipped_media));
+        
         return array(
             'total_media' => $total_media,
             'migrated_media' => $migrated_media,
-            'failed_media' => $total_media - $migrated_media
+            'skipped_media' => $skipped_media,
+            'failed_media' => $total_media - $migrated_media - $skipped_media
         );
     }
     
