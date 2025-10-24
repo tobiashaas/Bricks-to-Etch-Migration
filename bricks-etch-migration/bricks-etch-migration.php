@@ -357,8 +357,8 @@ function b2e_debug_log( $message, $data = null, $context = 'B2E_DEBUG' ) {
 		$message
 	);
 
-	if ( $data !== null ) {
-		$log_message .= ' | Data: ' . print_r( $data, true );
+	if ( null !== $data ) {
+		$log_message .= ' | Data: ' . wp_json_encode( $data );
 	}
 
 	error_log( $log_message );

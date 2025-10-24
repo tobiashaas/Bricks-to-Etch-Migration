@@ -16,14 +16,23 @@
     <arg name="encoding" value="utf-8"/>
 
     <!-- What to scan -->
-    <file>.</file>
+    <file>./includes</file>
+    <file>./assets</file>
+    <file>./bricks-etch-migration.php</file>
 
     <!-- Exclude patterns -->
+    <exclude-pattern>vendor/*</exclude-pattern>
     <exclude-pattern>*/vendor/*</exclude-pattern>
+    <exclude-pattern>node_modules/*</exclude-pattern>
     <exclude-pattern>*/node_modules/*</exclude-pattern>
+    <exclude-pattern>tests/*</exclude-pattern>
     <exclude-pattern>*/tests/*</exclude-pattern>
+    <exclude-pattern>.wp-env/*</exclude-pattern>
     <exclude-pattern>*/.wp-env/*</exclude-pattern>
+    <exclude-pattern>scripts/*</exclude-pattern>
     <exclude-pattern>*/scripts/*</exclude-pattern>
+    <exclude-pattern>*.min.js</exclude-pattern>
+    <exclude-pattern>*.min.css</exclude-pattern>
 
     <!-- Use WordPress Extra ruleset -->
     <rule ref="WordPress-Extra">
