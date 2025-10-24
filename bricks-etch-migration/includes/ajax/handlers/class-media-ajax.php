@@ -114,7 +114,7 @@ class B2E_Media_Ajax_Handler extends B2E_Base_Ajax_Handler {
 			$this->log( '🎬 Media Migration: Calling migrate_media with URL: ' . $internal_url );
 			$result = $media_migrator->migrate_media( $internal_url, $api_key );
 
-			$this->log( '🎬 Media Migration: Result: ' . print_r( $result, true ) );
+			$this->log( '🎬 Media Migration: Result: ' . wp_json_encode( $result ) );
 
 			if ( is_wp_error( $result ) ) {
 				$this->log( '❌ Media Migration: Result is WP_Error' );

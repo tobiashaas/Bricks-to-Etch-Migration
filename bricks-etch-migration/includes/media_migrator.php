@@ -77,7 +77,7 @@ class B2E_Media_Migrator {
 
 				if ( is_wp_error( $result ) ) {
 					error_log( 'B2E Media Migration - ERROR for media ID ' . $media_id . ': ' . $result->get_error_message() );
-					error_log( 'B2E Media Migration - Error data: ' . print_r( $result->get_error_data(), true ) );
+					error_log( 'B2E Media Migration - Error data: ' . wp_json_encode( $result->get_error_data() ) );
 					$this->error_handler->log_error(
 						'E401',
 						array(

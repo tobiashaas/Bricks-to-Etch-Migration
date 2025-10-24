@@ -54,7 +54,7 @@ class B2E_CSS_Ajax_Handler extends B2E_Base_Ajax_Handler {
 	public function migrate_css() {
 		$this->log( '========================================' );
 		$this->log( '🎨 CSS Migration: AJAX handler called - START' );
-		$this->log( '🎨 CSS Migration: POST data: ' . print_r( $_POST, true ) );
+		$this->log( '🎨 CSS Migration: POST data: ' . wp_json_encode( $_POST ) );
 		$this->log( '========================================' );
 
 		// Check rate limit (30 requests per minute)

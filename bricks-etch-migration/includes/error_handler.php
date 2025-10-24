@@ -404,7 +404,7 @@ class B2E_Error_Handler {
 		);
 
 		if ( $data !== null ) {
-			$log_message .= ' | Data: ' . print_r( $data, true );
+			$log_message .= ' | Data: ' . wp_json_encode( $data );
 		}
 
 		error_log( $log_message );

@@ -1617,7 +1617,7 @@ class B2E_Gutenberg_Generator {
 		// Check if container has a custom tag (e.g., ul, ol)
 		$tag = $element['settings']['tag'] ?? 'div';
 
-		error_log( "🔧 B2E Container: Element ID {$element['id']}, Tag: {$tag}, Settings: " . print_r( $element['settings'], true ) );
+		error_log( "🔧 B2E Container: Element ID {$element['id']}, Tag: {$tag}, Settings: " . wp_json_encode( $element['settings'] ) );
 
 		$element['etch_type'] = 'container';
 		$element['etch_data'] = array(

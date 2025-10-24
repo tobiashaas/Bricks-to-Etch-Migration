@@ -1330,7 +1330,7 @@ class B2E_API_Endpoints {
 
 			// Debug logging
 			error_log( '=== B2E API Debug Start ===' );
-			error_log( 'B2E Debug - Received params: ' . print_r( $params, true ) );
+			error_log( 'B2E Debug - Received params: ' . wp_json_encode( $params ) );
 			error_log( 'B2E Debug - Domain: ' . $domain );
 			error_log( 'B2E Debug - Token: ' . substr( $token, 0, 20 ) . '...' );
 			error_log( 'B2E Debug - Expires: ' . $expires );
@@ -1349,7 +1349,7 @@ class B2E_API_Endpoints {
 			if ( is_wp_error( $validation ) ) {
 				error_log( 'B2E Debug - Token validation failed: ' . $validation->get_error_message() );
 				error_log( 'B2E Debug - Validation error code: ' . $validation->get_error_code() );
-				error_log( 'B2E Debug - Validation error data: ' . print_r( $validation->get_error_data(), true ) );
+				error_log( 'B2E Debug - Validation error data: ' . wp_json_encode( $validation->get_error_data() ) );
 				return new \WP_Error( 'invalid_token', $validation->get_error_message(), array( 'status' => 401 ) );
 			}
 
