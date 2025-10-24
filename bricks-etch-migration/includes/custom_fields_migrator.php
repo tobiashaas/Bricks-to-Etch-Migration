@@ -2,26 +2,71 @@
 /**
  * Custom Fields Migrator for Bricks to Etch Migration Plugin
  * 
- * Handles migration of custom fields and post meta
+ * Handles migration of custom fields and meta data
  */
+
+namespace Bricks2Etch\Migrators;
+
+use Bricks2Etch\Api\B2E_API_Client;
+use Bricks2Etch\Core\B2E_Error_Handler;
+use WP_Error;
 
 // Prevent direct access
 if (!defined('ABSPATH')) {
     exit;
 }
 
-class B2E_Custom_Fields_Migrator {
-    
-    /**
-     * Error handler instance
-     */
-    private $error_handler;
+class B2E_Custom_Fields_Migrator extends Abstract_Migrator {
     
     /**
      * Constructor
      */
-    public function __construct() {
-        $this->error_handler = new B2E_Error_Handler();
+    public function __construct(B2E_Error_Handler $error_handler, B2E_API_Client $api_client = null) {
+        parent::__construct($error_handler, $api_client);
+
+        $this->name     = 'Custom Fields';
+        $this->type     = 'custom_fields';
+        $this->priority = 40;
+    }
+
+    /** @inheritDoc */
+    public function supports() {
+        return true;
+    }
+
+    /** @inheritDoc */
+    public function validate() {
+        // Custom fields migrate per-post; validation ensures WordPress environment available.
+        return array(
+            'valid'  => true,
+            'errors' => array(),
+        );
+    }
+
+    /** @inheritDoc */
+    public function export() {
+        // Global export not required for custom fields (handled per-post).
+        return array();
+    }
+
+    /** @inheritDoc */
+    public function import($data) {
+        // Global import not applicable; return success to satisfy interface.
+        return array(
+            'imported' => 0,
+            'skipped'  => 0,
+        );
+    }
+
+    /** @inheritDoc */
+    public function migrate($target_url, $api_key) {
+        // Custom fields migrate alongside posts; nothing to do globally.
+        return true;
+    }
+
+    /** @inheritDoc */
+    public function get_stats() {
+        return $this->get_custom_field_stats();
     }
     
     /**
@@ -34,8 +79,8 @@ class B2E_Custom_Fields_Migrator {
             return true; // No meta data to migrate
         }
         
-        $api_client = new B2E_API_Client();
-        $result = $api_client->send_post_meta($target_url, $api_key, $target_post_id, $meta_data);
+        $api_client = $this->api_client ?: new B2E_API_Client($this->error_handler);
+        $result     = $api_client->send_post_meta($target_url, $api_key, $target_post_id, $meta_data);
         
         if (is_wp_error($result)) {
             return $result;
@@ -380,3 +425,5 @@ class B2E_Custom_Fields_Migrator {
         return $stats;
     }
 }
+
+\class_alias(__NAMESPACE__ . '\\B2E_Custom_Fields_Migrator', 'B2E_Custom_Fields_Migrator');

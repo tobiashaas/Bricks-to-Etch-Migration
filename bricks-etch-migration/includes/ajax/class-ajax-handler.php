@@ -8,6 +8,16 @@
  * @since 0.5.1
  */
 
+namespace Bricks2Etch\Ajax;
+
+use Bricks2Etch\Ajax\Handlers\B2E_CSS_Ajax_Handler;
+use Bricks2Etch\Ajax\Handlers\B2E_Content_Ajax_Handler;
+use Bricks2Etch\Ajax\Handlers\B2E_Media_Ajax_Handler;
+use Bricks2Etch\Ajax\Handlers\B2E_Validation_Ajax_Handler;
+use Bricks2Etch\Ajax\Handlers\B2E_Logs_Ajax_Handler;
+use Bricks2Etch\Ajax\Handlers\B2E_Connection_Ajax_Handler;
+use Bricks2Etch\Ajax\Handlers\B2E_Cleanup_Ajax_Handler;
+
 if (!defined('ABSPATH')) {
     exit;
 }
@@ -18,36 +28,49 @@ class B2E_Ajax_Handler {
      * Handler instances
      */
     private $handlers = array();
-    
+
     /**
      * Constructor
      */
-    public function __construct() {
-        $this->load_handlers();
-        $this->init_handlers();
+    public function __construct(
+        B2E_CSS_Ajax_Handler $css_handler,
+        B2E_Content_Ajax_Handler $content_handler,
+        B2E_Media_Ajax_Handler $media_handler,
+        B2E_Validation_Ajax_Handler $validation_handler,
+        B2E_Logs_Ajax_Handler $logs_handler,
+        B2E_Connection_Ajax_Handler $connection_handler,
+        B2E_Cleanup_Ajax_Handler $cleanup_handler
+    ) {
+        $this->init_handlers(
+            $css_handler,
+            $content_handler,
+            $media_handler,
+            $validation_handler,
+            $logs_handler,
+            $connection_handler,
+            $cleanup_handler
+        );
     }
-    
-    /**
-     * Load all handler classes
-     */
-    private function load_handlers() {
-        $handlers_dir = dirname(__FILE__) . '/handlers/';
-        
-        require_once dirname(__FILE__) . '/class-base-ajax-handler.php';
-        require_once $handlers_dir . 'class-css-ajax.php';
-        require_once $handlers_dir . 'class-content-ajax.php';
-        require_once $handlers_dir . 'class-media-ajax.php';
-        require_once $handlers_dir . 'class-validation-ajax.php';
-    }
-    
+
     /**
      * Initialize all handlers
      */
-    private function init_handlers() {
-        $this->handlers['css'] = new B2E_CSS_Ajax_Handler();
-        $this->handlers['content'] = new B2E_Content_Ajax_Handler();
-        $this->handlers['media'] = new B2E_Media_Ajax_Handler();
-        $this->handlers['validation'] = new B2E_Validation_Ajax_Handler();
+    private function init_handlers(
+        B2E_CSS_Ajax_Handler $css_handler,
+        B2E_Content_Ajax_Handler $content_handler,
+        B2E_Media_Ajax_Handler $media_handler,
+        B2E_Validation_Ajax_Handler $validation_handler,
+        B2E_Logs_Ajax_Handler $logs_handler,
+        B2E_Connection_Ajax_Handler $connection_handler,
+        B2E_Cleanup_Ajax_Handler $cleanup_handler
+    ) {
+        $this->handlers['css'] = $css_handler;
+        $this->handlers['content'] = $content_handler;
+        $this->handlers['media'] = $media_handler;
+        $this->handlers['validation'] = $validation_handler;
+        $this->handlers['logs'] = $logs_handler;
+        $this->handlers['connection'] = $connection_handler;
+        $this->handlers['cleanup'] = $cleanup_handler;
     }
     
     /**
@@ -60,3 +83,5 @@ class B2E_Ajax_Handler {
         return $this->handlers[$type] ?? null;
     }
 }
+
+\class_alias(__NAMESPACE__ . '\\B2E_Ajax_Handler', 'B2E_Ajax_Handler');

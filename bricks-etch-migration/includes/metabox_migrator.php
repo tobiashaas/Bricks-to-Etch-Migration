@@ -2,26 +2,70 @@
 /**
  * MetaBox Migrator for Bricks to Etch Migration Plugin
  * 
- * Handles migration of MetaBox configurations and field groups
+ * Handles migration of MetaBox field groups and configurations
  */
+
+namespace Bricks2Etch\Migrators;
+
+use Bricks2Etch\Api\B2E_API_Client;
+use Bricks2Etch\Core\B2E_Error_Handler;
+use Exception;
 
 // Prevent direct access
 if (!defined('ABSPATH')) {
     exit;
 }
 
-class B2E_MetaBox_Migrator {
-    
-    /**
-     * Error handler instance
-     */
-    private $error_handler;
+class B2E_MetaBox_Migrator extends Abstract_Migrator {
     
     /**
      * Constructor
      */
-    public function __construct() {
-        $this->error_handler = new B2E_Error_Handler();
+    public function __construct(B2E_Error_Handler $error_handler, B2E_API_Client $api_client = null) {
+        parent::__construct($error_handler, $api_client);
+
+        $this->name     = 'MetaBox';
+        $this->type     = 'metabox';
+        $this->priority = 30;
+    }
+
+    /** @inheritDoc */
+    public function supports() {
+        return $this->check_plugin_active('rwmb_meta');
+    }
+
+    /** @inheritDoc */
+    public function validate() {
+        $errors = array();
+
+        if (!$this->supports()) {
+            $errors[] = 'MetaBox plugin is not active.';
+        }
+
+        return array(
+            'valid'  => empty($errors),
+            'errors' => $errors,
+        );
+    }
+
+    /** @inheritDoc */
+    public function export() {
+        return $this->export_metabox_configs();
+    }
+
+    /** @inheritDoc */
+    public function import($data) {
+        return $this->import_metabox_configs($data);
+    }
+
+    /** @inheritDoc */
+    public function migrate($target_url, $api_key) {
+        return $this->migrate_metabox_configs($target_url, $api_key);
+    }
+
+    /** @inheritDoc */
+    public function get_stats() {
+        return $this->get_metabox_stats();
     }
     
     /**
@@ -100,11 +144,11 @@ class B2E_MetaBox_Migrator {
                 'plugin' => 'MetaBox',
                 'action' => 'MetaBox plugin not active, skipping configurations import'
             ));
-            return new WP_Error('metabox_not_active', 'MetaBox plugin is not active');
+            return new \WP_Error('metabox_not_active', 'MetaBox plugin is not active');
         }
         
         if (empty($configs_data) || !is_array($configs_data)) {
-            return new WP_Error('invalid_data', 'Invalid MetaBox configurations data');
+            return new \WP_Error('invalid_data', 'Invalid MetaBox configurations data');
         }
         
         $imported_count = 0;
@@ -209,14 +253,14 @@ class B2E_MetaBox_Migrator {
         if (empty($configs)) {
             return true; // No configurations to migrate
         }
-        
-        $api_client = new B2E_API_Client();
-        $result = $api_client->send_metabox_configs($target_url, $api_key, $configs);
-        
+
+        $api_client = $this->api_client ?: new B2E_API_Client($this->error_handler);
+        $result     = $api_client->send_metabox_configs($target_url, $api_key, $configs);
+
         if (is_wp_error($result)) {
             return $result;
         }
-        
+
         return true;
     }
     
@@ -423,3 +467,5 @@ class B2E_MetaBox_Migrator {
         return $mapping[$metabox_type] ?? 'text';
     }
 }
+
+\class_alias(__NAMESPACE__ . '\\B2E_MetaBox_Migrator', 'B2E_MetaBox_Migrator');

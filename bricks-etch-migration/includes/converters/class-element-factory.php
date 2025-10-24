@@ -8,6 +8,17 @@
  * @since 0.5.0
  */
 
+namespace Bricks2Etch\Converters;
+
+use Bricks2Etch\Converters\Elements\B2E_Element_Container;
+use Bricks2Etch\Converters\Elements\B2E_Element_Section;
+use Bricks2Etch\Converters\Elements\B2E_Element_Heading;
+use Bricks2Etch\Converters\Elements\B2E_Element_Paragraph;
+use Bricks2Etch\Converters\Elements\B2E_Element_Image;
+use Bricks2Etch\Converters\Elements\B2E_Element_Div;
+use Bricks2Etch\Converters\Elements\B2E_Button_Converter;
+use Bricks2Etch\Converters\Elements\B2E_Icon_Converter;
+
 if (!defined('ABSPATH')) {
     exit;
 }
@@ -38,20 +49,7 @@ class B2E_Element_Factory {
      * Load all element converters
      */
     private function load_converters() {
-        $elements_dir = dirname(__FILE__) . '/elements/';
-        
-        // Load base element
-        require_once dirname(__FILE__) . '/class-base-element.php';
-        
-        // Load all element converters
-        require_once $elements_dir . 'class-container.php';
-        require_once $elements_dir . 'class-section.php';
-        require_once $elements_dir . 'class-heading.php';
-        require_once $elements_dir . 'class-paragraph.php';
-        require_once $elements_dir . 'class-image.php';
-        require_once $elements_dir . 'class-div.php';
-        require_once $elements_dir . 'class-button.php';
-        require_once $elements_dir . 'class-icon.php';
+        // Converters are now autoloaded via namespace
     }
     
     /**
@@ -129,3 +127,5 @@ class B2E_Element_Factory {
         return $converter->convert($element, $children);
     }
 }
+
+\class_alias(__NAMESPACE__ . '\\B2E_Element_Factory', 'B2E_Element_Factory');

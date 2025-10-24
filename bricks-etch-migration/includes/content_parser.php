@@ -5,6 +5,10 @@
  * Parses Bricks Builder content structure and converts it to processable format
  */
 
+namespace Bricks2Etch\Parsers;
+
+use Bricks2Etch\Core\B2E_Error_Handler;
+
 // Prevent direct access
 if (!defined('ABSPATH')) {
     exit;
@@ -25,8 +29,8 @@ class B2E_Content_Parser {
     /**
      * Constructor
      */
-    public function __construct() {
-        $this->error_handler = new B2E_Error_Handler();
+    public function __construct(B2E_Error_Handler $error_handler) {
+        $this->error_handler = $error_handler;
         $this->style_map = get_option('b2e_style_map', array());
     }
     
@@ -912,3 +916,5 @@ class B2E_Content_Parser {
         );
     }
 }
+
+\class_alias(__NAMESPACE__ . '\\B2E_Content_Parser', 'B2E_Content_Parser');

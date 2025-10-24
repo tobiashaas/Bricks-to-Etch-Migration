@@ -1,0 +1,24 @@
+name: Dependency Review
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+
+      - name: Dependency review
+        uses: actions/dependency-review-action@40c09b7dc99638e5ddb0bfd91c1673effc064d8a
+        with:
+          fail-on-severity: moderate
+          allow-licenses: GPL-2.0-or-later,MIT,BSD-3-Clause
+          deny-licenses: AGPL-3.0
+          comment-summary-in-pr: true
+          bypass-label: dependencies-reviewed

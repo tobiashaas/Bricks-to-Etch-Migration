@@ -8,6 +8,8 @@
  * @since 0.5.0
  */
 
+namespace Bricks2Etch\Converters;
+
 if (!defined('ABSPATH')) {
     exit;
 }
@@ -164,3 +166,5 @@ abstract class B2E_Base_Element {
         return $children_html;
     }
 }
+
+\class_alias(__NAMESPACE__ . '\\B2E_Base_Element', 'B2E_Base_Element');

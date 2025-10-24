@@ -1,6 +1,10 @@
 # Bricks to Etch Migration Plugin
 
-**Version:** 0.4.0  
+![CI](https://github.com/tobiashaas/Bricks2Etch/workflows/CI/badge.svg)
+![CodeQL](https://github.com/tobiashaas/Bricks2Etch/workflows/CodeQL/badge.svg)
+![PHP Version](https://img.shields.io/badge/PHP-7.4%20%7C%208.1%20%7C%208.2%20%7C%208.3%20%7C%208.4-blue)
+
+**Version:** 0.8.0  
 **Status:** ✅ Production Ready
 
 One-time migration tool for converting Bricks Builder websites to Etch PageBuilder with complete automation.
@@ -65,46 +69,46 @@ Progress is shown in real-time with detailed logs.
 
 ---
 
-## 🐳 Local Development (Docker)
+## 🐳 Local Development
 
-### Setup
+**Note:** The Docker Compose setup in `test-environment/` is deprecated. Use the npm-based wp-env workflow instead.
+
+### Recommended: wp-env Workflow
+
+See **[bricks-etch-migration/README.md](bricks-etch-migration/README.md)** for complete setup instructions.
 
 ```bash
-cd test-environment
-docker-compose up -d
+cd bricks-etch-migration
+npm install
+npm run dev
 ```
 
 **Access:**
-- Bricks Site: http://localhost:8080
-- Etch Site: http://localhost:8081
+- Bricks Site: http://localhost:8888
+- Etch Site: http://localhost:8889
 
 ### Testing
 
 ```bash
-# Clean up Etch site
+# Clean up Etch site (manual cleanup script)
 ./cleanup-etch.sh
 
 # Run migration
-# Go to: http://localhost:8080/wp-admin/admin.php?page=bricks-etch-migration
-# Click "Start Migration"
+# Go to Bricks admin and click "Start Migration"
 ```
 
 ---
 
-## 📚 Documentation
+## Documentation
 
 ### Main Documentation
 - **[CHANGELOG.md](CHANGELOG.md)** - Version history and changes
-- **[CSS-CLASSES-FINAL-SOLUTION.md](CSS-CLASSES-FINAL-SOLUTION.md)** - Complete CSS classes documentation
-- **[CSS-CLASSES-QUICK-REFERENCE.md](CSS-CLASSES-QUICK-REFERENCE.md)** - Quick reference guide
-- **[MIGRATION-SUCCESS-SUMMARY.md](MIGRATION-SUCCESS-SUMMARY.md)** - Project status and statistics
-
-### Archive
-Old documentation and test scripts are in `archive/` folder.
+- **[DOCUMENTATION.md](DOCUMENTATION.md)** - Technical documentation
+- **[docs/MIGRATOR-API.md](bricks-etch-migration/docs/MIGRATOR-API.md)** - Developer guide for the migrator system
 
 ---
 
-## 🔧 Technical Details
+## Technical Details
 
 ### Plugin Structure
 
@@ -161,6 +165,42 @@ Custom CSS from Bricks Global Classes is merged with normal styles:
 - ✅ Containers (div)
 - ✅ Flex-Divs (div)
 
+### Repository Pattern
+
+The plugin uses Repository Pattern to abstract data access. Three repositories handle different data domains:
+
+- **Settings_Repository** - Plugin settings, API keys, migration settings
+- **Migration_Repository** - Progress, steps, stats, tokens, imported data
+- **Style_Repository** - CSS styles, style maps, Etch-specific options
+
+**Benefits:**
+1. **Separation of concerns** - Business logic separated from data access
+2. **Built-in caching** - Transient caching for performance (2-10 minute expiration)
+3. **Easier testing** - Mock repositories for unit tests
+4. **Future flexibility** - Easy to change data storage (e.g., custom tables)
+
+**Example Usage:**
+```php
+// Inject repository into service
+class B2E_Migration_Service {
+    private $migration_repository;
+    
+    public function __construct(
+        // ... other dependencies
+        Migration_Repository_Interface $migration_repository
+    ) {
+        $this->migration_repository = $migration_repository;
+    }
+    
+    public function save_progress($progress) {
+        // Use repository instead of direct get_option/update_option
+        $this->migration_repository->save_progress($progress);
+    }
+}
+```
+
+All repositories are registered in the DI container and automatically injected into services, controllers, and other components.
+
 ---
 
 ## 🐛 Troubleshooting
@@ -169,11 +209,33 @@ Custom CSS from Bricks Global Classes is merged with normal styles:
 
 **Check logs:**
 ```bash
-# Bricks site
-docker exec b2e-bricks tail -100 /var/www/html/wp-content/debug.log
+# Bricks site (development environment)
+npm run logs:bricks
 
-# Etch site
-docker exec b2e-etch tail -100 /var/www/html/wp-content/debug.log
+# Etch site (tests environment)
+npm run logs:etch
+```
+
+Need to inspect files directly? Drop into a shell and run commands there:
+
+```bash
+# Open an interactive shell
+npm run shell:bricks
+# or for the Etch site
+npm run shell:etch
+
+# Once inside the shell
+tail -n 100 /var/www/html/wp-content/debug.log
+```
+
+**Run WP-CLI commands:**
+
+```bash
+# Example: list plugins on the Bricks site
+npm run wp:bricks -- plugin list
+
+# Example: clear cache on the Etch site
+npm run wp:etch -- cache flush
 ```
 
 ### CSS Classes Missing
@@ -238,8 +300,44 @@ This is a one-time migration tool. For issues or improvements:
 
 1. Check existing documentation
 2. Review CHANGELOG.md
-3. Test in Docker environment first
-4. Document any changes
+3. Test in wp-env environment first
+4. Run code quality checks locally:
+   ```bash
+   cd bricks-etch-migration
+   composer lint
+   composer test
+   ```
+5. Document any changes
+
+### Development Workflow
+
+**Code Quality:**
+```bash
+# Run WordPress Coding Standards check
+composer lint
+
+# Auto-fix coding standards violations
+composer lint:fix
+```
+
+**Testing:**
+```bash
+# Run PHPUnit tests
+composer test
+
+# Generate coverage report
+composer test:coverage
+```
+
+**CI/CD:**
+All pull requests automatically run:
+- WordPress Coding Standards (WPCS)
+- PHP Compatibility checks (PHP 7.4-8.4)
+- PHPUnit tests across all PHP versions
+- CodeQL security scanning
+- Dependency vulnerability checks
+
+See [`.github/workflows/README.md`](.github/workflows/README.md) for detailed CI/CD documentation.
 
 ---
 
@@ -263,5 +361,5 @@ GPL v2 or later
 
 ---
 
-**Last Updated:** October 21, 2025  
-**Version:** 0.4.0
+**Last Updated:** October 24, 2025  
+**Version:** 0.8.0

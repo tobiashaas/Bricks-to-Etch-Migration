@@ -2,17 +2,19 @@
 /**
  * Paragraph Element Converter
  * 
- * Converts Bricks Text/Paragraph to Gutenberg Paragraph with Etch metadata
+ * Converts Bricks Text/Text-Basic to Gutenberg Paragraph
  * 
  * @package Bricks_Etch_Migration
  * @since 0.5.0
  */
 
+namespace Bricks2Etch\Converters\Elements;
+
+use Bricks2Etch\Converters\B2E_Base_Element;
+
 if (!defined('ABSPATH')) {
     exit;
 }
-
-require_once dirname(dirname(__FILE__)) . '/class-base-element.php';
 
 class B2E_Element_Paragraph extends B2E_Base_Element {
     
@@ -60,3 +62,5 @@ class B2E_Element_Paragraph extends B2E_Base_Element {
                '<!-- /wp:paragraph -->';
     }
 }
+
+\class_alias(__NAMESPACE__ . '\\B2E_Element_Paragraph', 'B2E_Element_Paragraph');

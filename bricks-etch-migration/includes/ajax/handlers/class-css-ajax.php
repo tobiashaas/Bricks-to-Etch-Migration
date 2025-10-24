@@ -8,13 +8,38 @@
  * @since 0.5.1
  */
 
+namespace Bricks2Etch\Ajax\Handlers;
+
+use Bricks2Etch\Ajax\B2E_Base_Ajax_Handler;
+use Bricks2Etch\Parsers\B2E_CSS_Converter;
+use Bricks2Etch\Api\B2E_API_Client;
+
+// Prevent direct access
 if (!defined('ABSPATH')) {
     exit;
 }
 
-require_once dirname(dirname(__FILE__)) . '/class-base-ajax-handler.php';
-
 class B2E_CSS_Ajax_Handler extends B2E_Base_Ajax_Handler {
+    
+    /**
+     * CSS service instance
+     * 
+     * @var mixed
+     */
+    private $css_service;
+    
+    /**
+     * Constructor
+     * 
+     * @param mixed $css_service CSS service instance.
+     * @param \Bricks2Etch\Security\B2E_Rate_Limiter|null $rate_limiter Rate limiter instance (optional).
+     * @param \Bricks2Etch\Security\B2E_Input_Validator|null $input_validator Input validator instance (optional).
+     * @param \Bricks2Etch\Security\B2E_Audit_Logger|null $audit_logger Audit logger instance (optional).
+     */
+    public function __construct( $css_service = null, $rate_limiter = null, $input_validator = null, $audit_logger = null ) {
+        $this->css_service = $css_service;
+        parent::__construct( $rate_limiter, $input_validator, $audit_logger );
+    }
     
     /**
      * Register WordPress hooks
@@ -32,6 +57,11 @@ class B2E_CSS_Ajax_Handler extends B2E_Base_Ajax_Handler {
         $this->log('🎨 CSS Migration: POST data: ' . print_r($_POST, true));
         $this->log('========================================');
         
+        // Check rate limit (30 requests per minute)
+        if ( ! $this->check_rate_limit( 'migrate_css', 30, 60 ) ) {
+            return;
+        }
+        
         // Verify nonce
         if (!$this->verify_nonce()) {
             $this->log('❌ CSS Migration: Invalid nonce');
@@ -39,17 +69,27 @@ class B2E_CSS_Ajax_Handler extends B2E_Base_Ajax_Handler {
             return;
         }
         
-        // Get parameters
-        $target_url = $this->sanitize_url($this->get_post('target_url', ''));
-        $api_key = $this->sanitize_text($this->get_post('api_key', ''));
+        // Get and validate parameters
+        try {
+            $validated = $this->validate_input(
+                array(
+                    'target_url' => $this->get_post('target_url', ''),
+                    'api_key'    => $this->get_post('api_key', ''),
+                ),
+                array(
+                    'target_url' => array( 'type' => 'url', 'required' => true ),
+                    'api_key'    => array( 'type' => 'api_key', 'required' => true ),
+                )
+            );
+        } catch ( \Exception $e ) {
+            $this->log('❌ CSS Migration: Validation failed: ' . $e->getMessage());
+            return; // Error already sent by validate_input
+        }
+        
+        $target_url = $validated['target_url'];
+        $api_key = $validated['api_key'];
         
         $this->log('🎨 CSS Migration: target_url=' . $target_url . ', api_key=' . substr($api_key, 0, 20) . '...');
-        
-        if (empty($target_url) || empty($api_key)) {
-            $this->log('❌ CSS Migration: Missing required parameters');
-            wp_send_json_error('Missing required parameters');
-            return;
-        }
         
         // Convert localhost:8081 to b2e-etch for Docker internal communication
         $internal_url = $this->convert_to_internal_url($target_url);
@@ -110,12 +150,22 @@ class B2E_CSS_Ajax_Handler extends B2E_Base_Ajax_Handler {
             }
             
             $this->log('✅ CSS Migration: SUCCESS - ' . $styles_count . ' styles migrated');
+            
+            // Log successful CSS migration
+            $this->log_security_event( 'ajax_action', 'CSS migrated successfully', array(
+                'styles_count' => $styles_count,
+            ) );
+            
             wp_send_json_success(array(
                 'message' => 'CSS migrated successfully',
                 'styles_count' => $styles_count
             ));
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             $this->log('❌ CSS Migration: Exception: ' . $e->getMessage());
+            
+            // Log CSS migration failure
+            $this->log_security_event( 'ajax_action', 'CSS migration exception: ' . $e->getMessage() );
+            
             wp_send_json_error('Exception: ' . $e->getMessage());
         }
     }
@@ -133,3 +183,5 @@ class B2E_CSS_Ajax_Handler extends B2E_Base_Ajax_Handler {
         return $url;
     }
 }
+
+\class_alias(__NAMESPACE__ . '\\B2E_CSS_Ajax_Handler', 'B2E_CSS_Ajax_Handler');

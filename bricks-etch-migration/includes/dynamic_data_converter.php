@@ -2,8 +2,12 @@
 /**
  * Dynamic Data Converter for Bricks to Etch Migration Plugin
  * 
- * Converts Bricks dynamic data tags to Etch format
+ * Converts Bricks dynamic data tags to Etch equivalents
  */
+
+namespace Bricks2Etch\Parsers;
+
+use Bricks2Etch\Core\B2E_Error_Handler;
 
 // Prevent direct access
 if (!defined('ABSPATH')) {
@@ -86,8 +90,8 @@ class B2E_Dynamic_Data_Converter {
     /**
      * Constructor
      */
-    public function __construct() {
-        $this->error_handler = new B2E_Error_Handler();
+    public function __construct(B2E_Error_Handler $error_handler) {
+        $this->error_handler = $error_handler;
     }
     
     /**
@@ -401,3 +405,5 @@ class B2E_Dynamic_Data_Converter {
         return $this->modifier_mapping;
     }
 }
+
+\class_alias(__NAMESPACE__ . '\\B2E_Dynamic_Data_Converter', 'B2E_Dynamic_Data_Converter');

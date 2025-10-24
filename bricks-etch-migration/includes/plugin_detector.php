@@ -5,6 +5,8 @@
  * Detects installed plugins and validates migration requirements
  */
 
+namespace Bricks2Etch\Core;
+
 // Prevent direct access
 if (!defined('ABSPATH')) {
     exit;
@@ -20,8 +22,8 @@ class B2E_Plugin_Detector {
     /**
      * Constructor
      */
-    public function __construct() {
-        $this->error_handler = new B2E_Error_Handler();
+    public function __construct(B2E_Error_Handler $error_handler) {
+        $this->error_handler = $error_handler;
     }
     
     /**
@@ -346,3 +348,5 @@ class B2E_Plugin_Detector {
         );
     }
 }
+
+\class_alias(__NAMESPACE__ . '\\B2E_Plugin_Detector', 'B2E_Plugin_Detector');

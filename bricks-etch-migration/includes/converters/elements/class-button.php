@@ -6,13 +6,16 @@
  * 
  * @package Bricks_Etch_Migration
  * @subpackage Converters\Elements
+ * @since 0.5.0
  */
+
+namespace Bricks2Etch\Converters\Elements;
+
+use Bricks2Etch\Converters\B2E_Base_Element;
 
 if (!defined('ABSPATH')) {
     exit;
 }
-
-require_once dirname(dirname(__FILE__)) . '/class-base-element.php';
 
 class B2E_Button_Converter extends B2E_Base_Element {
     
@@ -127,3 +130,5 @@ class B2E_Button_Converter extends B2E_Base_Element {
         return substr(md5(uniqid(rand(), true)), 0, 7);
     }
 }
+
+\class_alias(__NAMESPACE__ . '\\B2E_Button_Converter', 'B2E_Button_Converter');

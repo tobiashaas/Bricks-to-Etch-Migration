@@ -5,23 +5,73 @@
  * Handles migration of custom post types and their configurations
  */
 
+namespace Bricks2Etch\Migrators;
+
+use Bricks2Etch\Api\B2E_API_Client;
+use Bricks2Etch\Core\B2E_Error_Handler;
+use Exception;
+
 // Prevent direct access
 if (!defined('ABSPATH')) {
     exit;
 }
 
-class B2E_CPT_Migrator {
-    
-    /**
-     * Error handler instance
-     */
-    private $error_handler;
+class B2E_CPT_Migrator extends Abstract_Migrator {
     
     /**
      * Constructor
      */
-    public function __construct() {
-        $this->error_handler = new B2E_Error_Handler();
+    public function __construct(B2E_Error_Handler $error_handler, B2E_API_Client $api_client = null) {
+        parent::__construct($error_handler, $api_client);
+
+        $this->name     = 'Custom Post Types';
+        $this->type     = 'cpt';
+        $this->priority = 10;
+    }
+
+    /** @inheritDoc */
+    public function supports() {
+        return true;
+    }
+
+    /** @inheritDoc */
+    public function validate() {
+        $errors = array();
+
+        $cpts = $this->export_custom_post_types();
+        foreach ($cpts as $cpt) {
+            $validation_errors = $this->validate_cpt_data($cpt);
+            if (!empty($validation_errors)) {
+                $errors = array_merge($errors, array_map(function($error) use ($cpt) {
+                    return sprintf('%s (%s)', $error, $cpt['name']);
+                }, $validation_errors));
+            }
+        }
+
+        return array(
+            'valid'  => empty($errors),
+            'errors' => $errors,
+        );
+    }
+
+    /** @inheritDoc */
+    public function export() {
+        return $this->export_custom_post_types();
+    }
+
+    /** @inheritDoc */
+    public function import($data) {
+        return $this->import_custom_post_types($data);
+    }
+
+    /** @inheritDoc */
+    public function migrate($target_url, $api_key) {
+        return $this->migrate_custom_post_types($target_url, $api_key);
+    }
+
+    /** @inheritDoc */
+    public function get_stats() {
+        return $this->get_cpt_stats();
     }
     
     /**
@@ -94,7 +144,7 @@ class B2E_CPT_Migrator {
      */
     public function import_custom_post_types($cpts_data) {
         if (empty($cpts_data) || !is_array($cpts_data)) {
-            return new WP_Error('invalid_data', 'Invalid custom post types data');
+            return new \WP_Error('invalid_data', 'Invalid custom post types data');
         }
         
         $imported_count = 0;
@@ -238,8 +288,8 @@ class B2E_CPT_Migrator {
             return true; // No CPTs to migrate
         }
         
-        $api_client = new B2E_API_Client();
-        $result = $api_client->send_custom_post_types($target_url, $api_key, $cpts);
+        $api_client = $this->api_client ?: new B2E_API_Client($this->error_handler);
+        $result     = $api_client->send_custom_post_types($target_url, $api_key, $cpts);
         
         if (is_wp_error($result)) {
             return $result;
@@ -417,3 +467,5 @@ class B2E_CPT_Migrator {
         return $cpts_with_bricks;
     }
 }
+
+\class_alias(__NAMESPACE__ . '\\B2E_CPT_Migrator', 'B2E_CPT_Migrator');

@@ -2,8 +2,15 @@
 /**
  * Gutenberg Generator for Bricks to Etch Migration Plugin
  * 
- * Generates Etch-compatible Gutenberg blocks from Bricks elements
+ * Generates Gutenberg blocks from Bricks content
  */
+
+namespace Bricks2Etch\Parsers;
+
+use Bricks2Etch\Core\B2E_Error_Handler;
+use Bricks2Etch\Parsers\B2E_Dynamic_Data_Converter;
+use Bricks2Etch\Converters\B2E_Element_Factory;
+use Bricks2Etch\Parsers\B2E_Content_Parser;
 
 // Prevent direct access
 if (!defined('ABSPATH')) {
@@ -35,11 +42,11 @@ class B2E_Gutenberg_Generator {
     /**
      * Constructor
      */
-    public function __construct() {
-        $this->error_handler = new B2E_Error_Handler();
-        $this->dynamic_data_converter = new B2E_Dynamic_Data_Converter();
-        $this->content_parser = new B2E_Content_Parser();
-        
+    public function __construct(B2E_Error_Handler $error_handler, B2E_Dynamic_Data_Converter $dynamic_data_converter, B2E_Content_Parser $content_parser) {
+        $this->error_handler = $error_handler;
+        $this->dynamic_data_converter = $dynamic_data_converter;
+        $this->content_parser = $content_parser;
+
         // Load element factory (NEW - v0.5.0)
         require_once plugin_dir_path(__FILE__) . 'converters/class-element-factory.php';
     }
@@ -1728,3 +1735,5 @@ class B2E_Gutenberg_Generator {
         return implode(' ', array_filter($classes));
     }
 }
+
+\class_alias(__NAMESPACE__ . '\\B2E_Gutenberg_Generator', 'B2E_Gutenberg_Generator');

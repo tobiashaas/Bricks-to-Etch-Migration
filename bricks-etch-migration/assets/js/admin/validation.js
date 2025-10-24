@@ -1,0 +1,76 @@
+import { post } from './api.js';
+import { showToast, setLoading } from './ui.js';
+
+const ACTION_VALIDATE_API_KEY = 'b2e_validate_api_key';
+const ACTION_VALIDATE_TOKEN = 'b2e_validate_migration_token';
+
+const extractMigrationKeyParts = (rawKey) => {
+    try {
+        const url = new URL(rawKey);
+        return {
+            target_url: url.searchParams.get('domain') || url.origin,
+            token: url.searchParams.get('token'),
+            expires: url.searchParams.get('expires'),
+        };
+    } catch (error) {
+        return {
+            token: rawKey,
+        };
+    }
+};
+
+const handleValidateApiKey = async (event) => {
+    event.preventDefault();
+    const button = event.currentTarget;
+    const form = button.closest('form');
+    if (!form) {
+        return;
+    }
+    setLoading(button, true);
+    try {
+        const payload = extractMigrationKeyParts(form.querySelector('[name="target_url"]').value);
+        payload.api_key = form.querySelector('[name="api_key"]').value;
+        await post(ACTION_VALIDATE_API_KEY, payload);
+        showToast('API key validated successfully.', 'success');
+    } catch (error) {
+        console.error('API key validation failed', error);
+        showToast(error.message, 'error');
+    } finally {
+        setLoading(button, false);
+    }
+};
+
+const handleValidateToken = async (event) => {
+    event.preventDefault();
+    const button = event.currentTarget;
+    const textarea = document.querySelector('[data-b2e-migration-key]');
+    if (!textarea) {
+        return;
+    }
+    const rawKey = textarea.value.trim();
+    if (!rawKey) {
+        showToast('Please provide a migration key first.', 'warning');
+        return;
+    }
+    setLoading(button, true);
+    try {
+        const payload = extractMigrationKeyParts(rawKey);
+        await post(ACTION_VALIDATE_TOKEN, payload);
+        showToast('Migration token validated.', 'success');
+    } catch (error) {
+        console.error('Migration token validation failed', error);
+        showToast(error.message, 'error');
+    } finally {
+        setLoading(button, false);
+    }
+};
+
+export const bindValidation = () => {
+    document.querySelectorAll('[data-b2e-validate-api-key]').forEach((button) => {
+        button.addEventListener('click', handleValidateApiKey);
+    });
+
+    document.querySelectorAll('[data-b2e-validate-migration-key]').forEach((button) => {
+        button.addEventListener('click', handleValidateToken);
+    });
+};

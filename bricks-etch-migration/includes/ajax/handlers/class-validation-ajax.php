@@ -8,13 +8,37 @@
  * @since 0.5.1
  */
 
+namespace Bricks2Etch\Ajax\Handlers;
+
+use Bricks2Etch\Ajax\B2E_Base_Ajax_Handler;
+use Bricks2Etch\Api\B2E_API_Client;
+
+// Prevent direct access
 if (!defined('ABSPATH')) {
     exit;
 }
 
-require_once dirname(dirname(__FILE__)) . '/class-base-ajax-handler.php';
-
 class B2E_Validation_Ajax_Handler extends B2E_Base_Ajax_Handler {
+    
+    /**
+     * API client instance
+     * 
+     * @var B2E_API_Client
+     */
+    private $api_client;
+    
+    /**
+     * Constructor
+     * 
+     * @param B2E_API_Client $api_client
+     * @param \Bricks2Etch\Security\B2E_Rate_Limiter|null $rate_limiter Rate limiter instance (optional).
+     * @param \Bricks2Etch\Security\B2E_Input_Validator|null $input_validator Input validator instance (optional).
+     * @param \Bricks2Etch\Security\B2E_Audit_Logger|null $audit_logger Audit logger instance (optional).
+     */
+    public function __construct( B2E_API_Client $api_client, $rate_limiter = null, $input_validator = null, $audit_logger = null ) {
+        $this->api_client = $api_client;
+        parent::__construct( $rate_limiter, $input_validator, $audit_logger );
+    }
     
     /**
      * Register WordPress hooks
@@ -28,31 +52,53 @@ class B2E_Validation_Ajax_Handler extends B2E_Base_Ajax_Handler {
      * AJAX handler for validating API key
      */
     public function validate_api_key() {
+        // Check rate limit (10 requests per minute for auth endpoints)
+        if ( ! $this->check_rate_limit( 'validate_api_key', 10, 60 ) ) {
+            return;
+        }
+        
         // Verify nonce
         if (!$this->verify_nonce()) {
             wp_send_json_error('Invalid nonce');
             return;
         }
         
-        // Get parameters
-        $target_url = $this->sanitize_url($this->get_post('target_url', ''));
-        $api_key = $this->sanitize_text($this->get_post('api_key', ''));
-        
-        if (empty($target_url) || empty($api_key)) {
-            wp_send_json_error('Target URL and API key are required');
-            return;
+        // Get and validate parameters
+        try {
+            $validated = $this->validate_input(
+                array(
+                    'target_url' => $this->get_post('target_url', ''),
+                    'api_key'    => $this->get_post('api_key', ''),
+                ),
+                array(
+                    'target_url' => array( 'type' => 'url', 'required' => true ),
+                    'api_key'    => array( 'type' => 'api_key', 'required' => true ),
+                )
+            );
+        } catch ( \Exception $e ) {
+            return; // Error already sent by validate_input
         }
+        
+        $target_url = $validated['target_url'];
+        $api_key = $validated['api_key'];
         
         // Convert to internal URL
         $internal_url = $this->convert_to_internal_url($target_url);
         
         // Validate API key via API client
-        $api_client = new B2E_API_Client();
-        $result = $api_client->validate_api_key($internal_url, $api_key);
+        $result = $this->api_client->validate_api_key($internal_url, $api_key);
         
         if (is_wp_error($result)) {
+            // Log failed authentication
+            $this->log_security_event( 'auth_failure', 'API key validation failed: ' . $result->get_error_message(), array(
+                'target_url' => $target_url,
+            ) );
             wp_send_json_error($result->get_error_message());
         } else {
+            // Log successful authentication
+            $this->log_security_event( 'auth_success', 'API key validated successfully', array(
+                'target_url' => $target_url,
+            ) );
             wp_send_json_success($result);
         }
     }
@@ -61,32 +107,56 @@ class B2E_Validation_Ajax_Handler extends B2E_Base_Ajax_Handler {
      * AJAX handler for validating migration token
      */
     public function validate_migration_token() {
+        // Check rate limit (10 requests per minute for auth endpoints)
+        if ( ! $this->check_rate_limit( 'validate_migration_token', 10, 60 ) ) {
+            return;
+        }
+        
         // Verify nonce
         if (!$this->verify_nonce()) {
             wp_send_json_error('Invalid nonce');
             return;
         }
         
-        // Get parameters
-        $target_url = $this->sanitize_url($this->get_post('target_url', ''));
-        $token = $this->sanitize_text($this->get_post('token', ''));
-        $expires = intval($this->get_post('expires', 0));
-        
-        if (empty($target_url) || empty($token) || empty($expires)) {
-            wp_send_json_error('Target URL, token, and expiration are required');
-            return;
+        // Get and validate parameters
+        try {
+            $validated = $this->validate_input(
+                array(
+                    'target_url' => $this->get_post('target_url', ''),
+                    'token'      => $this->get_post('token', ''),
+                    'expires'    => $this->get_post('expires', 0),
+                ),
+                array(
+                    'target_url' => array( 'type' => 'url', 'required' => true ),
+                    'token'      => array( 'type' => 'token', 'required' => true ),
+                    'expires'    => array( 'type' => 'integer', 'required' => true, 'min' => time() ),
+                )
+            );
+        } catch ( \Exception $e ) {
+            return; // Error already sent by validate_input
         }
+        
+        $target_url = $validated['target_url'];
+        $token = $validated['token'];
+        $expires = $validated['expires'];
         
         // Convert to internal URL
         $internal_url = $this->convert_to_internal_url($target_url);
         
         // Validate migration token on target site
-        $api_client = new B2E_API_Client();
-        $result = $api_client->validate_migration_token($internal_url, $token, $expires);
+        $result = $this->api_client->validate_migration_token($internal_url, $token, $expires);
         
         if (is_wp_error($result)) {
+            // Log failed token validation
+            $this->log_security_event( 'auth_failure', 'Migration token validation failed: ' . $result->get_error_message(), array(
+                'target_url' => $target_url,
+            ) );
             wp_send_json_error($result->get_error_message());
         } else {
+            // Log successful token validation
+            $this->log_security_event( 'auth_success', 'Migration token validated successfully', array(
+                'target_url' => $target_url,
+            ) );
             // Token is valid, return success with API key
             wp_send_json_success($result);
         }
@@ -106,3 +176,5 @@ class B2E_Validation_Ajax_Handler extends B2E_Base_Ajax_Handler {
         return $url;
     }
 }
+
+\class_alias(__NAMESPACE__ . '\\B2E_Validation_Ajax_Handler', 'B2E_Validation_Ajax_Handler');

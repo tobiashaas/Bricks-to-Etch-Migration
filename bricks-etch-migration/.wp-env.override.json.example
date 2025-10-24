@@ -1,0 +1,17 @@
+{
+  "port": 9888,
+  "testsPort": 9889,
+  "phpVersion": "8.2",
+  "config": {
+    "WP_DEBUG_DISPLAY": true,
+    "SAVEQUERIES": true,
+    "WP_MEMORY_LIMIT": "512M",
+    "XDEBUG_MODE": "debug,develop"
+  },
+  "plugins": [
+    "../my-local-plugin"
+  ],
+  "mappings": {
+    "wp-content/uploads/local-uploads": "../test-environment/local-uploads"
+  }
+}

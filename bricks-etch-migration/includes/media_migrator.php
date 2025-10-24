@@ -2,9 +2,13 @@
 /**
  * Media Migrator for Bricks to Etch Migration Plugin
  * 
- * Handles migration of media files (images, videos, documents) from source to target site
- * Includes proper attachment associations and metadata preservation
+ * Handles migration of media files and attachments
  */
+
+namespace Bricks2Etch\Migrators;
+
+use Bricks2Etch\Core\B2E_Error_Handler;
+use Bricks2Etch\Api\B2E_API_Client;
 
 // Prevent direct access
 if (!defined('ABSPATH')) {
@@ -17,12 +21,18 @@ class B2E_Media_Migrator {
      * Error handler instance
      */
     private $error_handler;
+
+    /**
+     * API client instance
+     */
+    private $api_client;
     
     /**
      * Constructor
      */
-    public function __construct() {
-        $this->error_handler = new B2E_Error_Handler();
+    public function __construct(B2E_Error_Handler $error_handler, B2E_API_Client $api_client = null) {
+        $this->error_handler = $error_handler;
+        $this->api_client = $api_client;
     }
     
     /**
@@ -105,7 +115,7 @@ class B2E_Media_Migrator {
      * Get all media files from the source site
      */
     private function get_media_files() {
-        $media_query = new WP_Query(array(
+        $media_query = new \WP_Query(array(
             'post_type' => 'attachment',
             'post_status' => 'inherit',
             'posts_per_page' => -1,
@@ -156,13 +166,13 @@ class B2E_Media_Migrator {
         $file_path = get_attached_file($attachment_id);
         
         if (!file_exists($file_path)) {
-            return new WP_Error('file_not_found', 'Media file not found: ' . $file_path . ' (ID: ' . $attachment_id . ')');
+            return new \WP_Error('file_not_found', 'Media file not found: ' . $file_path . ' (ID: ' . $attachment_id . ')');
         }
         
         $file_content = file_get_contents($file_path);
         
         if ($file_content === false) {
-            return new WP_Error('read_failed', 'Failed to read media file: ' . $file_path);
+            return new \WP_Error('read_failed', 'Failed to read media file: ' . $file_path);
         }
         
         // Prepare media data for API
@@ -180,8 +190,8 @@ class B2E_Media_Migrator {
         );
         
         // Send to target site via API
-        $api_client = new B2E_API_Client();
-        $result = $api_client->send_media_file($target_url, $api_key, $media_payload);
+        $api_client = $this->api_client ?: new B2E_API_Client($this->error_handler);
+        $result = $api_client->send_media_data($target_url, $api_key, $media_data);
         
         if (is_wp_error($result)) {
             return $result;
@@ -208,13 +218,13 @@ class B2E_Media_Migrator {
         
         $response_code = wp_remote_retrieve_response_code($response);
         if ($response_code !== 200) {
-            return new WP_Error('download_failed', 'Failed to download file: HTTP ' . $response_code);
+            return new \WP_Error('download_failed', 'Failed to download file: HTTP ' . $response_code);
         }
         
         $file_content = wp_remote_retrieve_body($response);
         
         if (empty($file_content)) {
-            return new WP_Error('empty_file', 'Downloaded file is empty');
+            return new \WP_Error('empty_file', 'Downloaded file is empty');
         }
         
         return $file_content;
@@ -241,7 +251,7 @@ class B2E_Media_Migrator {
      * Get media statistics
      */
     public function get_media_stats() {
-        $media_query = new WP_Query(array(
+        $media_query = new \WP_Query(array(
             'post_type' => 'attachment',
             'post_status' => 'inherit',
             'posts_per_page' => -1,
@@ -309,3 +319,5 @@ class B2E_Media_Migrator {
         return array_unique($media_ids);
     }
 }
+
+\class_alias(__NAMESPACE__ . '\\B2E_Media_Migrator', 'B2E_Media_Migrator');

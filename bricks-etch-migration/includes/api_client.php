@@ -5,6 +5,10 @@
  * Handles communication with target site API
  */
 
+namespace Bricks2Etch\Api;
+
+use Bricks2Etch\Core\B2E_Error_Handler;
+
 // Prevent direct access
 if (!defined('ABSPATH')) {
     exit;
@@ -20,8 +24,8 @@ class B2E_API_Client {
     /**
      * Constructor
      */
-    public function __construct() {
-        $this->error_handler = new B2E_Error_Handler();
+    public function __construct(B2E_Error_Handler $error_handler) {
+        $this->error_handler = $error_handler;
     }
     
     /**
@@ -107,7 +111,7 @@ class B2E_API_Client {
                 'action' => 'API request returned error'
             ));
             
-            return new WP_Error('api_error', $error_message);
+            return new \WP_Error('api_error', $error_message);
         }
         
         $decoded_response = json_decode($response_body, true);
@@ -119,7 +123,7 @@ class B2E_API_Client {
                 'response_body' => $response_body,
                 'action' => 'Failed to decode API response'
             ));
-            return new WP_Error('json_decode_error', 'Failed to decode API response');
+            return new \WP_Error('json_decode_error', 'Failed to decode API response');
         }
         
         return $decoded_response;
@@ -486,7 +490,7 @@ class B2E_API_Client {
                 'action' => 'Token validation returned error'
             ));
             
-            return new WP_Error('token_validation_error', $error_message);
+            return new \WP_Error('token_validation_error', $error_message);
         }
         
         $decoded_response = json_decode($response_body, true);
@@ -498,9 +502,11 @@ class B2E_API_Client {
                 'response_body' => $response_body,
                 'action' => 'Failed to decode token validation response'
             ));
-            return new WP_Error('json_decode_error', 'Failed to decode token validation response');
+            return new \WP_Error('json_decode_error', 'Failed to decode token validation response');
         }
         
         return $decoded_response;
     }
 }
+
+\class_alias(__NAMESPACE__ . '\\B2E_API_Client', 'B2E_API_Client');

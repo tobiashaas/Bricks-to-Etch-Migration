@@ -1,0 +1,12 @@
+name: "CodeQL Config"
+queries:
+  - uses: security-extended
+paths:
+  - bricks-etch-migration/includes
+  - bricks-etch-migration/bricks-etch-migration.php
+paths-ignore:
+  - vendor/**
+  - bricks-etch-migration/vendor/**
+  - tests/**
+  - node_modules/**
+  - bricks-etch-migration/node_modules/**

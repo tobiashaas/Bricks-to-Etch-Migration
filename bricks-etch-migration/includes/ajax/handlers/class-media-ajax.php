@@ -8,13 +8,37 @@
  * @since 0.5.1
  */
 
+namespace Bricks2Etch\Ajax\Handlers;
+
+use Bricks2Etch\Ajax\B2E_Base_Ajax_Handler;
+use Bricks2Etch\Migrators\B2E_Media_Migrator;
+
+// Prevent direct access
 if (!defined('ABSPATH')) {
     exit;
 }
 
-require_once dirname(dirname(__FILE__)) . '/class-base-ajax-handler.php';
-
 class B2E_Media_Ajax_Handler extends B2E_Base_Ajax_Handler {
+    
+    /**
+     * Media service instance
+     * 
+     * @var mixed
+     */
+    private $media_service;
+    
+    /**
+     * Constructor
+     * 
+     * @param mixed $media_service Media service instance.
+     * @param \Bricks2Etch\Security\B2E_Rate_Limiter|null $rate_limiter Rate limiter instance (optional).
+     * @param \Bricks2Etch\Security\B2E_Input_Validator|null $input_validator Input validator instance (optional).
+     * @param \Bricks2Etch\Security\B2E_Audit_Logger|null $audit_logger Audit logger instance (optional).
+     */
+    public function __construct( $media_service = null, $rate_limiter = null, $input_validator = null, $audit_logger = null ) {
+        $this->media_service = $media_service;
+        parent::__construct( $rate_limiter, $input_validator, $audit_logger );
+    }
     
     /**
      * Register WordPress hooks
@@ -29,6 +53,11 @@ class B2E_Media_Ajax_Handler extends B2E_Base_Ajax_Handler {
     public function migrate_media() {
         $this->log('🎬 Media Migration: AJAX handler called');
         
+        // Check rate limit (30 requests per minute)
+        if ( ! $this->check_rate_limit( 'migrate_media', 30, 60 ) ) {
+            return;
+        }
+        
         // Verify nonce
         if (!$this->verify_nonce()) {
             $this->log('❌ Media Migration: Invalid nonce');
@@ -36,17 +65,27 @@ class B2E_Media_Ajax_Handler extends B2E_Base_Ajax_Handler {
             return;
         }
         
-        // Get parameters
-        $target_url = $this->sanitize_url($this->get_post('target_url', ''));
-        $api_key = $this->sanitize_text($this->get_post('api_key', ''));
+        // Get and validate parameters
+        try {
+            $validated = $this->validate_input(
+                array(
+                    'target_url' => $this->get_post('target_url', ''),
+                    'api_key'    => $this->get_post('api_key', ''),
+                ),
+                array(
+                    'target_url' => array( 'type' => 'url', 'required' => true ),
+                    'api_key'    => array( 'type' => 'api_key', 'required' => true ),
+                )
+            );
+        } catch ( \Exception $e ) {
+            $this->log('❌ Media Migration: Validation failed: ' . $e->getMessage());
+            return; // Error already sent by validate_input
+        }
+        
+        $target_url = $validated['target_url'];
+        $api_key = $validated['api_key'];
         
         $this->log('🎬 Media Migration: target_url=' . $target_url . ', api_key=' . substr($api_key, 0, 20) . '...');
-        
-        if (empty($target_url) || empty($api_key)) {
-            $this->log('❌ Media Migration: Missing required parameters');
-            wp_send_json_error('Missing required parameters');
-            return;
-        }
         
         // Convert to internal URL
         $internal_url = $this->convert_to_internal_url($target_url);
@@ -69,9 +108,14 @@ class B2E_Media_Ajax_Handler extends B2E_Base_Ajax_Handler {
             
             if (is_wp_error($result)) {
                 $this->log('❌ Media Migration: Result is WP_Error');
+                $this->log_security_event( 'ajax_action', 'Media migration failed: ' . $result->get_error_message() );
                 wp_send_json_error($result->get_error_message());
             } else {
                 $this->log('✅ Media Migration: Success');
+                $this->log_security_event( 'ajax_action', 'Media migrated successfully', array(
+                    'migrated' => $result['migrated'] ?? 0,
+                    'failed' => $result['failed'] ?? 0,
+                ) );
                 wp_send_json_success(array(
                     'message' => 'Media migrated successfully',
                     'migrated' => $result['migrated'] ?? 0,
@@ -82,8 +126,9 @@ class B2E_Media_Ajax_Handler extends B2E_Base_Ajax_Handler {
                     'debug' => 'AJAX called at ' . current_time('mysql')
                 ));
             }
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             $this->log('❌ Media Migration: Exception: ' . $e->getMessage());
+            $this->log_security_event( 'ajax_action', 'Media migration exception: ' . $e->getMessage() );
             wp_send_json_error('Exception: ' . $e->getMessage());
         }
     }

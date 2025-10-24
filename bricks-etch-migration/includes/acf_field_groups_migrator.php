@@ -5,23 +5,74 @@
  * Handles migration of ACF field groups and configurations
  */
 
+namespace Bricks2Etch\Migrators;
+
+use Bricks2Etch\Api\B2E_API_Client;
+use Bricks2Etch\Core\B2E_Error_Handler;
+use Exception;
+
 // Prevent direct access
 if (!defined('ABSPATH')) {
     exit;
 }
 
-class B2E_ACF_Field_Groups_Migrator {
-    
-    /**
-     * Error handler instance
-     */
-    private $error_handler;
+class B2E_ACF_Field_Groups_Migrator extends Abstract_Migrator {
     
     /**
      * Constructor
      */
-    public function __construct() {
-        $this->error_handler = new B2E_Error_Handler();
+    public function __construct(B2E_Error_Handler $error_handler, B2E_API_Client $api_client = null) {
+        parent::__construct($error_handler, $api_client);
+
+        $this->name     = 'ACF Field Groups';
+        $this->type     = 'acf';
+        $this->priority = 20;
+    }
+
+    /** @inheritDoc */
+    public function supports() {
+        return $this->check_plugin_active('acf_get_field_groups');
+    }
+
+    /** @inheritDoc */
+    public function validate() {
+        $errors = array();
+
+        if (!$this->supports()) {
+            $errors[] = 'Advanced Custom Fields plugin is not active.';
+        }
+
+        if (function_exists('acf_get_setting')) {
+            $version = acf_get_setting('version');
+            if (!empty($version) && version_compare($version, '5.0', '<')) {
+                $errors[] = sprintf('ACF version %s is not supported. Please upgrade to 5.0 or higher.', $version);
+            }
+        }
+
+        return array(
+            'valid'  => empty($errors),
+            'errors' => $errors,
+        );
+    }
+
+    /** @inheritDoc */
+    public function export() {
+        return $this->export_field_groups();
+    }
+
+    /** @inheritDoc */
+    public function import($data) {
+        return $this->import_field_groups($data);
+    }
+
+    /** @inheritDoc */
+    public function migrate($target_url, $api_key) {
+        return $this->migrate_acf_field_groups($target_url, $api_key);
+    }
+
+    /** @inheritDoc */
+    public function get_stats() {
+        return $this->get_field_group_stats();
     }
     
     /**
@@ -286,11 +337,11 @@ class B2E_ACF_Field_Groups_Migrator {
                 'plugin' => 'ACF',
                 'action' => 'ACF plugin not active, skipping field groups import'
             ));
-            return new WP_Error('acf_not_active', 'ACF plugin is not active');
+            return new \WP_Error('acf_not_active', 'ACF plugin is not active');
         }
         
         if (empty($field_groups_data) || !is_array($field_groups_data)) {
-            return new WP_Error('invalid_data', 'Invalid field groups data');
+            return new \WP_Error('invalid_data', 'Invalid field groups data');
         }
         
         $imported_count = 0;
@@ -355,8 +406,8 @@ class B2E_ACF_Field_Groups_Migrator {
             return true; // No field groups to migrate
         }
         
-        $api_client = new B2E_API_Client();
-        $result = $api_client->send_acf_field_groups($target_url, $api_key, $field_groups);
+        $api_client = $this->api_client ?: new B2E_API_Client($this->error_handler);
+        $result     = $api_client->send_acf_field_groups($target_url, $api_key, $field_groups);
         
         if (is_wp_error($result)) {
             return $result;
@@ -401,3 +452,5 @@ class B2E_ACF_Field_Groups_Migrator {
         );
     }
 }
+
+\class_alias(__NAMESPACE__ . '\\B2E_ACF_Field_Groups_Migrator', 'B2E_ACF_Field_Groups_Migrator');

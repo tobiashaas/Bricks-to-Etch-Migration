@@ -1,0 +1,5 @@
+{
+    "require": {
+        "psr/container": "1.1"
+    }
+}

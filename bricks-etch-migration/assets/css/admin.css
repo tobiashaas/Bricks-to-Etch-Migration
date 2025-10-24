@@ -537,17 +537,6 @@ textarea {
     border-color: var(--e-border-color);
 }
 
-/* Progress Section */
-.b2e-progress {
-    margin-top: var(--e-space-l);
-    padding: var(--e-space-l);
-    background: var(--e-base-dark);
-    border-radius: var(--e-border-radius);
-    border: 1px solid var(--e-border-color);
-    display: none;
-    color: var(--e-light);
-}
-
 /* Steps */
 .b2e-steps {
     list-style: none;
@@ -726,7 +715,6 @@ textarea {
 .b2e-form-group textarea,
 .b2e-key-display,
 .b2e-log-entry,
-.b2e-progress,
 .b2e-migration-container,
 .b2e-migration-container * {
     background: transparent;
@@ -753,11 +741,6 @@ textarea {
     border: 1px solid var(--e-border-color-ultra-light);
 }
 
-/* Progress section should have subtle background */
-.b2e-progress {
-    background: var(--e-base-dark);
-    border: 1px solid var(--e-border-color);
-}
 
 /* Override WordPress default styles */
 .wrap,

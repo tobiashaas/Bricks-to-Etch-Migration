@@ -8,13 +8,37 @@
  * @since 0.5.1
  */
 
+namespace Bricks2Etch\Ajax\Handlers;
+
+use Bricks2Etch\Ajax\B2E_Base_Ajax_Handler;
+use Bricks2Etch\Core\B2E_Migration_Manager;
+use Bricks2Etch\Parsers\B2E_Content_Parser;
+
 if (!defined('ABSPATH')) {
     exit;
 }
 
-require_once dirname(dirname(__FILE__)) . '/class-base-ajax-handler.php';
-
 class B2E_Content_Ajax_Handler extends B2E_Base_Ajax_Handler {
+    
+    /**
+     * Migration service instance
+     * 
+     * @var mixed
+     */
+    private $migration_service;
+    
+    /**
+     * Constructor
+     * 
+     * @param mixed $migration_service Migration service instance.
+     * @param \Bricks2Etch\Security\B2E_Rate_Limiter|null $rate_limiter Rate limiter instance (optional).
+     * @param \Bricks2Etch\Security\B2E_Input_Validator|null $input_validator Input validator instance (optional).
+     * @param \Bricks2Etch\Security\B2E_Audit_Logger|null $audit_logger Audit logger instance (optional).
+     */
+    public function __construct( $migration_service = null, $rate_limiter = null, $input_validator = null, $audit_logger = null ) {
+        $this->migration_service = $migration_service;
+        parent::__construct( $rate_limiter, $input_validator, $audit_logger );
+    }
     
     /**
      * Register WordPress hooks
@@ -28,21 +52,38 @@ class B2E_Content_Ajax_Handler extends B2E_Base_Ajax_Handler {
      * AJAX handler for batch migration (one post at a time)
      */
     public function migrate_batch() {
+        // Check rate limit (30 requests per minute)
+        if ( ! $this->check_rate_limit( 'migrate_batch', 30, 60 ) ) {
+            return;
+        }
+        
         // Verify nonce
         if (!$this->verify_nonce()) {
             wp_send_json_error('Invalid nonce');
             return;
         }
         
-        // Get parameters
-        $post_id = intval($this->get_post('post_id', 0));
-        $target_url = $this->sanitize_url($this->get_post('target_url', ''));
-        $api_key = $this->sanitize_text($this->get_post('api_key', ''));
-        
-        if (empty($post_id) || empty($target_url) || empty($api_key)) {
-            wp_send_json_error('Missing required parameters');
-            return;
+        // Get and validate parameters
+        try {
+            $validated = $this->validate_input(
+                array(
+                    'post_id'    => $this->get_post('post_id', 0),
+                    'target_url' => $this->get_post('target_url', ''),
+                    'api_key'    => $this->get_post('api_key', ''),
+                ),
+                array(
+                    'post_id'    => array( 'type' => 'integer', 'required' => true, 'min' => 1 ),
+                    'target_url' => array( 'type' => 'url', 'required' => true ),
+                    'api_key'    => array( 'type' => 'api_key', 'required' => true ),
+                )
+            );
+        } catch ( \Exception $e ) {
+            return; // Error already sent by validate_input
         }
+        
+        $post_id = $validated['post_id'];
+        $target_url = $validated['target_url'];
+        $api_key = $validated['api_key'];
         
         // Get the post
         $post = get_post($post_id);
@@ -76,14 +117,26 @@ class B2E_Content_Ajax_Handler extends B2E_Base_Ajax_Handler {
             $result = $migration_manager->migrate_single_post($post);
             
             if (is_wp_error($result)) {
+                // Log migration failure
+                $this->log_security_event( 'ajax_action', 'Batch migration failed: ' . $result->get_error_message(), array(
+                    'post_id' => $post_id,
+                ) );
                 wp_send_json_error($result->get_error_message());
             } else {
+                // Log successful migration
+                $this->log_security_event( 'ajax_action', 'Post migrated successfully', array(
+                    'post_id' => $post_id,
+                    'post_title' => $post->post_title,
+                ) );
                 wp_send_json_success(array(
                     'message' => 'Post migrated successfully',
                     'post_title' => $post->post_title
                 ));
             }
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
+            $this->log_security_event( 'ajax_action', 'Batch migration exception: ' . $e->getMessage(), array(
+                'post_id' => $post_id,
+            ) );
             wp_send_json_error('Exception: ' . $e->getMessage());
         }
     }
@@ -92,6 +145,11 @@ class B2E_Content_Ajax_Handler extends B2E_Base_Ajax_Handler {
      * AJAX handler to get list of ALL content (Bricks, Gutenberg, Media)
      */
     public function get_bricks_posts() {
+        // Check rate limit (60 requests per minute)
+        if ( ! $this->check_rate_limit( 'get_bricks_posts', 60, 60 ) ) {
+            return;
+        }
+        
         // Verify nonce
         if (!$this->verify_nonce()) {
             wp_send_json_error('Invalid nonce');
@@ -159,3 +217,5 @@ class B2E_Content_Ajax_Handler extends B2E_Base_Ajax_Handler {
         return $url;
     }
 }
+
+\class_alias(__NAMESPACE__ . '\\B2E_Content_Ajax_Handler', 'B2E_Content_Ajax_Handler');

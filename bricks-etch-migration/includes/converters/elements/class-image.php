@@ -9,11 +9,13 @@
  * @since 0.5.0
  */
 
+namespace Bricks2Etch\Converters\Elements;
+
+use Bricks2Etch\Converters\B2E_Base_Element;
+
 if (!defined('ABSPATH')) {
     exit;
 }
-
-require_once dirname(dirname(__FILE__)) . '/class-base-element.php';
 
 class B2E_Element_Image extends B2E_Base_Element {
     
@@ -103,3 +105,5 @@ class B2E_Element_Image extends B2E_Base_Element {
         return $html;
     }
 }
+
+\class_alias(__NAMESPACE__ . '\\B2E_Element_Image', 'B2E_Element_Image');

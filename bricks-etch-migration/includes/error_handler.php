@@ -5,6 +5,8 @@
  * Handles all errors, warnings, and logging for the migration process
  */
 
+namespace Bricks2Etch\Core;
+
 // Prevent direct access
 if (!defined('ABSPATH')) {
     exit;
@@ -323,6 +325,26 @@ class B2E_Error_Handler {
     }
     
     /**
+     * Get recent log entries
+     *
+     * @param int $limit Number of entries to return
+     * @return array
+     */
+    public function get_recent_logs($limit = 50) {
+        $limit = absint($limit);
+        if ($limit <= 0) {
+            $limit = 50;
+        }
+
+        $log = $this->get_log('all');
+        if (empty($log)) {
+            return array();
+        }
+
+        return array_slice($log, -1 * $limit);
+    }
+    
+    /**
      * Clear migration log
      */
     public function clear_log() {
@@ -383,3 +405,5 @@ class B2E_Error_Handler {
         error_log($log_message);
     }
 }
+
+\class_alias(__NAMESPACE__ . '\\B2E_Error_Handler', 'B2E_Error_Handler');

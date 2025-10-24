@@ -1,98 +1,105 @@
+# ⚠️ DEPRECATED ⚠️
+# This Docker Compose setup is no longer actively maintained.
+# Please use the npm-based wp-env workflow instead.
+#
+# See ../bricks-etch-migration/README.md for setup instructions.
+#
+# This file is retained for reference only.
+#
+# For new development, use:
+#   cd ../bricks-etch-migration
+#   npm run dev
+#
 version: '3.8'
 
 services:
-  # WordPress mit Bricks (Source Site)
-  wordpress-bricks:
-    image: wordpress:6.4-apache
-    container_name: b2e-bricks
+  bricks-db:
+    image: mysql:8.0
+    container_name: b2e-bricks-db
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: bricks_wp
+      MYSQL_USER: bricks_user
+      MYSQL_PASSWORD: bricks_pass
+    volumes:
+      - bricks-db-data:/var/lib/mysql
+    networks:
+      - b2e-network
+
+  etch-db:
+    image: mysql:8.0
+    container_name: b2e-etch-db
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: etch_wp
+      MYSQL_USER: etch_user
+      MYSQL_PASSWORD: etch_pass
+    volumes:
+      - etch-db-data:/var/lib/mysql
+    networks:
+      - b2e-network
+
+  bricks-wp:
+    image: wordpress:latest
+    container_name: b2e-bricks-wp
     ports:
       - "8080:80"
     environment:
-      WORDPRESS_DB_HOST: mysql-bricks
-      WORDPRESS_DB_USER: wordpress
-      WORDPRESS_DB_PASSWORD: wordpress
-      WORDPRESS_DB_NAME: wordpress_bricks
+      WORDPRESS_DB_HOST: bricks-db
+      WORDPRESS_DB_NAME: bricks_wp
+      WORDPRESS_DB_USER: bricks_user
+      WORDPRESS_DB_PASSWORD: bricks_pass
       WORDPRESS_DEBUG: 1
       WORDPRESS_DEBUG_LOG: 1
     volumes:
-      - ./wordpress-bricks:/var/www/html
-      - ./php.ini:/usr/local/etc/php/conf.d/99-custom.ini
-      # Plugin-Verzeichnis direkt mounten für Live-Entwicklung
+      - bricks-wp-data:/var/www/html
       - ../bricks-etch-migration:/var/www/html/wp-content/plugins/bricks-etch-migration
     depends_on:
-      - mysql-bricks
+      - bricks-db
     networks:
       - b2e-network
 
-  # WordPress mit Etch (Target Site)
-  wordpress-etch:
-    image: wordpress:6.4-apache
-    container_name: b2e-etch
+  etch-wp:
+    image: wordpress:latest
+    container_name: b2e-etch-wp
     ports:
       - "8081:80"
     environment:
-      WORDPRESS_DB_HOST: mysql-etch
-      WORDPRESS_DB_USER: wordpress
-      WORDPRESS_DB_PASSWORD: wordpress
-      WORDPRESS_DB_NAME: wordpress_etch
+      WORDPRESS_DB_HOST: etch-db
+      WORDPRESS_DB_NAME: etch_wp
+      WORDPRESS_DB_USER: etch_user
+      WORDPRESS_DB_PASSWORD: etch_pass
       WORDPRESS_DEBUG: 1
       WORDPRESS_DEBUG_LOG: 1
     volumes:
-      - ./wordpress-etch:/var/www/html
-      - ./php.ini:/usr/local/etc/php/conf.d/99-custom.ini
-      # Plugin-Verzeichnis direkt mounten für Live-Entwicklung
+      - etch-wp-data:/var/www/html
       - ../bricks-etch-migration:/var/www/html/wp-content/plugins/bricks-etch-migration
     depends_on:
-      - mysql-etch
+      - etch-db
     networks:
       - b2e-network
 
-  # MySQL für Bricks Site
-  mysql-bricks:
-    image: mysql:8.0
-    container_name: b2e-mysql-bricks
-    environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: wordpress_bricks
-      MYSQL_USER: wordpress
-      MYSQL_PASSWORD: wordpress
+  wpcli:
+    image: wordpress:cli
+    container_name: b2e-wpcli
+    command: tail -f /dev/null
     volumes:
-      - mysql-bricks-data:/var/lib/mysql
-    networks:
-      - b2e-network
-
-  # MySQL für Etch Site
-  mysql-etch:
-    image: mysql:8.0
-    container_name: b2e-mysql-etch
-    environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: wordpress_etch
-      MYSQL_USER: wordpress
-      MYSQL_PASSWORD: wordpress
-    volumes:
-      - mysql-etch-data:/var/lib/mysql
-    networks:
-      - b2e-network
-
-  # phpMyAdmin für Datenbank-Management
-  phpmyadmin:
-    image: phpmyadmin/phpmyadmin
-    container_name: b2e-phpmyadmin
-    ports:
-      - "8082:80"
-    environment:
-      PMA_ARBITRARY: 1
-      PMA_HOSTS: mysql-bricks,mysql-etch
+      - bricks-wp-data:/var/www/html/bricks
+      - etch-wp-data:/var/www/html/etch
+      - ../bricks-etch-migration:/var/www/html/bricks/wp-content/plugins/bricks-etch-migration
+      - ../bricks-etch-migration:/var/www/html/etch/wp-content/plugins/bricks-etch-migration
+      - ./scripts:/scripts:ro
     depends_on:
-      - mysql-bricks
-      - mysql-etch
+      - bricks-wp
+      - etch-wp
     networks:
       - b2e-network
 
 volumes:
-  mysql-bricks-data:
-  mysql-etch-data:
+  bricks-db-data:
+  etch-db-data:
+  bricks-wp-data:
+  etch-wp-data:
 
 networks:
   b2e-network:

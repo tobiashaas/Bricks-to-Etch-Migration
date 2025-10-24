@@ -1,0 +1,7 @@
+/vendor/
+composer.lock
+node_modules/
+.wp-env/
+.wp-env.override.json
+package-lock.json
+npm-debug.log
