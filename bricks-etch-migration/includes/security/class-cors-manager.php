@@ -46,12 +46,12 @@ class B2E_CORS_Manager {
 	 */
 	public function get_allowed_origins() {
 		$origins = $this->settings_repository->get_cors_allowed_origins();
-		
+
 		// Fallback to development defaults if no origins configured
 		if ( empty( $origins ) ) {
 			$origins = $this->get_default_origins();
 		}
-		
+
 		return $origins;
 	}
 
@@ -81,10 +81,10 @@ class B2E_CORS_Manager {
 		}
 
 		$allowed_origins = $this->get_allowed_origins();
-		
+
 		// Normalize origin (remove trailing slash)
 		$origin = rtrim( $origin, '/' );
-		
+
 		// Check if origin is in whitelist
 		foreach ( $allowed_origins as $allowed ) {
 			$allowed = rtrim( $allowed, '/' );
@@ -92,7 +92,7 @@ class B2E_CORS_Manager {
 				return true;
 			}
 		}
-		
+
 		return false;
 	}
 
@@ -106,7 +106,7 @@ class B2E_CORS_Manager {
 	 */
 	public function add_cors_headers() {
 		$origin = isset( $_SERVER['HTTP_ORIGIN'] ) ? $_SERVER['HTTP_ORIGIN'] : '';
-		
+
 		// Check if origin is allowed
 		if ( ! $this->is_origin_allowed( $origin ) ) {
 			// Log CORS violation if audit logger is available
@@ -126,11 +126,11 @@ class B2E_CORS_Manager {
 					// Silently fail if container not available
 				}
 			}
-			
+
 			// Don't set CORS headers for unauthorized origins
 			return;
 		}
-		
+
 		// Set CORS headers for allowed origin
 		header( 'Access-Control-Allow-Origin: ' . $origin );
 		header( 'Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS' );

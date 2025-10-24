@@ -9,212 +9,204 @@ use Psr\Container\NotFoundExceptionInterface;
 use ReflectionClass;
 use ReflectionException;
 
-class B2E_Service_Container implements ContainerInterface
-{
-    /** @var array<string, mixed> */
-    private $services = [];
+class B2E_Service_Container implements ContainerInterface {
 
-    /** @var array<string, object> */
-    private $resolved = [];
+	/** @var array<string, mixed> */
+	private $services = array();
 
-    /** @var array<string, bool> */
-    private $factories = [];
+	/** @var array<string, object> */
+	private $resolved = array();
 
-    /** @var array<string, string|Closure> */
-    private $bindings = [];
+	/** @var array<string, bool> */
+	private $factories = array();
 
-    /**
-     * Register a service definition.
-     *
-     * @param string $id
-     * @param mixed  $concrete
-     *
-     * @return $this
-     */
-    public function set($id, $concrete)
-    {
-        return $this->singleton($id, $concrete);
-    }
+	/** @var array<string, string|Closure> */
+	private $bindings = array();
 
-    /**
-     * Register a singleton service.
-     *
-     * @param string $id
-     * @param mixed  $concrete
-     *
-     * @return $this
-     */
-    public function singleton($id, $concrete)
-    {
-        $this->services[$id] = $concrete;
-        unset($this->factories[$id], $this->resolved[$id]);
+	/**
+	 * Register a service definition.
+	 *
+	 * @param string $id
+	 * @param mixed  $concrete
+	 *
+	 * @return $this
+	 */
+	public function set( $id, $concrete ) {
+		return $this->singleton( $id, $concrete );
+	}
 
-        return $this;
-    }
+	/**
+	 * Register a singleton service.
+	 *
+	 * @param string $id
+	 * @param mixed  $concrete
+	 *
+	 * @return $this
+	 */
+	public function singleton( $id, $concrete ) {
+		$this->services[ $id ] = $concrete;
+		unset( $this->factories[ $id ], $this->resolved[ $id ] );
 
-    /**
-     * Register a factory service.
-     *
-     * @param string $id
-     * @param mixed  $concrete
-     *
-     * @return $this
-     */
-    public function factory($id, $concrete)
-    {
-        $this->services[$id] = $concrete;
-        $this->factories[$id] = true;
-        unset($this->resolved[$id]);
+		return $this;
+	}
 
-        return $this;
-    }
+	/**
+	 * Register a factory service.
+	 *
+	 * @param string $id
+	 * @param mixed  $concrete
+	 *
+	 * @return $this
+	 */
+	public function factory( $id, $concrete ) {
+		$this->services[ $id ]  = $concrete;
+		$this->factories[ $id ] = true;
+		unset( $this->resolved[ $id ] );
 
-    /**
-     * Bind an abstract service to a concrete implementation.
-     *
-     * @param string          $abstract
-     * @param string|Closure  $concrete
-     *
-     * @return $this
-     */
-    public function bind($abstract, $concrete)
-    {
-        $this->bindings[$abstract] = $concrete;
+		return $this;
+	}
 
-        return $this;
-    }
+	/**
+	 * Bind an abstract service to a concrete implementation.
+	 *
+	 * @param string          $abstract
+	 * @param string|Closure  $concrete
+	 *
+	 * @return $this
+	 */
+	public function bind( $abstract, $concrete ) {
+		$this->bindings[ $abstract ] = $concrete;
 
-    /**
-     * {@inheritdoc}
-     */
-    public function get($id)
-    {
-        if (isset($this->resolved[$id])) {
-            return $this->resolved[$id];
-        }
+		return $this;
+	}
 
-        if (isset($this->bindings[$id])) {
-            $this->services[$id] = $this->bindings[$id];
-        }
+	/**
+	 * {@inheritdoc}
+	 */
+	public function get( $id ) {
+		if ( isset( $this->resolved[ $id ] ) ) {
+			return $this->resolved[ $id ];
+		}
 
-        if (!isset($this->services[$id])) {
-            if (class_exists($id)) {
-                $this->services[$id] = $id;
-            } else {
-                throw new B2E_Service_Not_Found_Exception(sprintf('Service "%s" is not registered in the container.', $id));
-            }
-        }
+		if ( isset( $this->bindings[ $id ] ) ) {
+			$this->services[ $id ] = $this->bindings[ $id ];
+		}
 
-        $concrete = $this->services[$id];
-        $object = $this->resolve($concrete);
+		if ( ! isset( $this->services[ $id ] ) ) {
+			if ( class_exists( $id ) ) {
+				$this->services[ $id ] = $id;
+			} else {
+				throw new B2E_Service_Not_Found_Exception( sprintf( 'Service "%s" is not registered in the container.', $id ) );
+			}
+		}
 
-        if (!isset($this->factories[$id])) {
-            $this->resolved[$id] = $object;
-        }
+		$concrete = $this->services[ $id ];
+		$object   = $this->resolve( $concrete );
 
-        return $object;
-    }
+		if ( ! isset( $this->factories[ $id ] ) ) {
+			$this->resolved[ $id ] = $object;
+		}
 
-    /**
-     * {@inheritdoc}
-     */
-    public function has($id)
-    {
-        return isset($this->resolved[$id]) || isset($this->services[$id]) || isset($this->bindings[$id]);
-    }
+		return $object;
+	}
 
-    /**
-     * Clear resolved instances.
-     *
-     * @return $this
-     */
-    public function flush()
-    {
-        $this->resolved = [];
+	/**
+	 * {@inheritdoc}
+	 */
+	public function has( $id ) {
+		return isset( $this->resolved[ $id ] ) || isset( $this->services[ $id ] ) || isset( $this->bindings[ $id ] );
+	}
 
-        return $this;
-    }
+	/**
+	 * Clear resolved instances.
+	 *
+	 * @return $this
+	 */
+	public function flush() {
+		$this->resolved = array();
 
-    /**
-     * Resolve a service definition.
-     *
-     * @param mixed $concrete
-     *
-     * @return mixed
-     */
-    private function resolve($concrete)
-    {
-        if ($concrete instanceof Closure) {
-            return $concrete($this);
-        }
+		return $this;
+	}
 
-        if (is_object($concrete) && !$concrete instanceof Closure) {
-            return $concrete;
-        }
+	/**
+	 * Resolve a service definition.
+	 *
+	 * @param mixed $concrete
+	 *
+	 * @return mixed
+	 */
+	private function resolve( $concrete ) {
+		if ( $concrete instanceof Closure ) {
+			return $concrete( $this );
+		}
 
-        if (!is_string($concrete)) {
-            throw new B2E_Service_Container_Exception('Container cannot resolve the given service definition.');
-        }
+		if ( is_object( $concrete ) && ! $concrete instanceof Closure ) {
+			return $concrete;
+		}
 
-        if (isset($this->bindings[$concrete])) {
-            return $this->resolve($this->bindings[$concrete]);
-        }
+		if ( ! is_string( $concrete ) ) {
+			throw new B2E_Service_Container_Exception( 'Container cannot resolve the given service definition.' );
+		}
 
-        if (!class_exists($concrete)) {
-            throw new B2E_Service_Container_Exception(sprintf('Class "%s" does not exist.', $concrete));
-        }
+		if ( isset( $this->bindings[ $concrete ] ) ) {
+			return $this->resolve( $this->bindings[ $concrete ] );
+		}
 
-        try {
-            $reflection = new ReflectionClass($concrete);
-        } catch (ReflectionException $exception) {
-            throw new B2E_Service_Container_Exception($exception->getMessage(), 0, $exception);
-        }
+		if ( ! class_exists( $concrete ) ) {
+			throw new B2E_Service_Container_Exception( sprintf( 'Class "%s" does not exist.', $concrete ) );
+		}
 
-        if (!$reflection->isInstantiable()) {
-            throw new B2E_Service_Container_Exception(sprintf('Class "%s" is not instantiable.', $concrete));
-        }
+		try {
+			$reflection = new ReflectionClass( $concrete );
+		} catch ( ReflectionException $exception ) {
+			throw new B2E_Service_Container_Exception( $exception->getMessage(), 0, $exception );
+		}
 
-        $constructor = $reflection->getConstructor();
+		if ( ! $reflection->isInstantiable() ) {
+			throw new B2E_Service_Container_Exception( sprintf( 'Class "%s" is not instantiable.', $concrete ) );
+		}
 
-        if (null === $constructor) {
-            return new $concrete();
-        }
+		$constructor = $reflection->getConstructor();
 
-        $dependencies = [];
+		if ( null === $constructor ) {
+			return new $concrete();
+		}
 
-        foreach ($constructor->getParameters() as $parameter) {
-            $type = $parameter->getType();
+		$dependencies = array();
 
-            if (null === $type) {
-                if ($parameter->isOptional()) {
-                    $dependencies[] = $parameter->getDefaultValue();
-                    continue;
-                }
+		foreach ( $constructor->getParameters() as $parameter ) {
+			$type = $parameter->getType();
 
-                throw new B2E_Service_Container_Exception(sprintf('Unable to resolve dependency "%s" in class "%s".', $parameter->getName(), $concrete));
-            }
+			if ( null === $type ) {
+				if ( $parameter->isOptional() ) {
+					$dependencies[] = $parameter->getDefaultValue();
+					continue;
+				}
 
-            if ($type->isBuiltin()) {
-                if ($parameter->isOptional()) {
-                    $dependencies[] = $parameter->getDefaultValue();
-                    continue;
-                }
+				throw new B2E_Service_Container_Exception( sprintf( 'Unable to resolve dependency "%s" in class "%s".', $parameter->getName(), $concrete ) );
+			}
 
-                throw new B2E_Service_Container_Exception(sprintf('Cannot resolve built-in dependency "%s" for class "%s".', $parameter->getName(), $concrete));
-            }
+			if ( $type->isBuiltin() ) {
+				if ( $parameter->isOptional() ) {
+					$dependencies[] = $parameter->getDefaultValue();
+					continue;
+				}
 
-            $dependencyClass = $type->getName();
-            $dependencies[] = $this->get($dependencyClass);
-        }
+				throw new B2E_Service_Container_Exception( sprintf( 'Cannot resolve built-in dependency "%s" for class "%s".', $parameter->getName(), $concrete ) );
+			}
 
-        return $reflection->newInstanceArgs($dependencies);
-    }
+			$dependencyClass = $type->getName();
+			$dependencies[]  = $this->get( $dependencyClass );
+		}
+
+		return $reflection->newInstanceArgs( $dependencies );
+	}
 }
 
-class B2E_Service_Not_Found_Exception extends Exception implements NotFoundExceptionInterface
-{
+class B2E_Service_Not_Found_Exception extends Exception implements NotFoundExceptionInterface {
+
 }
 
-class B2E_Service_Container_Exception extends Exception implements ContainerExceptionInterface
-{
+class B2E_Service_Container_Exception extends Exception implements ContainerExceptionInterface {
+
 }

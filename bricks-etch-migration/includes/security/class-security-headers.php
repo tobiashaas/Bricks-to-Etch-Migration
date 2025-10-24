@@ -67,20 +67,20 @@ class B2E_Security_Headers {
 		// Use relaxed policy for admin pages (WordPress admin requires inline scripts)
 		if ( $this->is_admin_page() ) {
 			return "default-src 'self'; " .
-				   "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " .
-				   "style-src 'self' 'unsafe-inline'; " .
-				   "img-src 'self' data: https:; " .
-				   "font-src 'self' data:; " .
-				   "connect-src 'self'";
+					"script-src 'self' 'unsafe-inline' 'unsafe-eval'; " .
+					"style-src 'self' 'unsafe-inline'; " .
+					"img-src 'self' data: https:; " .
+					"font-src 'self' data:; " .
+					"connect-src 'self'";
 		}
 
 		// Relaxed policy for frontend (WordPress themes often use inline scripts/styles)
 		return "default-src 'self'; " .
-			   "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " .
-			   "style-src 'self' 'unsafe-inline'; " .
-			   "img-src 'self' data: https:; " .
-			   "font-src 'self' data:; " .
-			   "connect-src 'self'";
+				"script-src 'self' 'unsafe-inline' 'unsafe-eval'; " .
+				"style-src 'self' 'unsafe-inline'; " .
+				"img-src 'self' data: https:; " .
+				"font-src 'self' data:; " .
+				"connect-src 'self'";
 	}
 
 	/**

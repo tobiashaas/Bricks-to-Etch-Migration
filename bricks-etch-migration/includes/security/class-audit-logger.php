@@ -82,12 +82,14 @@ class B2E_Audit_Logger {
 
 		// Also log to error_log for critical events
 		if ( in_array( $severity, array( 'high', 'critical' ), true ) ) {
-			error_log( sprintf(
-				'[B2E Security] %s - %s: %s',
-				strtoupper( $severity ),
-				$event_type,
-				$message
-			) );
+			error_log(
+				sprintf(
+					'[B2E Security] %s - %s: %s',
+					strtoupper( $severity ),
+					$event_type,
+					$message
+				)
+			);
 
 			// Use error handler if available
 			if ( $this->error_handler ) {
@@ -123,10 +125,15 @@ class B2E_Audit_Logger {
 			$method
 		);
 
-		return $this->log_security_event( $event_type, $severity, $message, array(
-			'username' => $username,
-			'method'   => $method,
-		) );
+		return $this->log_security_event(
+			$event_type,
+			$severity,
+			$message,
+			array(
+				'username' => $username,
+				'method'   => $method,
+			)
+		);
 	}
 
 	/**
@@ -145,11 +152,16 @@ class B2E_Audit_Logger {
 			$resource
 		);
 
-		return $this->log_security_event( 'authorization_failure', 'medium', $message, array(
-			'user_id'  => $user_id,
-			'action'   => $action,
-			'resource' => $resource,
-		) );
+		return $this->log_security_event(
+			'authorization_failure',
+			'medium',
+			$message,
+			array(
+				'user_id'  => $user_id,
+				'action'   => $action,
+				'resource' => $resource,
+			)
+		);
 	}
 
 	/**
@@ -166,10 +178,15 @@ class B2E_Audit_Logger {
 			$action
 		);
 
-		return $this->log_security_event( 'rate_limit_exceeded', 'medium', $message, array(
-			'identifier' => $identifier,
-			'action'     => $action,
-		) );
+		return $this->log_security_event(
+			'rate_limit_exceeded',
+			'medium',
+			$message,
+			array(
+				'identifier' => $identifier,
+				'action'     => $action,
+			)
+		);
 	}
 
 	/**
@@ -197,9 +214,12 @@ class B2E_Audit_Logger {
 
 		// Filter by severity if specified
 		if ( $severity !== null ) {
-			$logs = array_filter( $logs, function( $log ) use ( $severity ) {
-				return isset( $log['severity'] ) && $log['severity'] === $severity;
-			});
+			$logs = array_filter(
+				$logs,
+				function ( $log ) use ( $severity ) {
+					return isset( $log['severity'] ) && $log['severity'] === $severity;
+				}
+			);
 		}
 
 		// Limit results
@@ -239,9 +259,9 @@ class B2E_Audit_Logger {
 	 */
 	private function build_context( $custom_context = array() ) {
 		$context = array(
-			'user_id'    => get_current_user_id(),
-			'ip'         => $this->get_client_ip(),
-			'user_agent' => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( $_SERVER['HTTP_USER_AGENT'] ) : '',
+			'user_id'     => get_current_user_id(),
+			'ip'          => $this->get_client_ip(),
+			'user_agent'  => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( $_SERVER['HTTP_USER_AGENT'] ) : '',
 			'request_uri' => isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( $_SERVER['REQUEST_URI'] ) : '',
 		);
 

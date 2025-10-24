@@ -25,10 +25,10 @@ class B2E_Rate_Limiter {
 	 * @var array
 	 */
 	private $default_limits = array(
-		'ajax'           => 60,  // 60 requests per minute
-		'rest'           => 30,  // 30 requests per minute
-		'auth'           => 10,  // 10 requests per minute for authentication
-		'sensitive'      => 5,   // 5 requests per minute for sensitive operations
+		'ajax'      => 60,  // 60 requests per minute
+		'rest'      => 30,  // 30 requests per minute
+		'auth'      => 10,  // 10 requests per minute for authentication
+		'sensitive' => 5,   // 5 requests per minute for sensitive operations
 	);
 
 	/**
@@ -50,23 +50,26 @@ class B2E_Rate_Limiter {
 	public function check_rate_limit( $identifier, $action, $limit = 60, $window = 60 ) {
 		$transient_key = $this->get_transient_key( $identifier, $action );
 		$timestamps    = get_transient( $transient_key );
-		
+
 		// Initialize if not exists
 		if ( false === $timestamps || ! is_array( $timestamps ) ) {
 			$timestamps = array();
 		}
-		
+
 		// Filter timestamps to only include those within the window
 		$current_time = time();
-		$timestamps   = array_filter( $timestamps, function( $timestamp ) use ( $current_time, $window ) {
-			return ( $current_time - $timestamp ) < $window;
-		});
-		
+		$timestamps   = array_filter(
+			$timestamps,
+			function ( $timestamp ) use ( $current_time, $window ) {
+				return ( $current_time - $timestamp ) < $window;
+			}
+		);
+
 		// Check if limit exceeded
 		if ( count( $timestamps ) >= $limit ) {
 			return true;
 		}
-		
+
 		return false;
 	}
 
@@ -83,15 +86,15 @@ class B2E_Rate_Limiter {
 	public function record_request( $identifier, $action, $window = 60 ) {
 		$transient_key = $this->get_transient_key( $identifier, $action );
 		$timestamps    = get_transient( $transient_key );
-		
+
 		// Initialize if not exists
 		if ( false === $timestamps || ! is_array( $timestamps ) ) {
 			$timestamps = array();
 		}
-		
+
 		// Add current timestamp
 		$timestamps[] = time();
-		
+
 		// Save transient with window expiration
 		set_transient( $transient_key, $timestamps, $window );
 	}
@@ -110,17 +113,20 @@ class B2E_Rate_Limiter {
 	public function get_remaining_attempts( $identifier, $action, $limit = 60, $window = 60 ) {
 		$transient_key = $this->get_transient_key( $identifier, $action );
 		$timestamps    = get_transient( $transient_key );
-		
+
 		if ( false === $timestamps || ! is_array( $timestamps ) ) {
 			return $limit;
 		}
-		
+
 		// Filter timestamps to only include those within the window
 		$current_time = time();
-		$timestamps   = array_filter( $timestamps, function( $timestamp ) use ( $current_time, $window ) {
-			return ( $current_time - $timestamp ) < $window;
-		});
-		
+		$timestamps   = array_filter(
+			$timestamps,
+			function ( $timestamp ) use ( $current_time, $window ) {
+				return ( $current_time - $timestamp ) < $window;
+			}
+		);
+
 		$remaining = $limit - count( $timestamps );
 		return max( 0, $remaining );
 	}
@@ -152,7 +158,7 @@ class B2E_Rate_Limiter {
 		if ( $user_id > 0 ) {
 			return 'user_' . $user_id;
 		}
-		
+
 		// Otherwise use IP address
 		return $this->get_client_ip();
 	}
@@ -166,7 +172,7 @@ class B2E_Rate_Limiter {
 	 */
 	private function get_client_ip() {
 		$ip = '';
-		
+
 		// Check for proxy headers (in order of preference)
 		$headers = array(
 			'HTTP_CF_CONNECTING_IP', // Cloudflare
@@ -174,24 +180,24 @@ class B2E_Rate_Limiter {
 			'HTTP_X_FORWARDED_FOR',  // Standard proxy header
 			'REMOTE_ADDR',           // Direct connection
 		);
-		
+
 		foreach ( $headers as $header ) {
 			if ( ! empty( $_SERVER[ $header ] ) ) {
 				$ip = $_SERVER[ $header ];
-				
+
 				// X-Forwarded-For can contain multiple IPs, take the first one
 				if ( strpos( $ip, ',' ) !== false ) {
 					$ips = explode( ',', $ip );
 					$ip  = trim( $ips[0] );
 				}
-				
+
 				// Validate IP
 				if ( filter_var( $ip, FILTER_VALIDATE_IP ) ) {
 					break;
 				}
 			}
 		}
-		
+
 		// Fallback to unknown if no valid IP found
 		return ! empty( $ip ) ? $ip : 'unknown';
 	}

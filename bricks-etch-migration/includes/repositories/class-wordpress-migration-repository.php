@@ -281,9 +281,9 @@ class B2E_WordPress_Migration_Repository implements Migration_Repository_Interfa
 	 */
 	private function get_imported_data_option_key( string $type ): string {
 		$key_map = array(
-			'cpts'              => 'b2e_imported_cpts',
-			'acf_field_groups'  => 'b2e_imported_acf_field_groups',
-			'metabox_configs'   => 'b2e_imported_metabox_configs',
+			'cpts'             => 'b2e_imported_cpts',
+			'acf_field_groups' => 'b2e_imported_acf_field_groups',
+			'metabox_configs'  => 'b2e_imported_metabox_configs',
 		);
 
 		return $key_map[ $type ] ?? 'b2e_imported_' . $type;

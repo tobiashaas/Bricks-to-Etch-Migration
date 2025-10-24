@@ -6,249 +6,246 @@ use Bricks2Etch\Core\B2E_Error_Handler;
 use Bricks2Etch\Parsers\B2E_Content_Parser;
 use Bricks2Etch\Parsers\B2E_Gutenberg_Generator;
 
-class B2E_Content_Service
-{
-    /** @var B2E_Content_Parser */
-    private $content_parser;
+class B2E_Content_Service {
 
-    /** @var B2E_Gutenberg_Generator */
-    private $gutenberg_generator;
+	/** @var B2E_Content_Parser */
+	private $content_parser;
 
-    /** @var B2E_Error_Handler */
-    private $error_handler;
+	/** @var B2E_Gutenberg_Generator */
+	private $gutenberg_generator;
 
-    public function __construct(
-        B2E_Content_Parser $content_parser,
-        B2E_Gutenberg_Generator $gutenberg_generator,
-        B2E_Error_Handler $error_handler
-    ) {
-        $this->content_parser = $content_parser;
-        $this->gutenberg_generator = $gutenberg_generator;
-        $this->error_handler = $error_handler;
-    }
+	/** @var B2E_Error_Handler */
+	private $error_handler;
 
-    /**
-     * Analyze content statistics.
-     *
-     * @return array
-     */
-    public function analyze_content()
-    {
-        $bricks_posts = $this->content_parser->get_bricks_posts();
-        $gutenberg_posts = $this->content_parser->get_gutenberg_posts();
-        $media = $this->content_parser->get_media();
+	public function __construct(
+		B2E_Content_Parser $content_parser,
+		B2E_Gutenberg_Generator $gutenberg_generator,
+		B2E_Error_Handler $error_handler
+	) {
+		$this->content_parser      = $content_parser;
+		$this->gutenberg_generator = $gutenberg_generator;
+		$this->error_handler       = $error_handler;
+	}
 
-        return [
-            'bricks_posts' => is_array($bricks_posts) ? count($bricks_posts) : 0,
-            'gutenberg_posts' => is_array($gutenberg_posts) ? count($gutenberg_posts) : 0,
-            'media' => is_array($media) ? count($media) : 0,
-            'total' => ((is_array($bricks_posts) ? count($bricks_posts) : 0)
-                + (is_array($gutenberg_posts) ? count($gutenberg_posts) : 0)
-                + (is_array($media) ? count($media) : 0)),
-        ];
-    }
+	/**
+	 * Analyze content statistics.
+	 *
+	 * @return array
+	 */
+	public function analyze_content() {
+		$bricks_posts    = $this->content_parser->get_bricks_posts();
+		$gutenberg_posts = $this->content_parser->get_gutenberg_posts();
+		$media           = $this->content_parser->get_media();
 
-    /**
-     * @param string          $target_url
-     * @param string          $api_key
-     * @param B2E_API_Client  $api_client
-     *
-     * @return array|\WP_Error
-     */
-    public function migrate_posts($target_url, $api_key, B2E_API_Client $api_client)
-    {
-        $bricks_posts = $this->content_parser->get_bricks_posts();
-        $gutenberg_posts = $this->content_parser->get_gutenberg_posts();
-        $media = $this->content_parser->get_media();
+		return array(
+			'bricks_posts'    => is_array( $bricks_posts ) ? count( $bricks_posts ) : 0,
+			'gutenberg_posts' => is_array( $gutenberg_posts ) ? count( $gutenberg_posts ) : 0,
+			'media'           => is_array( $media ) ? count( $media ) : 0,
+			'total'           => ( ( is_array( $bricks_posts ) ? count( $bricks_posts ) : 0 )
+				+ ( is_array( $gutenberg_posts ) ? count( $gutenberg_posts ) : 0 )
+				+ ( is_array( $media ) ? count( $media ) : 0 ) ),
+		);
+	}
 
-        $all_posts = array_merge(
-            is_array($bricks_posts) ? $bricks_posts : [],
-            is_array($gutenberg_posts) ? $gutenberg_posts : [],
-            is_array($media) ? $media : []
-        );
+	/**
+	 * @param string          $target_url
+	 * @param string          $api_key
+	 * @param B2E_API_Client  $api_client
+	 *
+	 * @return array|\WP_Error
+	 */
+	public function migrate_posts( $target_url, $api_key, B2E_API_Client $api_client ) {
+		$bricks_posts    = $this->content_parser->get_bricks_posts();
+		$gutenberg_posts = $this->content_parser->get_gutenberg_posts();
+		$media           = $this->content_parser->get_media();
 
-        if (empty($all_posts)) {
-            return [
-                'migrated_posts' => 0,
-                'message' => __('No posts found for migration.', 'bricks-etch-migration'),
-            ];
-        }
+		$all_posts = array_merge(
+			is_array( $bricks_posts ) ? $bricks_posts : array(),
+			is_array( $gutenberg_posts ) ? $gutenberg_posts : array(),
+			is_array( $media ) ? $media : array()
+		);
 
-        $batch_size = 10;
-        $batches = array_chunk($all_posts, $batch_size);
-        $summary = [
-            'total' => count($all_posts),
-            'migrated' => 0,
-            'failed' => 0,
-            'skipped' => 0,
-        ];
+		if ( empty( $all_posts ) ) {
+			return array(
+				'migrated_posts' => 0,
+				'message'        => __( 'No posts found for migration.', 'bricks-etch-migration' ),
+			);
+		}
 
-        foreach ($batches as $batch_index => $batch) {
-            foreach ($batch as $post) {
-                $result = $this->convert_bricks_to_gutenberg($post->ID, $api_client, $target_url, $api_key);
+		$batch_size = 10;
+		$batches    = array_chunk( $all_posts, $batch_size );
+		$summary    = array(
+			'total'    => count( $all_posts ),
+			'migrated' => 0,
+			'failed'   => 0,
+			'skipped'  => 0,
+		);
 
-                if (is_wp_error($result)) {
-                    $summary['failed']++;
-                    continue;
-                }
+		foreach ( $batches as $batch_index => $batch ) {
+			foreach ( $batch as $post ) {
+				$result = $this->convert_bricks_to_gutenberg( $post->ID, $api_client, $target_url, $api_key );
 
-                $summary['migrated']++;
-            }
-        }
+				if ( is_wp_error( $result ) ) {
+					++$summary['failed'];
+					continue;
+				}
 
-        $summary['message'] = __('Posts migrated successfully.', 'bricks-etch-migration');
+				++$summary['migrated'];
+			}
+		}
 
-        return $summary;
-    }
+		$summary['message'] = __( 'Posts migrated successfully.', 'bricks-etch-migration' );
 
-    /**
-     * @param int             $post_id
-     * @param B2E_API_Client  $api_client
-     * @param string|null     $target_url
-     * @param string|null     $api_key
-     *
-     * @return array|\WP_Error
-     */
-    public function convert_bricks_to_gutenberg($post_id, B2E_API_Client $api_client, $target_url = null, $api_key = null)
-    {
-        $bricks_content = $this->content_parser->parse_bricks_content($post_id);
+		return $summary;
+	}
 
-        if (!$bricks_content || !isset($bricks_content['elements'])) {
-            $post = get_post($post_id);
-            $content = !empty($post->post_content)
-                ? $post->post_content
-                : '<!-- wp:paragraph --><p>Empty content</p><!-- /wp:paragraph -->';
+	/**
+	 * @param int             $post_id
+	 * @param B2E_API_Client  $api_client
+	 * @param string|null     $target_url
+	 * @param string|null     $api_key
+	 *
+	 * @return array|\WP_Error
+	 */
+	public function convert_bricks_to_gutenberg( $post_id, B2E_API_Client $api_client, $target_url = null, $api_key = null ) {
+		$bricks_content = $this->content_parser->parse_bricks_content( $post_id );
 
-            return $this->send_post_to_target($post, $content, $api_client, $target_url, $api_key);
-        }
+		if ( ! $bricks_content || ! isset( $bricks_content['elements'] ) ) {
+			$post    = get_post( $post_id );
+			$content = ! empty( $post->post_content )
+				? $post->post_content
+				: '<!-- wp:paragraph --><p>Empty content</p><!-- /wp:paragraph -->';
 
-        $etch_content = $this->gutenberg_generator->generate_gutenberg_blocks($bricks_content['elements']);
+			return $this->send_post_to_target( $post, $content, $api_client, $target_url, $api_key );
+		}
 
-        if (empty($etch_content)) {
-            $etch_content = '<!-- wp:paragraph --><p>Content migrated from Bricks (conversion pending)</p><!-- /wp:paragraph -->';
-            $this->error_handler->log_error('W002', [
-                'post_id' => $post_id,
-                'action' => 'Bricks content found but conversion produced empty output - using placeholder',
-            ]);
-        }
+		$etch_content = $this->gutenberg_generator->generate_gutenberg_blocks( $bricks_content['elements'] );
 
-        $post = get_post($post_id);
-        if (!$post) {
-            return new \WP_Error('post_not_found', sprintf(__('Post with ID %d not found.', 'bricks-etch-migration'), $post_id));
-        }
+		if ( empty( $etch_content ) ) {
+			$etch_content = '<!-- wp:paragraph --><p>Content migrated from Bricks (conversion pending)</p><!-- /wp:paragraph -->';
+			$this->error_handler->log_error(
+				'W002',
+				array(
+					'post_id' => $post_id,
+					'action'  => 'Bricks content found but conversion produced empty output - using placeholder',
+				)
+			);
+		}
 
-        return $this->send_post_to_target($post, $etch_content, $api_client, $target_url, $api_key);
-    }
+		$post = get_post( $post_id );
+		if ( ! $post ) {
+			return new \WP_Error( 'post_not_found', sprintf( __( 'Post with ID %d not found.', 'bricks-etch-migration' ), $post_id ) );
+		}
 
-    /**
-     * @return array
-     */
-    public function get_bricks_posts()
-    {
-        return $this->content_parser->get_bricks_posts();
-    }
+		return $this->send_post_to_target( $post, $etch_content, $api_client, $target_url, $api_key );
+	}
 
-    /**
-     * @return array
-     */
-    public function get_gutenberg_posts()
-    {
-        return $this->content_parser->get_gutenberg_posts();
-    }
+	/**
+	 * @return array
+	 */
+	public function get_bricks_posts() {
+		return $this->content_parser->get_bricks_posts();
+	}
 
-    /**
-     * @return array
-     */
-    public function get_all_content()
-    {
-        return [
-            'bricks_posts' => $this->get_bricks_posts(),
-            'gutenberg_posts' => $this->get_gutenberg_posts(),
-            'media' => $this->content_parser->get_media(),
-        ];
-    }
+	/**
+	 * @return array
+	 */
+	public function get_gutenberg_posts() {
+		return $this->content_parser->get_gutenberg_posts();
+	}
 
-    /**
-     * @param \WP_Post       $post
-     * @param B2E_API_Client  $api_client
-     * @param string          $target_url
-     * @param string          $api_key
-     *
-     * @return array|\WP_Error
-     */
-    public function migrate_existing_content($post, B2E_API_Client $api_client, $target_url, $api_key)
-    {
-        $content = !empty($post->post_content)
-            ? $post->post_content
-            : '<!-- wp:paragraph --><p>Empty content</p><!-- /wp:paragraph -->';
+	/**
+	 * @return array
+	 */
+	public function get_all_content() {
+		return array(
+			'bricks_posts'    => $this->get_bricks_posts(),
+			'gutenberg_posts' => $this->get_gutenberg_posts(),
+			'media'           => $this->content_parser->get_media(),
+		);
+	}
 
-        return $this->send_post_to_target($post, $content, $api_client, $target_url, $api_key);
-    }
+	/**
+	 * @param \WP_Post       $post
+	 * @param B2E_API_Client  $api_client
+	 * @param string          $target_url
+	 * @param string          $api_key
+	 *
+	 * @return array|\WP_Error
+	 */
+	public function migrate_existing_content( $post, B2E_API_Client $api_client, $target_url, $api_key ) {
+		$content = ! empty( $post->post_content )
+			? $post->post_content
+			: '<!-- wp:paragraph --><p>Empty content</p><!-- /wp:paragraph -->';
 
-    /**
-     * @return array|\WP_Error
-     */
-    public function validate_bricks_installation()
-    {
-        if (method_exists($this->content_parser, 'validate_bricks_installation')) {
-            return $this->content_parser->validate_bricks_installation();
-        }
+		return $this->send_post_to_target( $post, $content, $api_client, $target_url, $api_key );
+	}
 
-        return [
-            'valid' => true,
-            'message' => __('Validation not implemented for this version.', 'bricks-etch-migration'),
-        ];
-    }
+	/**
+	 * @return array|\WP_Error
+	 */
+	public function validate_bricks_installation() {
+		if ( method_exists( $this->content_parser, 'validate_bricks_installation' ) ) {
+			return $this->content_parser->validate_bricks_installation();
+		}
 
-    /**
-     * @param \WP_Post       $post
-     * @param string          $content
-     * @param B2E_API_Client  $api_client
-     * @param string|null     $target_url
-     * @param string|null     $api_key
-     *
-     * @return array|\WP_Error
-     */
-    private function send_post_to_target($post, $content, B2E_API_Client $api_client, $target_url = null, $api_key = null)
-    {
-        if (!$target_url || !$api_key) {
-            return [
-                'post_id' => $post->ID,
-                'content' => $content,
-            ];
-        }
+		return array(
+			'valid'   => true,
+			'message' => __( 'Validation not implemented for this version.', 'bricks-etch-migration' ),
+		);
+	}
 
-        $post_data = [
-            'title' => $post->post_title,
-            'content' => $content,
-            'excerpt' => $post->post_excerpt,
-            'status' => $post->post_status,
-            'type' => $post->post_type,
-            'meta' => [
-                '_b2e_migrated_from_bricks' => true,
-                '_b2e_original_post_id' => $post->ID,
-                '_b2e_migration_date' => current_time('mysql'),
-            ],
-        ];
+	/**
+	 * @param \WP_Post       $post
+	 * @param string          $content
+	 * @param B2E_API_Client  $api_client
+	 * @param string|null     $target_url
+	 * @param string|null     $api_key
+	 *
+	 * @return array|\WP_Error
+	 */
+	private function send_post_to_target( $post, $content, B2E_API_Client $api_client, $target_url = null, $api_key = null ) {
+		if ( ! $target_url || ! $api_key ) {
+			return array(
+				'post_id' => $post->ID,
+				'content' => $content,
+			);
+		}
 
-        $response = $api_client->send_post($target_url, $api_key, $post_data);
+		$post_data = array(
+			'title'   => $post->post_title,
+			'content' => $content,
+			'excerpt' => $post->post_excerpt,
+			'status'  => $post->post_status,
+			'type'    => $post->post_type,
+			'meta'    => array(
+				'_b2e_migrated_from_bricks' => true,
+				'_b2e_original_post_id'     => $post->ID,
+				'_b2e_migration_date'       => current_time( 'mysql' ),
+			),
+		);
 
-        if (is_wp_error($response)) {
-            $this->error_handler->log_error('E107', [
-                'post_id' => $post->ID,
-                'error' => $response->get_error_message(),
-                'action' => 'Failed to send post to target site',
-            ]);
+		$response = $api_client->send_post( $target_url, $api_key, $post_data );
 
-            return $response;
-        }
+		if ( is_wp_error( $response ) ) {
+			$this->error_handler->log_error(
+				'E107',
+				array(
+					'post_id' => $post->ID,
+					'error'   => $response->get_error_message(),
+					'action'  => 'Failed to send post to target site',
+				)
+			);
 
-        return [
-            'post_id' => $post->ID,
-            'target_id' => $response['post_id'] ?? null,
-            'status' => 'migrated',
-        ];
-    }
+			return $response;
+		}
+
+		return array(
+			'post_id'   => $post->ID,
+			'target_id' => $response['post_id'] ?? null,
+			'status'    => 'migrated',
+		);
+	}
 }
 
-class_alias(B2E_Content_Service::class, 'B2E_Content_Service');
+class_alias( B2E_Content_Service::class, 'B2E_Content_Service' );

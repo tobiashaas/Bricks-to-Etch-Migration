@@ -228,14 +228,14 @@ class B2E_Environment_Detector {
 	 */
 	public function get_environment_info() {
 		return array(
-			'type'          => $this->get_environment_type(),
-			'is_local'      => $this->is_local_environment(),
+			'type'           => $this->get_environment_type(),
+			'is_local'       => $this->is_local_environment(),
 			'is_development' => $this->is_development(),
-			'is_production' => $this->is_production(),
-			'is_docker'     => $this->is_docker_environment(),
-			'require_https' => $this->should_require_https(),
-			'wp_debug'      => defined( 'WP_DEBUG' ) && WP_DEBUG,
-			'host'          => isset( $_SERVER['HTTP_HOST'] ) ? $_SERVER['HTTP_HOST'] : '',
+			'is_production'  => $this->is_production(),
+			'is_docker'      => $this->is_docker_environment(),
+			'require_https'  => $this->should_require_https(),
+			'wp_debug'       => defined( 'WP_DEBUG' ) && WP_DEBUG,
+			'host'           => isset( $_SERVER['HTTP_HOST'] ) ? $_SERVER['HTTP_HOST'] : '',
 		);
 	}
 }

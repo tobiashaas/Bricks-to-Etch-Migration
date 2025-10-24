@@ -1,7 +1,7 @@
 <?php
 /**
  * Migration Manager for Bricks to Etch Migration Plugin
- * 
+ *
  * Orchestrates the entire migration process
  */
 
@@ -23,8 +23,8 @@ use Bricks2Etch\Services\B2E_Migration_Service;
 use Bricks2Etch\Repositories\Interfaces\Migration_Repository_Interface;
 
 // Prevent direct access
-if (!defined('ABSPATH')) {
-    exit;
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
 }
 
 /**
@@ -32,136 +32,136 @@ if (!defined('ABSPATH')) {
  */
 class B2E_Migration_Manager {
 
-    /**
-     * Migration service instance.
-     */
-    private $migration_service;
-    
-    /**
-     * Constructor
-     * 
-     * @param B2E_Migration_Service|null $migration_service
-     * @param Migration_Repository_Interface|null $migration_repository
-     */
-    public function __construct(B2E_Migration_Service $migration_service = null, Migration_Repository_Interface $migration_repository = null) {
-        if ($migration_service) {
-            $this->migration_service = $migration_service;
+	/**
+	 * Migration service instance.
+	 */
+	private $migration_service;
 
-            return;
-        }
+	/**
+	 * Constructor
+	 *
+	 * @param B2E_Migration_Service|null $migration_service
+	 * @param Migration_Repository_Interface|null $migration_repository
+	 */
+	public function __construct( B2E_Migration_Service $migration_service = null, Migration_Repository_Interface $migration_repository = null ) {
+		if ( $migration_service ) {
+			$this->migration_service = $migration_service;
 
-        // Instantiate migration repository if not provided
-        if (!$migration_repository) {
-            $migration_repository = new \Bricks2Etch\Repositories\B2E_WordPress_Migration_Repository();
-        }
-        
-        $error_handler = new B2E_Error_Handler();
-        $plugin_detector = new B2E_Plugin_Detector($error_handler);
-        $api_client = new B2E_API_Client($error_handler);
-        $content_parser = new B2E_Content_Parser($error_handler);
-        $dynamic_data_converter = new B2E_Dynamic_Data_Converter($error_handler);
-        $gutenberg_generator = new B2E_Gutenberg_Generator($error_handler, $dynamic_data_converter, $content_parser);
-        
-        // Instantiate style repository for CSS converter
-        $style_repository = new \Bricks2Etch\Repositories\B2E_WordPress_Style_Repository();
-        $css_converter = new B2E_CSS_Converter($error_handler, $style_repository);
-        
-        $media_migrator = new B2E_Media_Migrator($error_handler, $api_client);
-        $cpt_migrator = new B2E_CPT_Migrator($error_handler);
-        $acf_migrator = new B2E_ACF_Field_Groups_Migrator($error_handler);
-        $metabox_migrator = new B2E_MetaBox_Migrator($error_handler);
+			return;
+		}
 
-        $css_service = new B2E_CSS_Service($css_converter, $api_client, $error_handler);
-        $media_service = new B2E_Media_Service($media_migrator, $error_handler);
-        $content_service = new B2E_Content_Service($content_parser, $gutenberg_generator, $error_handler);
+		// Instantiate migration repository if not provided
+		if ( ! $migration_repository ) {
+			$migration_repository = new \Bricks2Etch\Repositories\B2E_WordPress_Migration_Repository();
+		}
 
-        $this->migration_service = new B2E_Migration_Service(
-            $error_handler,
-            $plugin_detector,
-            $content_parser,
-            $css_service,
-            $media_service,
-            $content_service,
-            $api_client,
-            $cpt_migrator,
-            $acf_migrator,
-            $metabox_migrator,
-            $migration_repository
-        );
-    }
-    
-    /**
-     * Start migration process
-     */
-    public function start_migration($target_url, $api_key) {
-        return $this->migration_service->start_migration($target_url, $api_key);
-    }
+		$error_handler          = new B2E_Error_Handler();
+		$plugin_detector        = new B2E_Plugin_Detector( $error_handler );
+		$api_client             = new B2E_API_Client( $error_handler );
+		$content_parser         = new B2E_Content_Parser( $error_handler );
+		$dynamic_data_converter = new B2E_Dynamic_Data_Converter( $error_handler );
+		$gutenberg_generator    = new B2E_Gutenberg_Generator( $error_handler, $dynamic_data_converter, $content_parser );
 
-    /**
-     * Retrieve current progress data
-     */
-    public function get_progress($migration_id = '') {
-        return $this->migration_service->get_progress($migration_id);
-    }
+		// Instantiate style repository for CSS converter
+		$style_repository = new \Bricks2Etch\Repositories\B2E_WordPress_Style_Repository();
+		$css_converter    = new B2E_CSS_Converter( $error_handler, $style_repository );
 
-    /**
-     * Process batch placeholder for async migrations
-     */
-    public function process_batch($migration_id, $batch) {
-        return $this->migration_service->process_batch($migration_id, $batch);
-    }
+		$media_migrator   = new B2E_Media_Migrator( $error_handler, $api_client );
+		$cpt_migrator     = new B2E_CPT_Migrator( $error_handler );
+		$acf_migrator     = new B2E_ACF_Field_Groups_Migrator( $error_handler );
+		$metabox_migrator = new B2E_MetaBox_Migrator( $error_handler );
 
-    /**
-     * Cancel migration and reset progress
-     */
-    public function cancel_migration($migration_id = '') {
-        return $this->migration_service->cancel_migration($migration_id);
-    }
+		$css_service     = new B2E_CSS_Service( $css_converter, $api_client, $error_handler );
+		$media_service   = new B2E_Media_Service( $media_migrator, $error_handler );
+		$content_service = new B2E_Content_Service( $content_parser, $gutenberg_generator, $error_handler );
 
-    /**
-     * Get migration status
-     */
-    public function get_migration_status() {
-        return $this->migration_service->get_migration_status();
-    }
+		$this->migration_service = new B2E_Migration_Service(
+			$error_handler,
+			$plugin_detector,
+			$content_parser,
+			$css_service,
+			$media_service,
+			$content_service,
+			$api_client,
+			$cpt_migrator,
+			$acf_migrator,
+			$metabox_migrator,
+			$migration_repository
+		);
+	}
 
-    /**
-     * Resume migration
-     */
-    public function resume_migration($target_url, $api_key) {
-        return $this->migration_service->resume_migration($target_url, $api_key);
-    }
+	/**
+	 * Start migration process
+	 */
+	public function start_migration( $target_url, $api_key ) {
+		return $this->migration_service->start_migration( $target_url, $api_key );
+	}
 
-    /**
-     * Validate target site requirements only
-     * This runs on the TARGET site (Etch), not the source site (Bricks)
-     */
-    public function validate_target_site_requirements() {
-        return $this->migration_service->validate_target_site_requirements();
-    }
-    
-    /**
-     * Start import process (runs on TARGET site - Etch)
-     * This method receives data from the source site and imports it
-     */
-    public function start_import_process($source_domain, $token) {
-        return $this->migration_service->start_import_process($source_domain, $token);
-    }
-    
-    /**
-     * Migrate a single post (for batch processing)
-     * Uses same logic as migrate_posts() but for one post at a time
-     */
-    public function migrate_single_post($post) {
-        return $this->migration_service->migrate_single_post($post);
-    }
-    
-    /**
-     * Migrate Gutenberg/Classic post via WordPress REST API
-     */
-    private function migrate_gutenberg_post($post, $target_url, $api_key) {
-        return $this->migration_service->migrate_gutenberg_post($post, $target_url, $api_key);
-    }
+	/**
+	 * Retrieve current progress data
+	 */
+	public function get_progress( $migration_id = '' ) {
+		return $this->migration_service->get_progress( $migration_id );
+	}
+
+	/**
+	 * Process batch placeholder for async migrations
+	 */
+	public function process_batch( $migration_id, $batch ) {
+		return $this->migration_service->process_batch( $migration_id, $batch );
+	}
+
+	/**
+	 * Cancel migration and reset progress
+	 */
+	public function cancel_migration( $migration_id = '' ) {
+		return $this->migration_service->cancel_migration( $migration_id );
+	}
+
+	/**
+	 * Get migration status
+	 */
+	public function get_migration_status() {
+		return $this->migration_service->get_migration_status();
+	}
+
+	/**
+	 * Resume migration
+	 */
+	public function resume_migration( $target_url, $api_key ) {
+		return $this->migration_service->resume_migration( $target_url, $api_key );
+	}
+
+	/**
+	 * Validate target site requirements only
+	 * This runs on the TARGET site (Etch), not the source site (Bricks)
+	 */
+	public function validate_target_site_requirements() {
+		return $this->migration_service->validate_target_site_requirements();
+	}
+
+	/**
+	 * Start import process (runs on TARGET site - Etch)
+	 * This method receives data from the source site and imports it
+	 */
+	public function start_import_process( $source_domain, $token ) {
+		return $this->migration_service->start_import_process( $source_domain, $token );
+	}
+
+	/**
+	 * Migrate a single post (for batch processing)
+	 * Uses same logic as migrate_posts() but for one post at a time
+	 */
+	public function migrate_single_post( $post ) {
+		return $this->migration_service->migrate_single_post( $post );
+	}
+
+	/**
+	 * Migrate Gutenberg/Classic post via WordPress REST API
+	 */
+	private function migrate_gutenberg_post( $post, $target_url, $api_key ) {
+		return $this->migration_service->migrate_gutenberg_post( $post, $target_url, $api_key );
+	}
 }
 
-\class_alias(__NAMESPACE__ . '\\B2E_Migration_Manager', 'B2E_Migration_Manager');
+\class_alias( __NAMESPACE__ . '\\B2E_Migration_Manager', 'B2E_Migration_Manager' );

@@ -76,7 +76,7 @@ jobs:
         working-directory: bricks-etch-migration
 
       - name: Run PHPCompatibility checks
-        run: vendor/bin/phpcs --standard=PHPCompatibilityWP --extensions=php --runtime-set testVersion 7.4-
+        run: vendor/bin/phpcs --standard=PHPCompatibilityWP --extensions=php --runtime-set testVersion 7.4- .
         working-directory: bricks-etch-migration
 
   test:
