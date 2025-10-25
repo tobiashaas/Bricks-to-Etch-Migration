@@ -130,8 +130,3 @@ class EFS_Button_Converter extends EFS_Base_Element {
 		return substr( md5( uniqid( rand(), true ) ), 0, 7 );
 	}
 }
-
-\class_alias( __NAMESPACE__ . '\\B2E_Button_Converter', 'B2E_Button_Converter' );
-
-// Legacy alias for backward compatibility
-class_alias( __NAMESPACE__ . '\EFS_Button_Converter', __NAMESPACE__ . '\B2E_Button_Converter' );

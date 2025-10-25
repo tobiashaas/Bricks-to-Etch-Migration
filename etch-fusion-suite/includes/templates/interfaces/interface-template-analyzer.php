@@ -63,5 +63,3 @@ interface EFS_Template_Analyzer_Interface {
 	 */
 	public function get_complexity_score();
 }
-
-class_alias( __NAMESPACE__ . '\\EFS_Template_Analyzer_Interface', __NAMESPACE__ . '\\B2E_Template_Analyzer_Interface' );

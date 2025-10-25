@@ -375,5 +375,3 @@ class EFS_Template_Extractor_Service implements EFS_Template_Extractor_Interface
 		return $map[ $step ] ?? $this->progress['progress'];
 	}
 }
-
-class_alias( __NAMESPACE__ . '\\EFS_Template_Extractor_Service', __NAMESPACE__ . '\\B2E_Template_Extractor_Service' );

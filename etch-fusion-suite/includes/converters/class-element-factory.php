@@ -127,6 +127,3 @@ class EFS_Element_Factory {
 		return $converter->convert( $element, $children );
 	}
 }
-
-// Legacy alias for backward compatibility
-class_alias( __NAMESPACE__ . '\EFS_Element_Factory', __NAMESPACE__ . '\B2E_Element_Factory' );

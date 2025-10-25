@@ -45,5 +45,3 @@ interface EFS_Template_Extractor_Interface {
 	 */
 	public function get_extraction_stats();
 }
-
-class_alias( __NAMESPACE__ . '\\EFS_Template_Extractor_Interface', __NAMESPACE__ . '\\B2E_Template_Extractor_Interface' );

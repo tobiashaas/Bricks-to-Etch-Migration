@@ -70,8 +70,3 @@ class EFS_Element_Container extends EFS_Base_Element {
 				'<!-- /wp:group -->';
 	}
 }
-
-\class_alias( __NAMESPACE__ . '\\B2E_Element_Container', 'B2E_Element_Container' );
-
-// Legacy alias for backward compatibility
-class_alias( __NAMESPACE__ . '\EFS_Element_Container', __NAMESPACE__ . '\B2E_Element_Container' );

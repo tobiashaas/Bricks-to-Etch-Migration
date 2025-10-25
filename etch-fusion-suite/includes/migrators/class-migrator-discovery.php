@@ -183,7 +183,3 @@ class EFS_Migrator_Discovery {
 		}
 	}
 }
-
-// Legacy alias for backward compatibility
-\class_alias( __NAMESPACE__ . '\\EFS_Migrator_Discovery', 'B2E_Migrator_Discovery' );
-class_alias( __NAMESPACE__ . '\EFS_Migrator_Discovery', __NAMESPACE__ . '\B2E_Migrator_Discovery' );

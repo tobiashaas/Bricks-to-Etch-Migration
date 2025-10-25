@@ -440,6 +440,3 @@ class EFS_Dynamic_Data_Converter {
 		return $this->modifier_mapping;
 	}
 }
-
-// Legacy alias for backward compatibility
-class_alias( __NAMESPACE__ . '\EFS_Dynamic_Data_Converter', __NAMESPACE__ . '\B2E_Dynamic_Data_Converter' );

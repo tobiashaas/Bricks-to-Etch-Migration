@@ -168,5 +168,3 @@ class EFS_HTML_Sanitizer implements EFS_HTML_Sanitizer_Interface {
 		return $this->css_variables;
 	}
 }
-
-class_alias( __NAMESPACE__ . '\\EFS_HTML_Sanitizer', __NAMESPACE__ . '\\B2E_HTML_Sanitizer' );

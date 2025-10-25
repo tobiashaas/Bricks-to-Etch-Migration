@@ -234,5 +234,3 @@ class EFS_Framer_To_Etch_Converter {
 		return $attributes;
 	}
 }
-
-class_alias( __NAMESPACE__ . '\\EFS_Framer_To_Etch_Converter', __NAMESPACE__ . '\\B2E_Framer_To_Etch_Converter' );

@@ -66,8 +66,3 @@ class EFS_Element_Heading extends EFS_Base_Element {
 				'<!-- /wp:heading -->';
 	}
 }
-
-\class_alias( __NAMESPACE__ . '\\B2E_Element_Heading', 'B2E_Element_Heading' );
-
-// Legacy alias for backward compatibility
-class_alias( __NAMESPACE__ . '\EFS_Element_Heading', __NAMESPACE__ . '\B2E_Element_Heading' );

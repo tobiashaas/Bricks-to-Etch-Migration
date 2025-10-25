@@ -136,7 +136,3 @@ class EFS_Migrator_Registry {
 		$this->migrators = array();
 	}
 }
-
-// Legacy alias for backward compatibility
-\class_alias( __NAMESPACE__ . '\\EFS_Migrator_Registry', 'B2E_Migrator_Registry' );
-class_alias( __NAMESPACE__ . '\EFS_Migrator_Registry', __NAMESPACE__ . '\B2E_Migrator_Registry' );

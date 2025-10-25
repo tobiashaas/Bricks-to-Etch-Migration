@@ -70,8 +70,3 @@ class EFS_Element_Div extends EFS_Base_Element {
 				'<!-- /wp:group -->';
 	}
 }
-
-\class_alias( __NAMESPACE__ . '\\B2E_Element_Div', 'B2E_Element_Div' );
-
-// Legacy alias for backward compatibility
-class_alias( __NAMESPACE__ . '\EFS_Element_Div', __NAMESPACE__ . '\B2E_Element_Div' );

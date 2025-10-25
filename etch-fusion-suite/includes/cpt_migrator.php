@@ -510,7 +510,3 @@ class EFS_CPT_Migrator extends Abstract_Migrator {
 		return $cpts_with_bricks;
 	}
 }
-
-// Legacy alias for backward compatibility
-\class_alias( __NAMESPACE__ . '\\EFS_CPT_Migrator', 'B2E_CPT_Migrator' );
-class_alias( __NAMESPACE__ . '\EFS_CPT_Migrator', __NAMESPACE__ . '\B2E_CPT_Migrator' );

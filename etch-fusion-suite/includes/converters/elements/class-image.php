@@ -105,8 +105,3 @@ class EFS_Element_Image extends EFS_Base_Element {
 		return $html;
 	}
 }
-
-\class_alias( __NAMESPACE__ . '\\B2E_Element_Image', 'B2E_Element_Image' );
-
-// Legacy alias for backward compatibility
-class_alias( __NAMESPACE__ . '\EFS_Element_Image', __NAMESPACE__ . '\B2E_Element_Image' );

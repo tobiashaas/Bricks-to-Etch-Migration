@@ -304,5 +304,3 @@ class EFS_Framer_Template_Analyzer extends EFS_Template_Analyzer implements EFS_
 		return $warnings;
 	}
 }
-
-class_alias( __NAMESPACE__ . '\\EFS_Framer_Template_Analyzer', __NAMESPACE__ . '\\B2E_Framer_Template_Analyzer' );

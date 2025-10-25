@@ -203,5 +203,3 @@ class EFS_Template_Analyzer implements EFS_Template_Analyzer_Interface {
 		return (int) min( 100, $depth_score + $component_score + $layout_score + $media_score + 10 );
 	}
 }
-
-class_alias( __NAMESPACE__ . '\\EFS_Template_Analyzer', __NAMESPACE__ . '\\B2E_Template_Analyzer' );

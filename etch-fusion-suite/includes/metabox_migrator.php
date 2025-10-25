@@ -486,7 +486,3 @@ class EFS_MetaBox_Migrator extends Abstract_Migrator {
 		return $mapping[ $metabox_type ] ?? 'text';
 	}
 }
-
-// Legacy alias for backward compatibility
-\class_alias( __NAMESPACE__ . '\\EFS_MetaBox_Migrator', 'B2E_MetaBox_Migrator' );
-class_alias( __NAMESPACE__ . '\EFS_MetaBox_Migrator', __NAMESPACE__ . '\B2E_MetaBox_Migrator' );

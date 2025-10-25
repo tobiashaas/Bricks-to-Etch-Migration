@@ -72,8 +72,3 @@ class EFS_Icon_Converter extends EFS_Base_Element {
 				'<!-- /wp:html -->';
 	}
 }
-
-\class_alias( __NAMESPACE__ . '\\B2E_Icon_Converter', 'B2E_Icon_Converter' );
-
-// Legacy alias for backward compatibility
-class_alias( __NAMESPACE__ . '\EFS_Icon_Converter', __NAMESPACE__ . '\B2E_Icon_Converter' );

@@ -146,5 +146,3 @@ abstract class Abstract_Migrator implements Migrator_Interface {
 		return $this->api_client->send_request( $endpoint, $data, $target_url, $api_key );
 	}
 }
-
-\class_alias( __NAMESPACE__ . '\\Abstract_Migrator', 'B2E_Abstract_Migrator' );

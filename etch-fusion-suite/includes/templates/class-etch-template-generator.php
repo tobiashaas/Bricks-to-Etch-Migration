@@ -271,5 +271,3 @@ class EFS_Etch_Template_Generator {
 		);
 	}
 }
-
-class_alias( __NAMESPACE__ . '\\EFS_Etch_Template_Generator', __NAMESPACE__ . '\\B2E_Etch_Template_Generator' );

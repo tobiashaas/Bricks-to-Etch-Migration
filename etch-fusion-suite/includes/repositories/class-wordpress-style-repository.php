@@ -198,7 +198,3 @@ class EFS_WordPress_Style_Repository implements Style_Repository_Interface {
 		delete_transient( $cache_key );
 	}
 }
-
-// Legacy alias for backward compatibility
-\class_alias( __NAMESPACE__ . '\\EFS_WordPress_Style_Repository', 'B2E_WordPress_Style_Repository' );
-class_alias( __NAMESPACE__ . '\EFS_WordPress_Style_Repository', __NAMESPACE__ . '\B2E_WordPress_Style_Repository' );

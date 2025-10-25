@@ -62,8 +62,3 @@ class EFS_Element_Paragraph extends EFS_Base_Element {
 				'<!-- /wp:paragraph -->';
 	}
 }
-
-\class_alias( __NAMESPACE__ . '\\B2E_Element_Paragraph', 'B2E_Element_Paragraph' );
-
-// Legacy alias for backward compatibility
-class_alias( __NAMESPACE__ . '\EFS_Element_Paragraph', __NAMESPACE__ . '\B2E_Element_Paragraph' );

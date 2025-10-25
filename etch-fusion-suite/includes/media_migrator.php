@@ -329,6 +329,3 @@ class EFS_Media_Migrator {
 		return array_unique( $media_ids );
 	}
 }
-
-// Legacy alias for backward compatibility
-class_alias( __NAMESPACE__ . '\EFS_Media_Migrator', __NAMESPACE__ . '\B2E_Media_Migrator' );

@@ -70,5 +70,3 @@ interface EFS_HTML_Sanitizer_Interface {
 	 */
 	public function normalize_class_names( DOMElement $element );
 }
-
-class_alias( __NAMESPACE__ . '\\EFS_HTML_Sanitizer_Interface', __NAMESPACE__ . '\\B2E_HTML_Sanitizer_Interface' );

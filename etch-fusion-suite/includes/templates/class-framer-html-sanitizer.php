@@ -438,5 +438,3 @@ class EFS_Framer_HTML_Sanitizer extends EFS_HTML_Sanitizer implements EFS_HTML_S
 		return implode( ' ', $variables );
 	}
 }
-
-class_alias( __NAMESPACE__ . '\\EFS_Framer_HTML_Sanitizer', __NAMESPACE__ . '\\B2E_Framer_HTML_Sanitizer' );

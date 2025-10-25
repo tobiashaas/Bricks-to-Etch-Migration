@@ -191,5 +191,3 @@ class EFS_HTML_Parser {
 		}
 	}
 }
-
-class_alias( __NAMESPACE__ . '\\EFS_HTML_Parser', __NAMESPACE__ . '\\B2E_HTML_Parser' );

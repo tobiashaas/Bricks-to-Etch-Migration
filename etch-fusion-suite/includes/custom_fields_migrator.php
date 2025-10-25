@@ -434,7 +434,3 @@ class EFS_Custom_Fields_Migrator extends Abstract_Migrator {
 		return $stats;
 	}
 }
-
-// Legacy alias for backward compatibility
-\class_alias( __NAMESPACE__ . '\\EFS_Custom_Fields_Migrator', 'B2E_Custom_Fields_Migrator' );
-class_alias( __NAMESPACE__ . '\EFS_Custom_Fields_Migrator', __NAMESPACE__ . '\B2E_Custom_Fields_Migrator' );
