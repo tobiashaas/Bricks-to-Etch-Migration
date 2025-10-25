@@ -2,7 +2,7 @@
 namespace Bricks2Etch\Ajax\Handlers;
 
 use Bricks2Etch\Ajax\EFS_Base_Ajax_Handler;
-use Bricks2Etch\Core\EFS_Error_Handler;
+use Bricks2Etch\Security\EFS_Audit_Logger;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -11,28 +11,27 @@ if ( ! defined( 'ABSPATH' ) ) {
 class EFS_Logs_Ajax_Handler extends EFS_Base_Ajax_Handler {
 
 	/**
-	 * Error handler instance
+	 * Audit logger instance
 	 *
-	 * @var mixed
+	 * @var EFS_Audit_Logger
 	 */
-	private $error_handler;
+	protected $audit_logger;
 
 	/**
 	 * Constructor
 	 *
-	 * @param mixed $error_handler Error handler instance.
-	 * @param \Bricks2Etch\Security\EFS_Rate_Limiter|null $rate_limiter Rate limiter instance (optional).
+	 * @param EFS_Audit_Logger|null                           $audit_logger    Audit logger instance.
+	 * @param \Bricks2Etch\Security\EFS_Rate_Limiter|null   $rate_limiter   Rate limiter instance (optional).
 	 * @param \Bricks2Etch\Security\EFS_Input_Validator|null $input_validator Input validator instance (optional).
-	 * @param \Bricks2Etch\Security\EFS_Audit_Logger|null $audit_logger Audit logger instance (optional).
 	 */
-	public function __construct( $error_handler = null, $rate_limiter = null, $input_validator = null, $audit_logger = null ) {
-		$this->error_handler = $error_handler;
+	public function __construct( EFS_Audit_Logger $audit_logger = null, $rate_limiter = null, $input_validator = null ) {
+		$this->audit_logger = $audit_logger;
 		parent::__construct( $rate_limiter, $input_validator, $audit_logger );
 	}
 
 	protected function register_hooks() {
-		add_action( 'wp_ajax_b2e_clear_logs', array( $this, 'clear_logs' ) );
-		add_action( 'wp_ajax_b2e_get_logs', array( $this, 'get_logs' ) );
+		add_action( 'wp_ajax_efs_clear_logs', array( $this, 'clear_logs' ) );
+		add_action( 'wp_ajax_efs_get_logs', array( $this, 'get_logs' ) );
 	}
 
 	public function clear_logs() {
@@ -45,19 +44,23 @@ class EFS_Logs_Ajax_Handler extends EFS_Base_Ajax_Handler {
 			return;
 		}
 
-		// Log critical security event
-		$this->log_security_event( 'logs_cleared', 'Migration logs cleared', array(), 'critical' );
+		if ( ! $this->audit_logger ) {
+			wp_send_json_error( __( 'Audit logger service unavailable.', 'etch-fusion-suite' ) );
+			return;
+		}
 
-		$error_handler = new EFS_Error_Handler();
-		$result        = $error_handler->clear_log();
+		$this->audit_logger->log_security_event( 'logs_cleared', 'critical', 'Audit log cleared from admin interface', array() );
 
-		if ( is_wp_error( $result ) ) {
-			wp_send_json_error( $result->get_error_message() );
+		$result = $this->audit_logger->clear_security_logs();
+
+		if ( ! $result ) {
+			wp_send_json_error( __( 'Failed to clear audit logs.', 'etch-fusion-suite' ) );
+			return;
 		}
 
 		wp_send_json_success(
 			array(
-				'message' => __( 'Migration logs cleared successfully.', 'etch-fusion-suite' ),
+				'message' => __( 'Audit logs cleared successfully.', 'etch-fusion-suite' ),
 			)
 		);
 	}
@@ -72,11 +75,14 @@ class EFS_Logs_Ajax_Handler extends EFS_Base_Ajax_Handler {
 			return;
 		}
 
-		// Log log access
-		$this->log_security_event( 'ajax_action', 'Migration logs accessed' );
+		if ( ! $this->audit_logger ) {
+			wp_send_json_error( __( 'Audit logger service unavailable.', 'etch-fusion-suite' ) );
+			return;
+		}
 
-		$error_handler = new EFS_Error_Handler();
-		$logs          = $error_handler->get_recent_logs();
+		$this->audit_logger->log_security_event( 'logs_accessed', 'low', 'Audit log viewed in admin', array() );
+
+		$logs = $this->audit_logger->get_security_logs();
 
 		wp_send_json_success(
 			array(

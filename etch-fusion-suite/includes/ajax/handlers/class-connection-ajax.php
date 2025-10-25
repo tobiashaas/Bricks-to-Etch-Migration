@@ -31,8 +31,8 @@ class EFS_Connection_Ajax_Handler extends EFS_Base_Ajax_Handler {
 	}
 
 	protected function register_hooks() {
-		add_action( 'wp_ajax_b2e_test_export_connection', array( $this, 'test_export_connection' ) );
-		add_action( 'wp_ajax_b2e_test_import_connection', array( $this, 'test_import_connection' ) );
+		add_action( 'wp_ajax_efs_test_export_connection', array( $this, 'test_export_connection' ) );
+		add_action( 'wp_ajax_efs_test_import_connection', array( $this, 'test_import_connection' ) );
 	}
 
 	public function test_export_connection() {

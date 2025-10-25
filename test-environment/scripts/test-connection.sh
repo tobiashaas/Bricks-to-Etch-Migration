@@ -77,7 +77,7 @@ fi
 echo ""
 echo "[2/6] Testing REST API Status Endpoint..."
 ETCH_URL="http://localhost:8081"
-STATUS_RESPONSE=$(curl -s -w "\n%{http_code}" "${ETCH_URL}/wp-json/b2e/v1/status" 2>/dev/null || echo "000")
+STATUS_RESPONSE=$(curl -s -w "\n%{http_code}" "${ETCH_URL}/wp-json/efs/v1/status" 2>/dev/null || echo "000")
 HTTP_CODE=$(echo "${STATUS_RESPONSE}" | tail -1)
 RESPONSE_BODY=$(echo "${STATUS_RESPONSE}" | head -n -1)
 
@@ -95,7 +95,7 @@ fi
 echo ""
 echo "[3/6] Generating Migration Token..."
 TOKEN_RESPONSE=$(run_compose exec -T "${WPCLI_SERVICE}" wp eval \
-  'echo json_encode(apply_filters("rest_pre_dispatch", null, null, new WP_REST_Request("POST", "/b2e/v1/generate-key")));' \
+  'echo json_encode(apply_filters("rest_pre_dispatch", null, null, new WP_REST_Request("POST", "/efs/v1/generate-key")));' \
   --path="${ETCH_PATH}" 2>/dev/null || echo "{}")
 
 if command -v jq >/dev/null 2>&1; then
@@ -117,7 +117,7 @@ echo ""
 echo "[4/6] Validating Token on Bricks Instance..."
 if [[ -n "${MIGRATION_TOKEN}" ]]; then
   VALIDATION_RESULT=$(run_compose exec -T "${WPCLI_SERVICE}" wp eval \
-    "\$_POST['migration_token'] = '${MIGRATION_TOKEN}'; \$_REQUEST['action'] = 'b2e_validate_migration_token'; \$_REQUEST['_wpnonce'] = wp_create_nonce('b2e_ajax_nonce'); do_action('wp_ajax_b2e_validate_migration_token');" \
+    "\$_POST['migration_token'] = '${MIGRATION_TOKEN}'; \$_REQUEST['action'] = 'efs_validate_migration_token'; \$_REQUEST['_wpnonce'] = wp_create_nonce('b2e_ajax_nonce'); do_action('wp_ajax_efs_validate_migration_token');" \
     --path="${BRICKS_PATH}" \
     --user=admin 2>&1 || echo "")
   
@@ -134,7 +134,7 @@ fi
 # Test 5: Test CORS Headers
 echo ""
 echo "[5/6] Testing CORS Headers..."
-CORS_HEADERS=$(curl -s -I -X OPTIONS "${ETCH_URL}/wp-json/b2e/v1/status" 2>/dev/null || echo "")
+CORS_HEADERS=$(curl -s -I -X OPTIONS "${ETCH_URL}/wp-json/efs/v1/status" 2>/dev/null || echo "")
 
 if echo "${CORS_HEADERS}" | grep -qi "access-control-allow-origin"; then
   CORS_VALUE=$(echo "${CORS_HEADERS}" | grep -i "access-control-allow-origin" | cut -d: -f2- | tr -d '\r\n' | xargs)

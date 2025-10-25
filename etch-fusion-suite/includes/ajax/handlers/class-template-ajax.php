@@ -33,11 +33,11 @@ class EFS_Template_Ajax_Handler extends EFS_Base_Ajax_Handler {
 	 * Registers AJAX hooks.
 	 */
 	public function register_hooks() {
-		add_action( 'wp_ajax_b2e_extract_template', array( $this, 'extract_template' ) );
-		add_action( 'wp_ajax_b2e_get_extraction_progress', array( $this, 'get_extraction_progress' ) );
-		add_action( 'wp_ajax_b2e_save_template', array( $this, 'save_template' ) );
-		add_action( 'wp_ajax_b2e_get_saved_templates', array( $this, 'get_saved_templates' ) );
-		add_action( 'wp_ajax_b2e_delete_template', array( $this, 'delete_template' ) );
+		add_action( 'wp_ajax_efs_extract_template', array( $this, 'extract_template' ) );
+		add_action( 'wp_ajax_efs_get_extraction_progress', array( $this, 'get_extraction_progress' ) );
+		add_action( 'wp_ajax_efs_save_template', array( $this, 'save_template' ) );
+		add_action( 'wp_ajax_efs_get_saved_templates', array( $this, 'get_saved_templates' ) );
+		add_action( 'wp_ajax_efs_delete_template', array( $this, 'delete_template' ) );
 	}
 
 	/**

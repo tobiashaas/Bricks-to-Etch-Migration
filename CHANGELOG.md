@@ -1,4 +1,45 @@
+- **AJAX Hooks**: All admin and handler actions now use `wp_ajax_efs_*` (with compatibility alias for CSS `migrate_css`).
+- **Autoloader**: Extended namespace mapping to load `EFS_Element_*` converters after rebrand.
+- **Local Testing**: Added LocalWP-specific regression scripts (`tests/run-local-tests.php`, `tests/test-ajax-handlers-local.php`) and documentation.
 # Changelog - Etch Fusion Suite
+
+## [0.11.3] - 2025-10-25 (23:25)
+
+### 🧪 Testing & CI
+- Added comprehensive `CI` workflow covering WPCS linting, PHPCompatibility across 7.4–8.4, multi-version PHPUnit with coverage artifacts, and Composer security scans.
+- Introduced CodeQL analysis, dependency review gate, and tag-triggered release automation for stable builds.
+
+### 🔧 Technical Changes
+- Release workflow now validates plugin metadata via `scripts/validate-plugin-headers.sh`, packages production ZIPs, and publishes GitHub releases.
+- PHPUnit configuration and Composer scripts now store Clover reports under `build/logs/` to align with new CI artifact paths.
+
+## [0.11.2] - 2025-10-25 (21:55)
+
+### 🎨 UI
+- Tokenized the admin loading spinner borders to use `--e-*` design tokens, keeping visual alignment with the dark theme.
+
+### 🧪 Testing
+- Updated the PHPUnit bootstrap to favour `WP_PHPUNIT__DIR`, ensure the Etch Fusion Suite plugin loads, and retain strict error handling during tests.
+- Strengthened `ServiceContainerTest` and `MigrationIntegrationTest` assertions to cover container wiring, registry discovery, and CSS converter behaviour through `efs_container()`.
+
+### 🔧 Technical Changes
+- Hardened `scripts/validate-plugin-headers.sh` with `set -euo pipefail` to surface release validation failures consistently.
+
+## [0.11.1] - 2025-10-25 (21:26)
+
+### ✨ Features
+- Composer scripts now expose dedicated `test:*` targets and aggregate `composer test` runs unit, integration, E2E, and performance suites.
+
+### 🧪 Testing
+- Added PHPUnit E2E (`tests/e2e/AdminUITest.php`) and performance (`tests/performance/MigrationPerformanceTest.php`) coverage for admin workflows, template extraction, audit logging, and synthetic migration benchmarking.
+- Updated CI workflow to run linting, PHPCompatibility, multi-version PHPUnit, LocalWP regression, and Composer security audit jobs with latest pinned actions.
+- Confirmed LocalWP regression suite completes successfully (`tests/run-local-tests.php`).
+
+### 🔧 Technical Changes
+- PHPUnit bootstrap, integration, and unit tests now rely on `efs_container()` and `EFS_*` naming, removing residual `b2e_*` references.
+- Release validation script resolves paths relative to the script directory and enforces the `etch-fusion-suite` text domain.
+- Plugin bootstrap loads only the new text domain, dropping legacy `bricks-etch-migration` fallback.
+
 
 ## [0.11.0] - 2025-10-25 (16:37) - Complete EFS Rebrand Implementation
 
@@ -23,6 +64,9 @@
 - **API Client**: Request URLs, authentication headers, option storage updated
 - **Token Manager**: Migration token storage and validation rebranded
 - **Logging**: All error logs updated from "B2E" to "EFS" or "Etch Fusion Suite"
+- **AJAX Hooks**: Admin interface and handler registrations now use `wp_ajax_efs_*` (legacy alias retained for `efs_migrate_css`).
+- **Autoloader**: Enhanced converter namespace mapping to resolve `EFS_Element_*` classes post-rebrand.
+- **Local Testing**: Added LocalWP regression scripts (`tests/run-local-tests.php`, `tests/test-ajax-handlers-local.php`) and documentation for running 25 AJAX/CSS checks.
 
 ### 🗑️ Cleanup
 - **Legacy Aliases Removed**: All `class_alias()` backward compatibility removed

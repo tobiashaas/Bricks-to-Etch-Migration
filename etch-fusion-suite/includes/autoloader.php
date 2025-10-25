@@ -3,7 +3,6 @@
  * Manual PSR-4 Autoloader (Composer Alternative)
  *
  * This file provides autoloading for namespaced classes without requiring Composer.
- * All classes already have class_alias() for backward compatibility.
  */
 
 spl_autoload_register(
@@ -38,6 +37,7 @@ spl_autoload_register(
 			'Templates\\'                => 'templates/',
 			'Migrators\\Interfaces\\'    => 'migrators/interfaces/',
 			'Migrators\\'                => '',
+			'Converters\\Elements\\'     => 'converters/elements/',
 			'Converters\\'               => 'converters/',
 			'Security\\'                 => 'security/',
 		);
@@ -50,10 +50,14 @@ spl_autoload_register(
 				$slug_no_prefix                      = preg_replace( '/^(?:b2e|efs)-/', '', $slug );
 				$slug_no_suffix                      = preg_replace( '/-interface$/', '', $slug );
 				$slug_no_prefix_no_suffix            = preg_replace( '/-interface$/', '', $slug_no_prefix );
+				$slug_trimmed                        = preg_replace( '/^(?:b2e|efs)-(?:element-)?/', '', $slug );
+				$slug_trimmed_no_suffix              = preg_replace( '/-interface$/', '', $slug_trimmed );
 				$underscore_slug                     = strtolower( $class_name );
 				$underscore_slug_no_prefix           = preg_replace( '/^(?:b2e|efs)_/', '', $underscore_slug );
 				$underscore_slug_no_suffix           = preg_replace( '/_interface$/', '', $underscore_slug );
 				$underscore_slug_no_prefix_no_suffix = preg_replace( '/_interface$/', '', $underscore_slug_no_prefix );
+				$underscore_slug_trimmed             = preg_replace( '/^(?:b2e|efs)_(?:element_)?/', '', $underscore_slug );
+				$underscore_slug_trimmed_no_suffix   = preg_replace( '/_interface$/', '', $underscore_slug_trimmed );
 
 				$files = array(
 					'class-' . $slug . '.php',
@@ -80,12 +84,32 @@ spl_autoload_register(
 					$files[] = 'interface-' . $slug_no_prefix_no_suffix . '.php';
 				}
 
+				if ( $slug_trimmed !== $slug ) {
+					$files[] = 'class-' . $slug_trimmed . '.php';
+					$files[] = $slug_trimmed . '.php';
+				}
+
+				if ( $slug_trimmed_no_suffix !== $slug_trimmed ) {
+					$files[] = 'class-' . $slug_trimmed_no_suffix . '.php';
+					$files[] = $slug_trimmed_no_suffix . '.php';
+				}
+
 				if ( $underscore_slug_no_suffix !== $underscore_slug ) {
 					$files[] = 'interface-' . str_replace( '_', '-', $underscore_slug_no_suffix ) . '.php';
 				}
 
 				if ( $underscore_slug_no_prefix_no_suffix !== $underscore_slug_no_prefix ) {
 					$files[] = 'interface-' . str_replace( '_', '-', $underscore_slug_no_prefix_no_suffix ) . '.php';
+				}
+
+				if ( $underscore_slug_trimmed !== $underscore_slug ) {
+					$files[] = 'class-' . $underscore_slug_trimmed . '.php';
+					$files[] = $underscore_slug_trimmed . '.php';
+				}
+
+				if ( $underscore_slug_trimmed_no_suffix !== $underscore_slug_trimmed ) {
+					$files[] = 'class-' . $underscore_slug_trimmed_no_suffix . '.php';
+					$files[] = $underscore_slug_trimmed_no_suffix . '.php';
 				}
 
 				// Add abstract class pattern

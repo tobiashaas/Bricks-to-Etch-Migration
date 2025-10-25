@@ -1,11 +1,11 @@
 import { post } from './api.js';
 import { showToast } from './ui.js';
 
-const ACTION_EXTRACT_TEMPLATE = 'b2e_extract_template';
-const ACTION_GET_EXTRACTION_PROGRESS = 'b2e_get_extraction_progress';
-const ACTION_SAVE_TEMPLATE = 'b2e_save_template';
-const ACTION_GET_SAVED_TEMPLATES = 'b2e_get_saved_templates';
-const ACTION_DELETE_TEMPLATE = 'b2e_delete_template';
+const ACTION_EXTRACT_TEMPLATE = 'efs_extract_template';
+const ACTION_GET_EXTRACTION_PROGRESS = 'efs_get_extraction_progress';
+const ACTION_SAVE_TEMPLATE = 'efs_save_template';
+const ACTION_GET_SAVED_TEMPLATES = 'efs_get_saved_templates';
+const ACTION_DELETE_TEMPLATE = 'efs_delete_template';
 
 let progressPollTimer = null;
 const DEFAULT_PROGRESS_STEPS = ['fetching', 'sanitizing', 'analyzing', 'generating', 'validating', 'completed'];
@@ -91,14 +91,14 @@ const stopProgressPolling = () => {
  * Updates progress UI elements.
  */
 const updateProgressUI = (progressData) => {
-	const progressSection = document.querySelector('[data-template-progress]');
+	const progressSection = document.querySelector('[data-efs-template-progress]');
 	if (!progressSection) return;
 
-	progressSection.classList.remove('hidden');
+	progressSection.classList.remove('is-hidden');
 
-	const progressBar = progressSection.querySelector('[data-progress-bar]');
-	const statusText = progressSection.querySelector('[data-status-text]');
-	const stepsList = progressSection.querySelector('[data-steps-list]');
+	const progressBar = progressSection.querySelector('[data-efs-progress-bar]');
+	const statusText = progressSection.querySelector('[data-efs-status-text]');
+	const stepsList = progressSection.querySelector('[data-efs-steps]');
 
 	if (progressBar) {
 		const percent = progressData.progress || 0;
@@ -145,12 +145,12 @@ const showProgressStart = (step) => {
  * Shows template preview in UI.
  */
 const showPreview = (templateData) => {
-	const previewSection = document.querySelector('[data-template-preview]');
+	const previewSection = document.querySelector('[data-efs-template-preview]');
 	if (!previewSection) return;
 
-	previewSection.classList.remove('hidden');
+	previewSection.classList.remove('is-hidden');
 
-	const metadataEl = previewSection.querySelector('[data-template-metadata]');
+	const metadataEl = previewSection.querySelector('[data-efs-template-metadata]');
 	if (metadataEl && templateData.metadata) {
 		metadataEl.innerHTML = `
 			<h3>${templateData.metadata.title || 'Imported Template'}</h3>
@@ -162,7 +162,7 @@ const showPreview = (templateData) => {
 		`;
 	}
 
-	const blocksPreview = previewSection.querySelector('[data-blocks-preview]');
+	const blocksPreview = previewSection.querySelector('[data-efs-blocks-preview]');
 	if (blocksPreview && templateData.blocks) {
 		const previewBlocks = templateData.blocks.slice(0, 3);
 		blocksPreview.innerHTML = previewBlocks
@@ -210,32 +210,34 @@ export const loadSavedTemplates = async () => {
  * Renders saved templates in UI.
  */
 const renderSavedTemplates = (templates) => {
-	const listContainer = document.querySelector('[data-saved-templates-list]');
+	const listContainer = document.querySelector('[data-efs-saved-templates]');
 	if (!listContainer) return;
 
 	if (!templates || templates.length === 0) {
-		listContainer.innerHTML = '<p class="no-templates">No saved templates yet.</p>';
+		listContainer.innerHTML = '<p class="efs-empty-state">No saved templates yet.</p>';
 		return;
 	}
 
 	listContainer.innerHTML = templates
 		.map(
 			(template) => `
-		<div class="template-item" data-template-id="${template.id}">
-			<h4>${escapeHtml(template.title)}</h4>
-			<p class="template-date">${template.created_at}</p>
-			<div class="template-actions">
-				<button class="button button-small" data-action="preview" data-template-id="${template.id}">Preview</button>
-				<button class="button button-small" data-action="delete" data-template-id="${template.id}">Delete</button>
+		<div class="efs-saved-template" data-efs-template-id="${template.id}">
+			<header class="efs-saved-template__header">
+				<h4 class="efs-saved-template__title">${escapeHtml(template.title)}</h4>
+				<p class="efs-saved-template__date">${template.created_at}</p>
+			</header>
+			<div class="efs-saved-template__actions">
+				<button class="button button-secondary" data-efs-template-action="preview" data-efs-template-id="${template.id}">Preview</button>
+				<button class="button" data-efs-template-action="delete" data-efs-template-id="${template.id}">Delete</button>
 			</div>
 		</div>
 	`
 		)
 		.join('');
 
-	// Bind action buttons
-	listContainer.querySelectorAll('[data-action="delete"]').forEach((btn) => {
-		btn.addEventListener('click', () => deleteTemplate(parseInt(btn.dataset.templateId)));
+	// Bind delete actions
+	listContainer.querySelectorAll('[data-efs-template-action="delete"]').forEach((btn) => {
+		btn.addEventListener('click', () => deleteTemplate(parseInt(btn.dataset.efsTemplateId, 10)));
 	});
 };
 
@@ -268,12 +270,40 @@ const escapeHtml = (text) => {
 /**
  * Initializes template extractor UI bindings.
  */
+const bindTabs = (container) => {
+	const tabs = container.querySelectorAll('[data-efs-tab]');
+	const contents = container.querySelectorAll('[data-efs-tab-content]');
+
+	tabs.forEach((tab) => {
+		tab.addEventListener('click', () => {
+			const target = tab.dataset.efsTab;
+
+			tabs.forEach((button) => {
+				button.classList.toggle('is-active', button === tab);
+				button.setAttribute('aria-selected', button === tab ? 'true' : 'false');
+			});
+
+			contents.forEach((panel) => {
+				const match = panel.dataset.efsTabContent === target;
+				panel.classList.toggle('is-active', match);
+				if (match) {
+					panel.removeAttribute('hidden');
+				} else {
+					panel.setAttribute('hidden', '');
+				}
+			});
+		});
+	});
+};
+
 export const init = () => {
-	const extractorSection = document.querySelector('[data-template-extractor]');
+	const extractorSection = document.querySelector('[data-efs-template-extractor]');
 	if (!extractorSection) return;
 
+	bindTabs(extractorSection);
+
 	// Bind URL extraction form
-	const urlForm = extractorSection.querySelector('[data-extract-url-form]');
+	const urlForm = extractorSection.querySelector('[data-efs-extract-url-form]');
 	if (urlForm) {
 		urlForm.addEventListener('submit', async (e) => {
 			e.preventDefault();
@@ -285,7 +315,7 @@ export const init = () => {
 	}
 
 	// Bind HTML extraction form
-	const htmlForm = extractorSection.querySelector('[data-extract-html-form]');
+	const htmlForm = extractorSection.querySelector('[data-efs-extract-html-form]');
 	if (htmlForm) {
 		htmlForm.addEventListener('submit', async (e) => {
 			e.preventDefault();
@@ -297,13 +327,13 @@ export const init = () => {
 	}
 
 	// Bind save button
-	const saveBtn = extractorSection.querySelector('[data-save-template-btn]');
+	const saveBtn = extractorSection.querySelector('[data-efs-save-template]');
 	if (saveBtn) {
 		saveBtn.addEventListener('click', async () => {
-			const previewSection = document.querySelector('[data-template-preview]');
+			const previewSection = document.querySelector('[data-efs-template-preview]');
 			const templateData = previewSection?.dataset.templateData;
 			const nameInput = extractorSection.querySelector('[name="template_name"]');
-			
+
 			if (templateData && nameInput) {
 				await saveTemplate(JSON.parse(templateData), nameInput.value || 'Imported Template');
 			}

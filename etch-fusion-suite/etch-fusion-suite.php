@@ -26,26 +26,6 @@ define( 'EFS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EFS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'EFS_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 
-// Backwards compatibility: retain legacy constants if referenced elsewhere
-if ( ! defined( 'B2E_VERSION' ) ) {
-	define( 'B2E_VERSION', EFS_PLUGIN_VERSION );
-}
-
-if ( ! defined( 'B2E_PLUGIN_FILE' ) ) {
-	define( 'B2E_PLUGIN_FILE', EFS_PLUGIN_FILE );
-}
-
-if ( ! defined( 'B2E_PLUGIN_DIR' ) ) {
-	define( 'B2E_PLUGIN_DIR', EFS_PLUGIN_DIR );
-}
-
-if ( ! defined( 'B2E_PLUGIN_URL' ) ) {
-	define( 'B2E_PLUGIN_URL', EFS_PLUGIN_URL );
-}
-
-if ( ! defined( 'B2E_PLUGIN_BASENAME' ) ) {
-	define( 'B2E_PLUGIN_BASENAME', EFS_PLUGIN_BASENAME );
-}
 
 // Load Composer autoloader when available
 if ( file_exists( EFS_PLUGIN_DIR . 'vendor/autoload.php' ) ) {
@@ -60,18 +40,18 @@ require_once EFS_PLUGIN_DIR . 'includes/container/class-service-container.php';
 require_once EFS_PLUGIN_DIR . 'includes/container/class-service-provider.php';
 
 // Import namespaced classes
-use Bricks2Etch\Api\B2E_API_Endpoints;
-use Bricks2Etch\Container\B2E_Service_Container;
-use Bricks2Etch\Container\B2E_Service_Provider;
-use Bricks2Etch\Migrators\B2E_Migrator_Discovery;
-use Bricks2Etch\Migrators\B2E_Migrator_Registry;
+use Bricks2Etch\Api\EFS_API_Endpoints;
+use Bricks2Etch\Container\EFS_Service_Container;
+use Bricks2Etch\Container\EFS_Service_Provider;
+use Bricks2Etch\Migrators\EFS_Migrator_Discovery;
+use Bricks2Etch\Migrators\EFS_Migrator_Registry;
 
 // Bootstrap service container
 global $efs_container;
 
 if ( ! isset( $efs_container ) ) {
-	$efs_container       = new B2E_Service_Container();
-	$efs_service_provider = new B2E_Service_Provider();
+	$efs_container       = new EFS_Service_Container();
+	$efs_service_provider = new EFS_Service_Provider();
 	$efs_service_provider->register( $efs_container );
 }
 
@@ -80,13 +60,6 @@ if ( ! function_exists( 'efs_container' ) ) {
 		global $efs_container;
 
 		return $efs_container;
-	}
-}
-
-// Backwards compatibility helper
-if ( ! function_exists( 'b2e_container' ) ) {
-	function b2e_container() {
-		return efs_container();
 	}
 }
 
@@ -148,9 +121,8 @@ class EFS_Plugin {
 	 * Initialize plugin
 	 */
 	public function init() {
-		// Load text domain (support both new and legacy domains)
+		// Load text domain
 		load_plugin_textdomain( 'etch-fusion-suite', false, dirname( EFS_PLUGIN_BASENAME ) . '/languages' );
-		load_plugin_textdomain( 'bricks-etch-migration', false, dirname( EFS_PLUGIN_BASENAME ) . '/languages' );
 
 		// Initialize components
 		$this->init_components();
@@ -164,7 +136,7 @@ class EFS_Plugin {
 
 		if ( $container->has( 'migrator_registry' ) ) {
 			$registry = $container->get( 'migrator_registry' );
-			B2E_Migrator_Discovery::discover_migrators( $registry );
+			EFS_Migrator_Discovery::discover_migrators( $registry );
 		}
 	}
 
@@ -192,12 +164,8 @@ class EFS_Plugin {
 	 * Initialize REST API endpoints
 	 */
 	public function init_rest_api() {
-		// Initialize CORS Manager first
-		$this->init_cors_manager();
-
-		// Initialize API endpoints when REST API is ready
-		B2E_API_Endpoints::set_container( efs_container() );
-		B2E_API_Endpoints::init();
+		EFS_API_Endpoints::set_container( efs_container() );
+		EFS_API_Endpoints::init();
 	}
 
 	/**
@@ -249,7 +217,7 @@ class EFS_Plugin {
 	 * Add security headers to HTTP responses
 	 */
 	public function add_security_headers() {
-		$container = b2e_container();
+		$container = efs_container();
 
 		if ( $container->has( 'security_headers' ) ) {
 			$security_headers = $container->get( 'security_headers' );
@@ -264,7 +232,7 @@ class EFS_Plugin {
 	 * Production environments should always use HTTPS for Application Passwords.
 	 */
 	public function enable_application_passwords( $available ) {
-		$container = b2e_container();
+		$container = efs_container();
 
 		if ( $container->has( 'environment_detector' ) ) {
 			$environment_detector = $container->get( 'environment_detector' );
@@ -284,12 +252,12 @@ class EFS_Plugin {
 
 	/**
 	 * Add admin menu - REMOVED: This was causing duplicate menus
-	 * Admin menu is now handled by B2E_Admin_Interface class only
+	 * Admin menu is now handled by EFS_Admin_Interface class only
 	 */
 
 	/**
 	 * Admin page callback - REMOVED: This was causing duplicate dashboards
-	 * Dashboard rendering is now handled by B2E_Admin_Interface class only
+	 * Dashboard rendering is now handled by EFS_Admin_Interface class only
 	 */
 
 	/**
@@ -310,31 +278,31 @@ class EFS_Plugin {
 		// Clear transients
 		$wpdb->query(
 			"DELETE FROM {$wpdb->options} 
-             WHERE option_name LIKE '_transient_b2e_%' 
-             OR option_name LIKE '_transient_timeout_b2e_%'"
+             WHERE option_name LIKE '_transient_efs_%' 
+             OR option_name LIKE '_transient_timeout_efs_%'"
 		);
 
-		// Clear all B2E options
-		$b2e_options = array(
-			'b2e_settings',
-			'b2e_migration_progress',
-			'b2e_migration_token',
-			'b2e_migration_token_value',
-			'b2e_private_key',
-			'b2e_error_log',
-			'b2e_api_key',
-			'b2e_import_api_key',
-			'b2e_export_api_key',
-			'b2e_migration_settings',
+		// Clear all EFS options
+		$efs_options = array(
+			'efs_settings',
+			'efs_migration_progress',
+			'efs_migration_token',
+			'efs_migration_token_value',
+			'efs_private_key',
+			'efs_error_log',
+			'efs_api_key',
+			'efs_import_api_key',
+			'efs_export_api_key',
+			'efs_migration_settings',
 		);
 
-		foreach ( $b2e_options as $option ) {
+		foreach ( $efs_options as $option ) {
 			delete_option( $option );
 		}
 
 		// Clear user meta
 		$wpdb->query(
-			"DELETE FROM {$wpdb->usermeta} WHERE meta_key LIKE '%b2e%'"
+			"DELETE FROM {$wpdb->usermeta} WHERE meta_key LIKE '%efs%'"
 		);
 
 		// Clear WordPress object cache
@@ -393,23 +361,9 @@ function efs_debug_log( $message, $data = null, $context = 'EFS_DEBUG' ) {
 	error_log( $log_message );
 }
 
-if ( ! function_exists( 'b2e_debug_log' ) ) {
-	function b2e_debug_log( $message, $data = null, $context = 'B2E_DEBUG' ) {
-		// Delegate to new helper while preserving legacy signature
-		efs_debug_log( $message, $data, $context );
-	}
-}
-
 // Initialize the plugin (new name)
 function etch_fusion_suite() {
 	return EFS_Plugin::get_instance();
-}
-
-// Backwards compatibility entry point
-if ( ! function_exists( 'bricks_etch_migration' ) ) {
-	function bricks_etch_migration() {
-		return etch_fusion_suite();
-	}
 }
 
 // Start the plugin

@@ -398,10 +398,9 @@ class EFS_Service_Provider {
 			'logs_ajax',
 			function ( $c ) {
 				return new \Bricks2Etch\Ajax\Handlers\EFS_Logs_Ajax_Handler(
-					$c->get( 'error_handler' ),
+					$c->get( 'audit_logger' ),
 					$c->get( 'rate_limiter' ),
-					$c->get( 'input_validator' ),
-					$c->get( 'audit_logger' )
+					$c->get( 'input_validator' )
 				);
 			}
 		);

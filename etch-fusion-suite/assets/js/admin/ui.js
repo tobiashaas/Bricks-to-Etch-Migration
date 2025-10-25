@@ -1,7 +1,7 @@
 import { getInitialData } from './api.js';
 
 const TOAST_VISIBLE_CLASS = 'is-visible';
-const TOAST_CONTAINER_CLASS = 'b2e-toast-container';
+const TOAST_CONTAINER_CLASS = 'efs-toast-container';
 
 const ensureToastContainer = () => {
     let container = document.querySelector(`.${TOAST_CONTAINER_CLASS}`);
@@ -21,7 +21,7 @@ export const showToast = (message, type = 'info', { duration = 4000 } = {}) => {
     }
     const container = ensureToastContainer();
     const toast = document.createElement('div');
-    toast.className = `b2e-toast b2e-toast--${type}`;
+    toast.className = `efs-toast efs-toast--${type}`;
     toast.textContent = message;
     container.appendChild(toast);
 
@@ -76,7 +76,7 @@ export const setLoading = (element, isLoading) => {
 
 export const updateProgress = ({ percentage = 0, status = '', steps = [] }) => {
     const progressRoot = document.querySelector('[data-efs-progress]');
-    const progressFill = progressRoot?.querySelector('.b2e-progress-fill');
+    const progressFill = progressRoot?.querySelector('.efs-progress-fill');
     const currentStep = document.querySelector('[data-efs-current-step]');
     const stepsList = document.querySelector('[data-efs-steps]');
 
@@ -91,7 +91,7 @@ export const updateProgress = ({ percentage = 0, status = '', steps = [] }) => {
         stepsList.innerHTML = '';
         steps.forEach((step) => {
             const li = document.createElement('li');
-            li.className = 'b2e-migration-step';
+            li.className = 'efs-migration-step';
             if (step.completed) {
                 li.classList.add('is-complete');
             }

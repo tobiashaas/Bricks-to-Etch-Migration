@@ -10,20 +10,36 @@
 
 namespace Bricks2Etch\Converters;
 
-use Bricks2Etch\Converters\Elements\B2E_Element_Container;
-use Bricks2Etch\Converters\Elements\B2E_Element_Section;
-use Bricks2Etch\Converters\Elements\B2E_Element_Heading;
-use Bricks2Etch\Converters\Elements\B2E_Element_Paragraph;
-use Bricks2Etch\Converters\Elements\B2E_Element_Image;
-use Bricks2Etch\Converters\Elements\B2E_Element_Div;
-use Bricks2Etch\Converters\Elements\B2E_Button_Converter;
-use Bricks2Etch\Converters\Elements\B2E_Icon_Converter;
+use Bricks2Etch\Converters\Elements\EFS_Element_Container;
+use Bricks2Etch\Converters\Elements\EFS_Element_Section;
+use Bricks2Etch\Converters\Elements\EFS_Element_Heading;
+use Bricks2Etch\Converters\Elements\EFS_Element_Paragraph;
+use Bricks2Etch\Converters\Elements\EFS_Element_Image;
+use Bricks2Etch\Converters\Elements\EFS_Element_Div;
+use Bricks2Etch\Converters\Elements\EFS_Button_Converter;
+use Bricks2Etch\Converters\Elements\EFS_Icon_Converter;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 class EFS_Element_Factory {
+
+	/**
+	 * Map Bricks element types to converter classes.
+	 */
+	private const TYPE_MAP = array(
+		'container'  => EFS_Element_Container::class,
+		'section'    => EFS_Element_Section::class,
+		'heading'    => EFS_Element_Heading::class,
+		'text-basic' => EFS_Element_Paragraph::class,
+		'text'       => EFS_Element_Paragraph::class,
+		'image'      => EFS_Element_Image::class,
+		'div'        => EFS_Element_Div::class,
+		'block'      => EFS_Element_Div::class,
+		'button'     => EFS_Button_Converter::class,
+		'icon'       => EFS_Icon_Converter::class,
+	);
 
 	/**
 	 * Style map
@@ -72,25 +88,11 @@ class EFS_Element_Factory {
 			return null;
 		}
 
-		// Map Bricks element types to converter classes
-		$type_map = array(
-			'container'  => 'B2E_Element_Container',
-			'section'    => 'B2E_Element_Section',
-			'heading'    => 'B2E_Element_Heading',
-			'text-basic' => 'B2E_Element_Paragraph',
-			'text'       => 'B2E_Element_Paragraph',
-			'image'      => 'B2E_Element_Image',
-			'div'        => 'B2E_Element_Div',
-			'block'      => 'B2E_Element_Div', // Bricks 'block' = Etch 'flex-div'
-			'button'     => 'B2E_Button_Converter',
-			'icon'       => 'B2E_Icon_Converter',
-		);
-
 		// Get converter class
-		$converter_class = $type_map[ $element_type ] ?? null;
+		$converter_class = self::TYPE_MAP[ $element_type ] ?? null;
 
 		if ( ! $converter_class ) {
-			error_log( "⚠️ B2E Factory: No converter found for element type: {$element_type}" );
+			error_log( "🚨 EFS Factory: No converter found for element type: {$element_type}" );
 			return null;
 		}
 
@@ -113,14 +115,14 @@ class EFS_Element_Factory {
 		$element_type = $element['name'] ?? '';
 
 		if ( empty( $element_type ) ) {
-			error_log( '⚠️ B2E Factory: Element has no type' );
+			error_log( '⚠️ EFS Factory: Element has no type' );
 			return null;
 		}
 
 		$converter = $this->get_converter( $element_type );
 
 		if ( ! $converter ) {
-			error_log( "⚠️ B2E Factory: Unsupported element type: {$element_type}" );
+			error_log( "⚠️ EFS Factory: Unsupported element type: {$element_type}" );
 			return null;
 		}
 

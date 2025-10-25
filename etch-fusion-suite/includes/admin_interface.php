@@ -37,14 +37,14 @@ class EFS_Admin_Interface {
 
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
 
-		add_action( 'wp_ajax_b2e_start_migration', array( $this, 'start_migration' ) );
-		add_action( 'wp_ajax_b2e_get_migration_progress', array( $this, 'get_progress' ) );
-		add_action( 'wp_ajax_b2e_migrate_batch', array( $this, 'process_batch' ) );
-		add_action( 'wp_ajax_b2e_cancel_migration', array( $this, 'cancel_migration' ) );
-		add_action( 'wp_ajax_b2e_generate_report', array( $this, 'generate_report' ) );
-		add_action( 'wp_ajax_b2e_save_settings', array( $this, 'save_settings' ) );
-		add_action( 'wp_ajax_b2e_test_connection', array( $this, 'test_connection' ) );
-		add_action( 'wp_ajax_b2e_generate_migration_key', array( $this, 'generate_migration_key' ) );
+		add_action( 'wp_ajax_efs_start_migration', array( $this, 'start_migration' ) );
+		add_action( 'wp_ajax_efs_get_migration_progress', array( $this, 'get_progress' ) );
+		add_action( 'wp_ajax_efs_migrate_batch', array( $this, 'process_batch' ) );
+		add_action( 'wp_ajax_efs_cancel_migration', array( $this, 'cancel_migration' ) );
+		add_action( 'wp_ajax_efs_generate_report', array( $this, 'generate_report' ) );
+		add_action( 'wp_ajax_efs_save_settings', array( $this, 'save_settings' ) );
+		add_action( 'wp_ajax_efs_test_connection', array( $this, 'test_connection' ) );
+		add_action( 'wp_ajax_efs_generate_migration_key', array( $this, 'generate_migration_key' ) );
 	}
 
 	public function add_admin_menu() {
@@ -69,26 +69,26 @@ class EFS_Admin_Interface {
 		}
 
 		wp_enqueue_style(
-			'b2e-admin-css',
+			'efs-admin-css',
 			EFS_PLUGIN_URL . 'assets/css/admin.css',
 			array(),
 			EFS_PLUGIN_VERSION
 		);
 
 		wp_enqueue_script(
-			'b2e-admin-main',
+			'efs-admin-main',
 			EFS_PLUGIN_URL . 'assets/js/admin/main.js',
 			array(),
 			EFS_PLUGIN_VERSION,
 			true
 		);
 
-		wp_script_add_data( 'b2e-admin-main', 'type', 'module' );
+		wp_script_add_data( 'efs-admin-main', 'type', 'module' );
 
 		$context            = $this->dashboard_controller->get_dashboard_context();
 		$context['ajaxUrl'] = admin_url( 'admin-ajax.php' );
 
-		wp_localize_script( 'b2e-admin-main', 'efsData', $context );
+		wp_localize_script( 'efs-admin-main', 'efsData', $context );
 	}
 
 	public function start_migration() {
@@ -164,7 +164,7 @@ class EFS_Admin_Interface {
 	}
 
 	private function verify_request() {
-		if ( ! check_ajax_referer( 'b2e_nonce', 'nonce', false ) ) {
+		if ( ! check_ajax_referer( 'efs_nonce', 'nonce', false ) ) {
 			wp_send_json_error( __( 'Invalid request.', 'etch-fusion-suite' ) );
 			return false;
 		}

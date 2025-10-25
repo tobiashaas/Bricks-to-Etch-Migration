@@ -44,8 +44,8 @@ class EFS_Validation_Ajax_Handler extends EFS_Base_Ajax_Handler {
 	 * Register WordPress hooks
 	 */
 	protected function register_hooks() {
-		add_action( 'wp_ajax_b2e_validate_api_key', array( $this, 'validate_api_key' ) );
-		add_action( 'wp_ajax_b2e_validate_migration_token', array( $this, 'validate_migration_token' ) );
+		add_action( 'wp_ajax_efs_validate_api_key', array( $this, 'validate_api_key' ) );
+		add_action( 'wp_ajax_efs_validate_migration_token', array( $this, 'validate_migration_token' ) );
 	}
 
 	/**

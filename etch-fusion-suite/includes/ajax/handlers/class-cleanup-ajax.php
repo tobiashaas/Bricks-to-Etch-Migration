@@ -31,7 +31,7 @@ class EFS_Cleanup_Ajax_Handler extends EFS_Base_Ajax_Handler {
 	}
 
 	protected function register_hooks() {
-		add_action( 'wp_ajax_b2e_cleanup_etch', array( $this, 'cleanup_etch' ) );
+		add_action( 'wp_ajax_efs_cleanup_etch', array( $this, 'cleanup_etch' ) );
 	}
 
 	public function cleanup_etch() {

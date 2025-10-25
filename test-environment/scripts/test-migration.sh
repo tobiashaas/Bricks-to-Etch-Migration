@@ -156,7 +156,7 @@ start_migration() {
   # Step 2: Trigger migration on Bricks site using the token
   local migration_result
   migration_result=$(run_compose exec -T "${WPCLI_SERVICE}" wp eval \
-    "\$_POST['migration_token'] = '${migration_token}'; \$_POST['batch_size'] = 50; \$_REQUEST['action'] = 'b2e_start_migration'; \$_REQUEST['_wpnonce'] = wp_create_nonce('b2e_ajax_nonce'); do_action('wp_ajax_b2e_start_migration');" \
+    "\$_POST['migration_token'] = '${migration_token}'; \$_POST['batch_size'] = 50; \$_REQUEST['action'] = 'efs_start_migration'; \$_REQUEST['_wpnonce'] = wp_create_nonce('b2e_ajax_nonce'); do_action('wp_ajax_efs_start_migration');" \
     --path="${BRICKS_SITE_PATH}" \
     --user=admin 2>&1 || echo "")
   

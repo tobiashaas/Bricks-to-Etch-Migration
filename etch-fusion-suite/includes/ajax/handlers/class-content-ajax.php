@@ -44,8 +44,8 @@ class EFS_Content_Ajax_Handler extends EFS_Base_Ajax_Handler {
 	 * Register WordPress hooks
 	 */
 	protected function register_hooks() {
-		add_action( 'wp_ajax_b2e_migrate_batch', array( $this, 'migrate_batch' ) );
-		add_action( 'wp_ajax_b2e_get_bricks_posts', array( $this, 'get_bricks_posts' ) );
+		add_action( 'wp_ajax_efs_migrate_batch', array( $this, 'migrate_batch' ) );
+		add_action( 'wp_ajax_efs_get_bricks_posts', array( $this, 'get_bricks_posts' ) );
 	}
 
 	/**

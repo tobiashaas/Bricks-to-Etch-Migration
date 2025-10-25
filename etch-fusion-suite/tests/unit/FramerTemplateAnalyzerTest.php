@@ -30,12 +30,12 @@ class FramerTemplateAnalyzerTest extends WP_UnitTestCase {
     public function setUp(): void {
         parent::setUp();
 
-        $container = \b2e_container();
+        $container = \efs_container();
         $this->parser = $container->get('html_parser');
         $this->sanitizer = $container->get('html_sanitizer');
         $this->analyzer = $container->get('template_analyzer');
 
-        $fixture_path = B2E_PLUGIN_DIR . '/tests/fixtures/framer-sample.html';
+        $fixture_path = EFS_PLUGIN_DIR . '/tests/fixtures/framer-sample.html';
         $html = file_get_contents($fixture_path);
         $this->assertNotFalse($html, 'Fixture HTML must be readable.');
 

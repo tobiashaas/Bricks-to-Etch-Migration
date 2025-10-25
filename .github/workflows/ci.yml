@@ -9,19 +9,23 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
+
+env:
+  PLUGIN_DIR: etch-fusion-suite
 
 jobs:
   lint:
-    name: Lint (PHP 8.1)
+    name: Lint (WPCS)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
 
-      - name: Set up PHP
+      - name: Set up PHP 8.1
         uses: shivammathur/setup-php@bf6b4fbd49ca58e4608c9c89fba0b8d90bd2a39f
         with:
-          php-version: "8.1"
+          php-version: '8.1'
           coverage: none
           tools: composer
 
@@ -29,32 +33,32 @@ jobs:
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
           path: |
-            etch-fusion-suite/vendor
+            ${{ env.PLUGIN_DIR }}/vendor
             ~/.composer/cache
           key: ${{ runner.os }}-php-8.1-${{ hashFiles('etch-fusion-suite/composer.lock') }}
           restore-keys: |
             ${{ runner.os }}-php-8.1-
 
-      - name: Install dependencies
-        run: composer install --no-progress --prefer-dist
-        working-directory: etch-fusion-suite
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+        working-directory: ${{ env.PLUGIN_DIR }}
 
-      - name: Run PHPCS (WordPress Coding Standards)
-        run: vendor/bin/phpcs --standard=phpcs.xml.dist --extensions=php
-        working-directory: etch-fusion-suite
+      - name: Run WordPress Coding Standards
+        run: composer lint
+        working-directory: ${{ env.PLUGIN_DIR }}
 
   compatibility:
-    name: PHP Compatibility (PHP ${{ matrix.php-version }})
+    name: PHPCompatibility (${{ matrix.php-version }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        php-version: ["7.4", "8.1", "8.2", "8.3", "8.4"]
+        php-version: ['7.4', '8.1', '8.2', '8.3', '8.4']
     steps:
       - name: Checkout repository
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
 
-      - name: Set up PHP
+      - name: Set up PHP ${{ matrix.php-version }}
         uses: shivammathur/setup-php@bf6b4fbd49ca58e4608c9c89fba0b8d90bd2a39f
         with:
           php-version: ${{ matrix.php-version }}
@@ -65,22 +69,22 @@ jobs:
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
           path: |
-            etch-fusion-suite/vendor
+            ${{ env.PLUGIN_DIR }}/vendor
             ~/.composer/cache
           key: ${{ runner.os }}-php-${{ matrix.php-version }}-${{ hashFiles('etch-fusion-suite/composer.lock') }}
           restore-keys: |
             ${{ runner.os }}-php-${{ matrix.php-version }}-
 
-      - name: Install dependencies
-        run: composer install --no-progress --prefer-dist
-        working-directory: etch-fusion-suite
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+        working-directory: ${{ env.PLUGIN_DIR }}
 
-      - name: Run PHPCompatibility checks
-        run: vendor/bin/phpcs --standard=PHPCompatibilityWP --extensions=php --runtime-set testVersion 7.4- .
-        working-directory: etch-fusion-suite
+      - name: Run PHPCompatibilityWP
+        run: vendor/bin/phpcs --standard=PHPCompatibilityWP --runtime-set testVersion 7.4- --extensions=php .
+        working-directory: ${{ env.PLUGIN_DIR }}
 
-  test:
-    name: PHPUnit (PHP ${{ matrix.php-version }})
+  tests:
+    name: PHPUnit (${{ matrix.php-version }})
     runs-on: ubuntu-latest
     needs:
       - lint
@@ -89,51 +93,130 @@ jobs:
       mysql:
         image: mysql:8.0
         env:
-          MYSQL_ROOT_PASSWORD: ''
-          MYSQL_ALLOW_EMPTY_PASSWORD: yes
           MYSQL_DATABASE: wordpress_test
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_USER: wordpress
+          MYSQL_PASSWORD: wordpress
         ports:
           - 3306:3306
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -u root -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
     strategy:
       fail-fast: false
       matrix:
-        php-version: ["7.4", "8.1", "8.2", "8.3", "8.4"]
+        php-version: ['7.4', '8.1', '8.2', '8.3', '8.4']
     steps:
       - name: Checkout repository
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
 
-      - name: Set up PHP
+      - name: Set up PHP ${{ matrix.php-version }}
         uses: shivammathur/setup-php@bf6b4fbd49ca58e4608c9c89fba0b8d90bd2a39f
         with:
           php-version: ${{ matrix.php-version }}
-          coverage: none
           tools: composer
-
-      - name: Install WordPress test suite
-        run: |
-          bash -c "$(curl -s https://raw.githubusercontent.com/wp-cli/scaffold-command/master/templates/install-wp-tests.sh)" install-wp-tests.sh wordpress_test root '' localhost latest
-        env:
-          WP_TESTS_DIR: /tmp/wordpress-tests-lib
-          WP_CORE_DIR: /tmp/wordpress
+          extensions: mysqli
+          ini-values: |
+            memory_limit=512M
+            zend.assertions=1
 
       - name: Cache Composer dependencies
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
           path: |
-            etch-fusion-suite/vendor
+            ${{ env.PLUGIN_DIR }}/vendor
             ~/.composer/cache
           key: ${{ runner.os }}-php-${{ matrix.php-version }}-${{ hashFiles('etch-fusion-suite/composer.lock') }}
           restore-keys: |
             ${{ runner.os }}-php-${{ matrix.php-version }}-
 
-      - name: Install dependencies
-        run: composer install --no-progress --prefer-dist
-        working-directory: etch-fusion-suite
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+        working-directory: ${{ env.PLUGIN_DIR }}
 
-      - name: Run PHPUnit
-        run: vendor/bin/phpunit
-        working-directory: etch-fusion-suite
+      - name: Install WordPress test suite
+        run: |
+          curl -s https://raw.githubusercontent.com/wp-cli/scaffold-command/master/templates/install-wp-tests.sh -o /tmp/install-wp-tests.sh
+          bash /tmp/install-wp-tests.sh wordpress_test root root 127.0.0.1 latest
         env:
           WP_TESTS_DIR: /tmp/wordpress-tests-lib
           WP_CORE_DIR: /tmp/wordpress
+
+      - name: Configure WordPress database
+        run: |
+          until mysql -h 127.0.0.1 -uroot -proot -e 'SELECT 1'; do
+            sleep 2
+          done
+
+      - name: Run PHPUnit suite (composer test)
+        run: composer test
+        working-directory: ${{ env.PLUGIN_DIR }}
+        env:
+          WP_TESTS_DIR: /tmp/wordpress-tests-lib
+          WP_CORE_DIR: /tmp/wordpress
+
+      - name: Rename coverage artifacts with PHP suffix
+        run: |
+          if [ -f build/logs/junit.xml ]; then
+            mv build/logs/junit.xml build/logs/junit-${{ matrix.php-version }}.xml
+          fi
+          if [ -f build/coverage/clover.xml ]; then
+            mv build/coverage/clover.xml build/coverage/clover-${{ matrix.php-version }}.xml
+          fi
+        working-directory: ${{ env.PLUGIN_DIR }}
+
+      - name: Upload JUnit results
+        if: always()
+        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874
+        with:
+          name: junit-${{ matrix.php-version }}
+          path: ${{ env.PLUGIN_DIR }}/build/logs/junit-${{ matrix.php-version }}.xml
+
+      - name: Upload Coverage results
+        if: always()
+        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874
+        with:
+          name: coverage-${{ matrix.php-version }}
+          path: ${{ env.PLUGIN_DIR }}/build/coverage/clover-${{ matrix.php-version }}.xml
+
+  security:
+    name: Security & Static Analysis
+    runs-on: ubuntu-latest
+    needs:
+      - lint
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+
+      - name: Set up PHP 8.1
+        uses: shivammathur/setup-php@bf6b4fbd49ca58e4608c9c89fba0b8d90bd2a39f
+        with:
+          php-version: '8.1'
+          coverage: none
+          tools: composer
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: |
+            ${{ env.PLUGIN_DIR }}/vendor
+            ~/.composer/cache
+          key: ${{ runner.os }}-php-8.1-${{ hashFiles('etch-fusion-suite/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-php-8.1-
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+        working-directory: ${{ env.PLUGIN_DIR }}
+
+      - name: Run Composer Audit
+        run: composer audit --locked
+        working-directory: ${{ env.PLUGIN_DIR }}
+
+      - name: Run Static Analysis (PHPStan baseline)
+        if: ${{ hashFiles('etch-fusion-suite/phpstan.neon') != '' }}
+        run: vendor/bin/phpstan analyse --memory-limit=512M
+        working-directory: ${{ env.PLUGIN_DIR }}
+

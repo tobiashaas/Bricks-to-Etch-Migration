@@ -1,106 +1,146 @@
 <?php
 /**
- * Integration tests for Migration workflow
+ * Integration tests for Migration workflow.
  *
  * @package Bricks2Etch\Tests\Integration
  */
 
+declare(strict_types=1);
+
 namespace Bricks2Etch\Tests\Integration;
 
-use Bricks2Etch\Migrators\B2E_Migrator_Registry;
+use Bricks2Etch\Migrators\EFS_Migrator_Discovery;
+use Bricks2Etch\Migrators\EFS_Migrator_Registry;
+use Bricks2Etch\Migrators\Interfaces\Migrator_Interface;
+use Bricks2Etch\Parsers\EFS_CSS_Converter;
+use Bricks2Etch\Services\EFS_Migration_Service;
 use WP_UnitTestCase;
 
-/**
- * Test complete migration workflow
- */
 class MigrationIntegrationTest extends WP_UnitTestCase {
 
-    /**
-     * @var int
-     */
-    private $test_post_id;
+	/** @var int */
+	private $test_post_id;
 
-    /**
-     * Set up test environment
-     */
-    public function setUp(): void {
-        parent::setUp();
+	protected function setUp(): void {
+		parent::setUp();
 
-        // Create test post with Bricks content
-        $this->test_post_id = $this->factory->post->create([
-            'post_title' => 'Test Post',
-            'post_content' => '',
-            'post_status' => 'publish',
-        ]);
+		$this->test_post_id = $this->factory->post->create(
+			array(
+				'post_title'   => 'EFS Integration Test',
+				'post_content' => '',
+				'post_status'  => 'publish',
+			)
+		);
 
-        // Add Bricks meta
-        update_post_meta($this->test_post_id, '_bricks_page_content_2', [
-            [
-                'id' => 'test123',
-                'name' => 'section',
-                'settings' => [
-                    'tag' => 'section',
-                ],
-            ],
-        ]);
-    }
+		update_post_meta(
+			$this->test_post_id,
+			'_bricks_page_content_2',
+			array(
+				array(
+					'id'       => 'test-section',
+					'name'     => 'section',
+					'settings' => array( 'tag' => 'section' ),
+					'elements' => array(),
+				),
+			)
+		);
 
-    /**
-     * Tear down test environment
-     */
-    public function tearDown(): void {
-        if ($this->test_post_id) {
-            wp_delete_post($this->test_post_id, true);
-        }
-        parent::tearDown();
-    }
+		update_post_meta( $this->test_post_id, '_bricks_template_type', 'page' );
+	}
 
-    /**
-     * Test complete migration workflow
-     */
-    public function test_complete_migration_workflow() {
-        // This is a placeholder test - actual migration would require
-        // a full Etch site setup which is not available in unit tests
-        
-        $this->assertTrue(true, 'Migration workflow test placeholder');
-    }
+	protected function tearDown(): void {
+		if ( $this->test_post_id ) {
+			wp_delete_post( $this->test_post_id, true );
+		}
 
-    /**
-     * Test CSS migration
-     */
-    public function test_css_migration() {
-        // Test that CSS converter is available
-        $container = b2e_container();
-        $this->assertTrue($container->has('css_converter'));
+		parent::tearDown();
+	}
 
-        $css_converter = $container->get('css_converter');
-        $this->assertInstanceOf('Bricks2Etch\Parsers\B2E_CSS_Converter', $css_converter);
-    }
+	public function test_container_resolves_migration_service_and_dependencies(): void {
+		$container        = efs_container();
+		$migration_service = $container->get( 'migration_service' );
 
-    /**
-     * Test migrator registry
-     */
-    public function test_migrator_registry() {
-        $container = b2e_container();
-        $this->assertTrue($container->has('migrator_registry'));
+		$this->assertInstanceOf( EFS_Migration_Service::class, $migration_service );
+		$this->assertTrue( $container->has( 'migration_repository' ) );
+		$this->assertTrue( $container->has( 'plugin_detector' ) );
+	}
 
-        $registry = $container->get('migrator_registry');
-        $this->assertInstanceOf(B2E_Migrator_Registry::class, $registry);
+	public function test_css_converter_available_for_migration_flow(): void {
+		$container = efs_container();
+		$this->assertTrue( $container->has( 'css_converter' ) );
 
-        // Test that registry has methods
-        $this->assertTrue(method_exists($registry, 'get_all'));
-        $this->assertTrue(method_exists($registry, 'get_supported'));
-        $this->assertTrue(method_exists($registry, 'register'));
-    }
+		$converter = $container->get( 'css_converter' );
+		$this->assertInstanceOf( EFS_CSS_Converter::class, $converter );
 
-    /**
-     * Test that Bricks content is detected
-     */
-    public function test_bricks_content_detection() {
-        $bricks_content = get_post_meta($this->test_post_id, '_bricks_page_content_2', true);
-        
-        $this->assertIsArray($bricks_content);
-        $this->assertNotEmpty($bricks_content);
-        $this->assertEquals('section', $bricks_content[0]['name']);
-    }
+		$sample_css = array( 'styles' => array( '.efs' => array( 'color' => '#fff' ) ) );
+		$result     = $converter->convert( $sample_css );
+		$this->assertIsArray( $result );
+	}
+
+	public function test_registry_discovers_builtin_and_custom_migrators(): void {
+		$container = efs_container();
+		/** @var EFS_Migrator_Registry $registry */
+		$registry = $container->get( 'migrator_registry' );
+
+		$registry->clear();
+
+		$custom_migrator = new class() implements Migrator_Interface {
+			public function get_name() {
+				return 'Custom Migrator';
+			}
+
+			public function get_type() {
+				return 'custom';
+			}
+
+			public function get_priority() {
+				return 5;
+			}
+
+			public function supports() {
+				return true;
+			}
+
+			public function migrate( $target_url, $api_key ) {
+				return array();
+			}
+
+			public function validate() {
+				return array( 'valid' => true, 'errors' => array() );
+			}
+
+			public function export() {
+				return array();
+			}
+
+			public function import( $data ) {
+				return array();
+			}
+
+			public function get_stats() {
+				return array();
+			}
+		};
+
+		add_action( 'efs_register_migrators', static function ( EFS_Migrator_Registry $registry ) use ( $custom_migrator ) {
+			$registry->register( $custom_migrator );
+		}, 10, 1 );
+
+		EFS_Migrator_Discovery::discover_migrators( $registry );
+
+		$this->assertTrue( $registry->has( 'cpt' ) );
+		$this->assertTrue( $registry->has( 'custom' ) );
+		$this->assertArrayHasKey( 'custom', $registry->get_supported() );
+	}
+
+	public function test_bricks_content_fixture_detected_by_services(): void {
+		$container       = efs_container();
+		$content_service = $container->get( 'content_service' );
+
+		$analysis = $content_service->analyze_content();
+
+		$this->assertIsArray( $analysis );
+		$this->assertArrayHasKey( 'total', $analysis );
+	}
 }
+

@@ -44,7 +44,7 @@ class EFS_Media_Ajax_Handler extends EFS_Base_Ajax_Handler {
 	 * Register WordPress hooks
 	 */
 	protected function register_hooks() {
-		add_action( 'wp_ajax_b2e_migrate_media', array( $this, 'migrate_media' ) );
+		add_action( 'wp_ajax_efs_migrate_media', array( $this, 'migrate_media' ) );
 	}
 
 	/**

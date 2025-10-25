@@ -1,51 +1,49 @@
 <?php
 /**
- * PHPUnit bootstrap file for Bricks to Etch Migration Plugin
+ * PHPUnit bootstrap file for Etch Fusion Suite.
  *
  * @package Bricks2Etch\Tests
  */
 
-// Define test environment
-define('B2E_TESTS_DIR', __DIR__);
-define('B2E_PLUGIN_DIR', dirname(__DIR__));
+declare(strict_types=1);
 
-// WordPress tests directory
-$_tests_dir = getenv('WP_TESTS_DIR');
-if (!$_tests_dir) {
-    $_tests_dir = rtrim(sys_get_temp_dir(), '/\\') . '/wordpress-tests-lib';
+define( 'EFS_TESTS_DIR', __DIR__ );
+define( 'EFS_PLUGIN_DIR', dirname( __DIR__ ) );
+
+$_tests_dir = getenv( 'WP_TESTS_DIR' );
+
+if ( ! $_tests_dir && defined( 'WP_PHPUNIT__DIR' ) ) {
+	$_tests_dir = WP_PHPUNIT__DIR;
 }
 
-// WordPress core directory
-$_core_dir = getenv('WP_CORE_DIR');
-if (!$_core_dir) {
-    $_core_dir = rtrim(sys_get_temp_dir(), '/\\') . '/wordpress';
+if ( ! $_tests_dir ) {
+	$_tests_dir = rtrim( sys_get_temp_dir(), '/\\' ) . '/wordpress-tests-lib';
 }
 
-// Check if WordPress test suite is available
-if (!file_exists($_tests_dir . '/includes/functions.php')) {
-    echo "Could not find WordPress test suite at: $_tests_dir\n";
-    echo "Please install WordPress test suite:\n";
-    echo "  bash bin/install-wp-tests.sh wordpress_test root '' localhost latest\n";
-    exit(1);
+$_core_dir = getenv( 'WP_CORE_DIR' );
+
+if ( ! $_core_dir ) {
+	$_core_dir = rtrim( sys_get_temp_dir(), '/\\' ) . '/wordpress';
 }
 
-// Load Composer autoloader
-if (file_exists(B2E_PLUGIN_DIR . '/vendor/autoload.php')) {
-    require_once B2E_PLUGIN_DIR . '/vendor/autoload.php';
+if ( ! file_exists( $_tests_dir . '/includes/functions.php' ) ) {
+	fwrite( STDERR, "Could not find WordPress test suite at: {$_tests_dir}\n" );
+	fwrite( STDERR, "Install via: wp scaffold plugin-tests etch-fusion-suite --dir=. && bash bin/install-wp-tests.sh wordpress_test root '' localhost latest\n" );
+	exit( 1 );
 }
 
-// Load WordPress test functions
+if ( file_exists( EFS_PLUGIN_DIR . '/vendor/autoload.php' ) ) {
+	require_once EFS_PLUGIN_DIR . '/vendor/autoload.php';
+}
+
 require_once $_tests_dir . '/includes/functions.php';
 
-/**
- * Manually load the plugin for testing
- */
-function _manually_load_plugin() {
-    require B2E_PLUGIN_DIR . '/bricks-etch-migration.php';
+if ( ! function_exists( '_efs_manually_load_plugin' ) ) {
+	function _efs_manually_load_plugin(): void {
+		require_once EFS_PLUGIN_DIR . '/etch-fusion-suite.php';
+	}
 }
 
-// Register plugin activation
-tests_add_filter('muplugins_loaded', '_manually_load_plugin');
+tests_add_filter( 'muplugins_loaded', '_efs_manually_load_plugin' );
 
-// Start up the WordPress test suite
 require $_tests_dir . '/includes/bootstrap.php';

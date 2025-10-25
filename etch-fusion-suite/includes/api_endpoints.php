@@ -347,7 +347,7 @@ class EFS_API_Endpoints {
 	 * @return \WP_HTTP_Response|\WP_Error Modified response or error.
 	 */
 	public static function enforce_cors_globally( $response, $server, $request ) {
-		// Skip OPTIONS preflight requests (headers already handled by B2E_CORS_Manager::add_cors_headers())
+		// Skip OPTIONS preflight requests (headers already handled by EFS_CORS_Manager::add_cors_headers())
 		if ( $request->get_method() === 'OPTIONS' ) {
 			return $response;
 		}
@@ -574,5 +574,3 @@ class EFS_API_Endpoints {
 	}
 }
 
-// Legacy alias for backward compatibility
-class_alias( __NAMESPACE__ . '\EFS_API_Endpoints', __NAMESPACE__ . '\B2E_API_Endpoints' );

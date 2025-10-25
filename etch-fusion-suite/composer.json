@@ -41,7 +41,15 @@
     "scripts": {
         "lint": "phpcs",
         "lint:fix": "phpcbf",
-        "test": "phpunit",
-        "test:coverage": "phpunit --coverage-html build/coverage"
+        "test": [
+            "@php -r \"if (!is_dir('build/logs')) { mkdir('build/logs', 0777, true); }\"",
+            "@php -r \"if (!is_dir('build/coverage/html')) { mkdir('build/coverage/html', 0777, true); }\"",
+            "@php vendor/bin/phpunit --testsuite unit,integration,e2e,performance --log-junit build/logs/junit.xml --coverage-clover build/logs/clover.xml --coverage-html build/coverage/html"
+        ],
+        "test:unit": "@php vendor/bin/phpunit --testsuite unit",
+        "test:integration": "@php vendor/bin/phpunit --testsuite integration",
+        "test:e2e": "@php vendor/bin/phpunit --testsuite e2e",
+        "test:performance": "@php vendor/bin/phpunit --testsuite performance",
+        "test:coverage": "@test"
     }
 }

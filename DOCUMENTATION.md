@@ -1,7 +1,7 @@
 # Technical Documentation - Etch Fusion Suite
 
-**Last Updated:** 2025-10-25 16:37  
-**Version:** 0.11.0
+**Last Updated:** 2025-10-25 23:25  
+**Version:** 0.11.3
 
 ---
 
@@ -14,8 +14,9 @@
 5. [Media Migration](#media-migration)
 6. [API Communication](#api-communication)
 7. [Frontend Rendering](#frontend-rendering)
-8. [Test Environment](#test-environment)
-9. [Framer Template Extraction](#framer-template-extraction)
+8. [CI & Test Automation](#ci--test-automation)
+9. [Test Environment](#test-environment)
+10. [Framer Template Extraction](#framer-template-extraction)
 
 ---
 
@@ -26,7 +27,7 @@
 ### Plugin Structure
 
 ```
-bricks-etch-migration/
+etch-fusion-suite/
 ├── includes/
 │   ├── container/               # Dependency injection
 │   │   ├── class-service-container.php
@@ -45,7 +46,7 @@ bricks-etch-migration/
 │   ├── converters/              # Data conversion
 │   │   └── gutenberg_generator.php
 │   └── ...
-└── bricks-etch-migration.php    # Main plugin file
+└── etch-fusion-suite.php        # Main plugin file
 ```
 
 ### Service Container
@@ -63,7 +64,8 @@ The plugin uses a dependency injection container for service management:
 
 **Important:** All service bindings use fully qualified class names (FQCN) with correct namespaces.
 
-**Updated:** 2025-10-25 16:37 - All class names migrated from `B2E_*` to `EFS_*` prefix.
+**Updated:** 2025-10-25 16:37 - All class names migrated from `B2E_*` to `EFS_*` prefix.  
+**Updated:** 2025-10-25 21:55 - PHPUnit bootstrap prefers `WP_PHPUNIT__DIR` when available, loads `etch-fusion-suite.php` directly, and keeps strict failure handling.
 
 ### Autoloading & Namespaces
 
@@ -106,7 +108,7 @@ Bricks Site                    Etch Site
 
 ## Security Configuration
 
-**Updated:** 2025-10-24 07:56
+**Updated:** 2025-10-25 21:55
 
 ### CORS (Cross-Origin Resource Sharing)
 
@@ -532,22 +534,22 @@ Uses WordPress Application Passwords for secure API access.
 
 #### 1. Validate Token
 ```
-POST /wp-json/bricks-etch-migration/v1/validate-token
+POST /wp-json/efs/v1/validate-token
 ```
 
 #### 2. Receive Post
 ```
-POST /wp-json/bricks-etch-migration/v1/receive-post
+POST /wp-json/efs/v1/receive-post
 ```
 
 #### 3. Receive Media
 ```
-POST /wp-json/bricks-etch-migration/v1/receive-media
+POST /wp-json/efs/v1/receive-media
 ```
 
 #### 4. Import Styles
 ```
-POST /wp-json/bricks-etch-migration/v1/import-styles
+POST /wp-json/efs/v1/import-styles
 ```
 
 ---
@@ -821,18 +823,30 @@ $supported = $registry->get_supported();
 
 ---
 
-## Test Environment
+   - `etch.test` – Etch Theme (Ziel)
+2. **Plugin symlinken** (jeweils in der LocalWP „Site Shell“)
+   ```bash
+   cd wp-content/plugins
+   ln -s /c/Github/Bricks2Etch/etch-fusion-suite etch-fusion-suite
+   ```
+3. **Plugin aktivieren** in beiden WordPress-Dashboards
+4. **Tests ausführen** (immer in der LocalWP-Shell, damit mysqli verfügbar ist)
+   ```cmd
+   php C:\Github\Bricks2Etch\tests\test-simple-debug.php
+   php C:\Github\Bricks2Etch\tests\run-local-tests.php
+   ```
+   - `test-simple-debug.php` prüft Autoloading, Service-Container und registrierte `wp_ajax_efs_*` Hooks
+   - `run-local-tests.php` führt 25 AJAX/CSS Regressionstests durch (Element-Converter + Handler)
+5. **Erwartete Ausgabe**: 25 ✓, inklusive `wp_ajax_efs_migrate_css`, `wp_ajax_efs_validate_api_key`, etc.
 
-**Updated:** 2025-10-23 21:12
+### Docker (Legacy)
 
-### wp-env Workflow
+- `test-environment/docker-compose.yml` verbleibt als Referenz, wird aber nicht mehr aktiv gepflegt
+- Nutzung nur für historische Vergleiche – neue Entwicklung bitte über LocalWP
 
-The local development and testing stack now relies on `@wordpress/env` instead of Docker Compose. Running `npm run dev` from the plugin root spins up two WordPress instances:
+### `@wordpress/env`
 
-- **development** (http://localhost:8888) – Bricks source site
-- **tests** (http://localhost:8889) – Etch target site
-
-Both instances mount the plugin directory directly, automatically install WordPress core, and provide integrated WP-CLI access through npm scripts.
+- Geplante Alternative, aktuell durch fehlenden Online-Zugriff (WordPress-Download) blockiert
 
 ---
 
@@ -957,11 +971,11 @@ Make it executable: `chmod +x .git/hooks/pre-commit`
 
 - [CHANGELOG.md](CHANGELOG.md) - Version history
 - [README.md](README.md) - Main documentation
-- [bricks-etch-migration/README.md](bricks-etch-migration/README.md) - Plugin setup and wp-env workflow
-- [bricks-etch-migration/TESTING.md](bricks-etch-migration/TESTING.md) - Comprehensive testing documentation
+- [etch-fusion-suite/README.md](etch-fusion-suite/README.md) - Plugin setup and wp-env workflow
+- [etch-fusion-suite/TESTING.md](etch-fusion-suite/TESTING.md) - Comprehensive testing documentation
 - [test-environment/README.md](test-environment/README.md) - Test environment overview
 
 ---
 
-**Last Updated:** 2025-10-24 13:30  
+**Last Updated:** 2025-10-25 18:23  
 **Version:** 0.8.0

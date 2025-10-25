@@ -1,5 +1,5 @@
 /**
- * Admin CSS for Bricks to Etch Migration Plugin
+ * Admin CSS for Etch Fusion Suite
  */
 
  @font-face {
@@ -72,6 +72,13 @@
 		transparent 35%
 	);
 
+	--e-success: #46b450;
+	--e-success-soft: color-mix(in srgb, var(--e-success) 12%, white 88%);
+	--e-success-pill: color-mix(in srgb, var(--e-success) 35%, transparent);
+	--e-info: #00a0d2;
+	--e-info-soft: color-mix(in srgb, var(--e-info) 15%, white 85%);
+	--e-link: #0073aa;
+	--e-link-soft: color-mix(in srgb, var(--e-link) 12%, white 88%);
 	--e-danger: #f26060;
 	--e-danger-ultra-light: color-mix(
 		in srgb,
@@ -86,6 +93,10 @@
 
 	--e-dynamic: hsl(231, 67%, 73%);
 	--e-dynamic-dark: hsl(231, 32%, 40%);
+
+	--e-surface-subtle: color-mix(in srgb, var(--e-base) 80%, black 20%);
+	--e-surface-soft: color-mix(in srgb, var(--e-base) 70%, white 30%);
+	--e-divider-soft: color-mix(in srgb, var(--e-base-light) 30%, transparent);
 
 	/* Borders & Dividers */
 	--e-border: var(--e-border-width) var(--e-border-style)
@@ -113,22 +124,34 @@ h1 {
     line-height: 1.3;
 }
 
+/* Typography */
+.efs-typography {
+    font-family: 'Inter', sans-serif;
+    font-weight: 300;
+    color: var(--e-light);
+}
+
+.efs-typography h1, .efs-typography h2, .efs-typography h3 {
+    font-weight: 300;
+    margin-top: 0;
+}
+
 /* Dashboard Layout */
-.b2e-dashboard {
+.efs-dashboard {
     display: flex;
     gap: var(--e-content-gap);
 }
 
-.b2e-main-content {
+.efs-main-content {
     flex: 2;
 }
 
-.b2e-sidebar {
+.efs-sidebar {
     flex: 1;
 }
 
 /* Cards - Etch Dark Theme */
-.b2e-card {
+.efs-card {
     display: flex;
     gap: var(--e-content-gap);
     flex-direction: column;
@@ -139,8 +162,7 @@ h1 {
     color: var(--e-light);
 }
 
-.b2e-card h2,
-.b2e-card h3 {
+.efs-card h2, .efs-card h3 {
     margin-top: 0;
     color: var(--e-light);
     font-family: 'Inter', sans-serif;
@@ -148,7 +170,7 @@ h1 {
 }
 
 /* Progress Bar - Etch Style */
-.b2e-progress-bar {
+.efs-progress-bar {
     width: 100%;
     height: 8px;
     background: var(--e-base-ultra-light);
@@ -158,7 +180,7 @@ h1 {
     border: var(--e-border-width) var(--e-border-style)  var(--e-border-color-ultra-light);
 }
 
-.b2e-progress-fill {
+.efs-progress-fill {
     height: 100%;
     background: var(--e-primary);
     transition: width 0.3s ease;
@@ -166,7 +188,7 @@ h1 {
     border-radius: var(--e-border-radius);
 }
 
-.b2e-progress-fill::after {
+.efs-progress-fill::after {
     content: '';
     position: absolute;
     inset: 0;
@@ -187,90 +209,95 @@ h1 {
 /* Progress Text */
 #progress-text {
     font-size: 14px;
-    margin: 10px 0;
+    margin: var(--e-space-s) 0;
 }
 
 #current-step {
-    color: #666;
+    color: var(--e-foreground-color-muted);
     font-style: italic;
 }
 
 /* Migration Steps */
-#migration-steps {
+.efs-migration-steps {
     list-style: none;
     padding: 0;
     margin: 0;
 }
 
-#migration-steps li {
-    padding: 8px 12px;
-    margin: 4px 0;
-    border-radius: 4px;
-    background: #f9f9f9;
-    border-left: 4px solid #ddd;
+.efs-migration-steps li {
+    padding: var(--e-space-s) var(--e-space-m);
+    margin: var(--e-space-xs) 0;
+    border-radius: var(--e-border-radius);
+    background: var(--e-base-dark);
+    border-left: 4px solid var(--e-border-color-muted);
     transition: all 0.3s ease;
 }
 
-#migration-steps li.active {
-    background: #e7f3ff;
-    border-left-color: #0073aa;
+.efs-migration-steps li.active {
+    background: var(--e-link-soft);
+    border-left-color: var(--e-link);
     font-weight: bold;
 }
 
-#migration-steps li.completed {
-    background: #e8f5e8;
-    border-left-color: #46b450;
+.efs-migration-steps li.completed {
+    background: var(--e-success-soft);
+    border-left-color: var(--e-success);
 }
 
-#migration-steps li.completed::after {
+.efs-migration-steps li.completed::after {
     content: ' ✓';
-    color: #46b450;
+    color: var(--e-success);
     font-weight: bold;
 }
 
 /* Log Entries */
-.b2e-log-entry {
-    padding: 12px;
-    border-left: 4px solid #ddd;
-    margin-bottom: 10px;
-    background: #f9f9f9;
-    border-radius: 0 4px 4px 0;
+.efs-log-entry {
+    padding: var(--e-space-m);
+    border-left: 4px solid var(--e-border-color-muted);
+    margin-bottom: var(--e-space-s);
+    background: var(--e-base-dark);
+    border-radius: 0 var(--e-border-radius) var(--e-border-radius) 0;
     transition: all 0.3s ease;
 }
 
-.b2e-log-entry:hover {
-    background: #f0f0f0;
+.efs-log-entry:hover {
+    background: var(--e-surface-soft);
 }
 
-.b2e-log-entry.error {
-    border-left-color: #dc3232;
-    background: #fef7f7;
+.efs-log-entry.error {
+    border-left-color: var(--e-danger);
+    background: var(--e-danger-ultra-light);
 }
 
-.b2e-log-entry.warning {
-    border-left-color: #ffb900;
-    background: #fffbf0;
+.efs-log-entry.warning {
+    border-left-color: var(--e-warning);
+    background: color-mix(in srgb, var(--e-warning) 14%, white 86%);
 }
 
-.b2e-log-entry strong {
+.efs-log-entry.info {
+    border-left-color: var(--e-info);
+    background: var(--e-info-soft);
+}
+
+.efs-log-entry strong {
     display: block;
-    margin-bottom: 4px;
-    color: #23282d;
+    margin-bottom: var(--e-space-xs);
+    color: var(--e-foreground-color);
 }
 
-.b2e-log-entry p {
-    margin: 4px 0;
-    color: #666;
+.efs-log-entry p {
+    margin: var(--e-space-xs) 0;
+    color: var(--e-foreground-color-muted);
     font-size: 13px;
 }
 
-.b2e-log-entry small {
-    color: #999;
+.efs-log-entry small {
+    color: var(--e-foreground-color-muted);
     font-size: 11px;
 }
 
 /* Buttons - Etch Style */
-.b2e-button.b2e-button {
+.efs-button {
     background-color: var(--e-primary);
     border-radius: var(--e-border-radius);
     border: var(--e-border);
@@ -285,19 +312,19 @@ h1 {
     transition: all 0.2s ease;
 }
 
-.b2e-button.b2e-button:hover {
+.efs-button:hover {
     background-color: var(--e-primary-dark);
     color: var(--e-foreground-color);
     border-color: var(--e-border-color);
 }
 
-.b2e-button:active {
+.efs-button:active {
     transform: translateY(0);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.b2e-button:disabled {
-    background: #ccc;
+.efs-button:disabled {
+    background: var(--e-base-ultra-light);
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
@@ -306,12 +333,12 @@ h1 {
 /* Form Elements */
 .form-table th {
     width: 200px;
-    padding: 20px 10px 20px 0;
+    padding: var(--e-space-m) var(--e-space-s) var(--e-space-m) 0;
     vertical-align: top;
 }
 
 .form-table td {
-    padding: 15px 10px;
+    padding: var(--e-space-m) var(--e-space-s);
 }
 
 .form-table input[type="text"],
@@ -321,67 +348,67 @@ h1 {
 }
 
 .form-table .description {
-    color: #666;
+    color: var(--e-foreground-color-muted);
     font-style: italic;
     margin-top: 5px;
 }
 
 /* Validation Results */
 .validation-success {
-    background: #e8f5e8;
-    border: 1px solid #46b450;
-    border-radius: 4px;
-    padding: 15px;
-    margin: 10px 0;
+    background: var(--e-success-soft);
+    border: 1px solid var(--e-success);
+    border-radius: var(--e-border-radius);
+    padding: var(--e-space-l);
+    margin: var(--e-space-m) 0;
 }
 
 .validation-success h4 {
-    margin: 0 0 10px 0;
-    color: #2e7d32;
+    margin: 0 0 var(--e-space-s) 0;
+    color: var(--e-success);
 }
 
 .validation-success ul {
     margin: 0;
-    padding-left: 20px;
+    padding-left: calc(var(--e-space-m) + var(--e-space-s));
 }
 
 .validation-success li {
-    margin: 4px 0;
-    color: #2e7d32;
+    margin: var(--e-space-xs) 0;
+    color: var(--e-success);
 }
 
 /* Notices */
 .notice {
-    margin: 15px 0;
-    padding: 12px;
-    border-left: 4px solid #00a0d2;
-    background: #fff;
+    margin: var(--e-space-m) 0;
+    padding: var(--e-space-m);
+    border-left: 4px solid var(--e-info);
+    background: var(--e-info-soft);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .notice.notice-success {
-    border-left-color: #46b450;
-    background: #f7fff7;
+    border-left-color: var(--e-success);
+    background: var(--e-success-soft);
 }
 
 .notice.notice-error {
-    border-left-color: #dc3232;
-    background: #fff7f7;
+    border-left-color: var(--e-danger);
+    background: var(--e-danger-ultra-light);
 }
 
 .notice.notice-warning {
-    border-left-color: #ffb900;
-    background: #fffbf0;
+    border-left-color: var(--e-warning);
+    background: color-mix(in srgb, var(--e-warning) 12%, white 88%);
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
-    .b2e-dashboard {
+    .efs-dashboard {
         flex-direction: column;
     }
     
-    .b2e-main-content,
-    .b2e-sidebar {
+    .efs-main-content,
+    .efs-sidebar {
         flex: none;
     }
     
@@ -411,8 +438,8 @@ h1 {
     width: 20px;
     height: 20px;
     margin: -10px 0 0 -10px;
-    border: 2px solid #f3f3f3;
-    border-top: 2px solid #0073aa;
+    border: 2px solid var(--e-border-color-ultra-light);
+    border-top: 2px solid var(--e-link);
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }
@@ -423,29 +450,34 @@ h1 {
 }
 
 /* Status Indicators */
+.status-indicator-container {
+    display: flex;
+    align-items: center;
+    gap: var(--e-space-s);
+}
+
 .status-indicator {
-    display: inline-block;
+    display: inline-flex;
     width: 12px;
     height: 12px;
     border-radius: 50%;
-    margin-right: 8px;
 }
 
 .status-indicator.idle {
-    background: #ccc;
+    background: var(--e-border-color-ultra-light);
 }
 
 .status-indicator.running {
-    background: #0073aa;
+    background: var(--e-link);
     animation: pulse 2s infinite;
 }
 
 .status-indicator.completed {
-    background: #46b450;
+    background: var(--e-success);
 }
 
 .status-indicator.error {
-    background: #dc3232;
+    background: var(--e-danger);
 }
 
 @keyframes pulse {
@@ -454,10 +486,106 @@ h1 {
     100% { opacity: 1; }
 }
 
-/* ===== NEW ETCH-STYLED CLASxSES ===== */
+/* WordPress Admin Integration */
+#wpwrap {
+    background-color: var(--e-base);
+}
+
+.wrap {
+    color: var(--e-light);
+}
+
+.wrap h1 {
+    font-size: 23px;
+    font-weight: 400;
+    margin: 0;
+    padding: 9px 0 4px;
+    line-height: 1.3;
+    font-family: 'Inter', monospace;
+    color: var(--e-light);
+    font-weight: 300 !important;
+}
+
+/* Ensure all text is white */
+.efs-card *,
+.efs-migration-container *,
+.wrap * {
+    color: var(--e-light);
+}
+
+/* Override any remaining white backgrounds */
+.efs-form-group input,
+.efs-form-group textarea,
+.efs-key-display,
+.efs-log-entry,
+.efs-migration-container,
+.efs-migration-container * {
+    background: transparent;
+    color: var(--e-light);
+    border-color: var(--e-border-color-ultra-light);
+}
+
+/* Specific overrides for form elements */
+.efs-form-group input:focus,
+.efs-form-group textarea:focus {
+    border-color: var(--e-primary);
+    background: var(--e-base-dark);
+}
+
+/* Key display should have subtle background */
+.efs-key-display {
+    background: var(--e-base-dark);
+    border: 1px solid var(--e-border-color-ultra-light);
+}
+
+/* Log entries should have subtle background */
+.efs-log-entry {
+    background: var(--e-base-dark);
+    border: 1px solid var(--e-border-color-ultra-light);
+}
+
+/* Log Entries */
+.efs-logs-container {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.efs-log-entry {
+    background: var(--e-base-dark);
+    border: 1px solid var(--e-border-color-ultra-light);
+    border-radius: var(--e-border-radius);
+    padding: var(--e-space-m);
+    margin-bottom: var(--e-space-s);
+    color: var(--e-light);
+}
+
+.efs-log-entry .efs-log-level {
+    font-size: 10px;
+    text-transform: uppercase;
+    font-weight: 500;
+}
+
+.efs-log-entry .efs-log-timestamp {
+    color: var(--e-base-light);
+    font-size: 11px;
+    font-family: monospace;
+}
+
+.efs-log-entry .efs-log-code {
+    color: var(--e-primary);
+    font-size: 11px;
+    font-family: monospace;
+    margin-bottom: var(--e-space-xs);
+}
+
+.efs-log-entry .efs-log-message {
+    color: var(--e-light);
+    font-size: 13px;
+    line-height: 1.4;
+}
 
 /* Admin Wrap & Header */
-.b2e-admin-wrap {
+.efs-admin-wrap {
     max-width: 1200px;
     margin: 0;
     padding: var(--e-space-l);
@@ -620,72 +748,27 @@ textarea {
 
 /* Status Badges */
 .b2e-status {
-    padding: var(--e-space-s) var(--e-space-m);
-    border-radius: var(--e-border-radius);
-    font-size: 12px;
-    font-weight: 500;
-    display: inline-block;
-    margin-top: var(--e-space-s);
+	padding: var(--e-space-s) var(--e-space-m);
+	border-radius: var(--e-border-radius);
+	font-size: 12px;
+	font-weight: 500;
+	display: inline-block;
+	margin-top: var(--e-space-s);
 }
 
 .b2e-status.success {
-    background: var(--e-success);
-    color: white;
+	background: var(--e-success-pill);
+	color: var(--e-success);
 }
 
 .b2e-status.error {
-    background: var(--e-danger);
-    color: white;
+	background: color-mix(in srgb, var(--e-danger) 35%, transparent);
+	color: var(--e-danger);
 }
 
 .b2e-status.warning {
-    background: var(--e-warning);
-    color: var(--e-base-dark);
-}
-
-/* Log Entries */
-.b2e-logs-container {
-    max-height: 400px;
-    overflow-y: auto;
-}
-
-.b2e-log-entry {
-    background: var(--e-base-dark);
-    border: 1px solid var(--e-border-color-ultra-light);
-    border-radius: var(--e-border-radius);
-    padding: var(--e-space-m);
-    margin-bottom: var(--e-space-s);
-    color: var(--e-light);
-}
-
-.b2e-log-entry .b2e-log-level {
-    font-size: 10px;
-    text-transform: uppercase;
-    font-weight: 500;
-}
-
-.b2e-log-entry .b2e-log-timestamp {
-    color: var(--e-base-light);
-    font-size: 11px;
-    font-family: monospace;
-}
-
-.b2e-log-entry .b2e-log-code {
-    color: var(--e-primary);
-    font-size: 11px;
-    font-family: monospace;
-    margin-bottom: var(--e-space-xs);
-}
-
-.b2e-log-entry .b2e-log-message {
-    color: var(--e-light);
-    font-size: 13px;
-    line-height: 1.4;
-}
-
-/* WordPress Admin Integration */
-#wpwrap {
-    background-color: var(--e-base);
+	background: color-mix(in srgb, var(--e-warning) 35%, transparent);
+	color: var(--e-warning);
 }
 
 .wrap {

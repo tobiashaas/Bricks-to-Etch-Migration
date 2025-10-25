@@ -1,8 +1,8 @@
 # GitHub Actions Workflows
 
-**Last Updated:** 2025-10-24
+**Last Updated:** 2025-10-25
 
-This directory contains CI/CD workflows for the Bricks to Etch Migration plugin.
+This directory contains CI/CD workflows for the Etch Fusion Suite plugin.
 
 ---
 
@@ -19,7 +19,7 @@ Runs on every push to `main`/`develop` and all pull requests.
 
 **Local Reproduction:**
 ```bash
-cd bricks-etch-migration
+cd etch-fusion-suite
 
 # Run linting
 composer lint
@@ -27,11 +27,14 @@ composer lint
 # Fix linting issues
 composer lint:fix
 
-# Run tests
+# Run PHPUnit (requires WP test suite)
 composer test
 
-# Run tests with coverage
+# Run PHPUnit with coverage
 composer test:coverage
+
+# Optional: LocalWP AJAX/CSS regression suite
+php ../tests/run-local-tests.php
 ```
 
 ### 2. CodeQL Security Scanning (`codeql.yml`)

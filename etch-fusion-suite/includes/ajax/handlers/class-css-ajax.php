@@ -45,8 +45,9 @@ class EFS_CSS_Ajax_Handler extends EFS_Base_Ajax_Handler {
 	 * Register WordPress hooks
 	 */
 	protected function register_hooks() {
-		add_action( 'wp_ajax_b2e_convert_css', array( $this, 'convert_css' ) );
-		add_action( 'wp_ajax_b2e_get_global_styles', array( $this, 'get_global_styles' ) );
+		add_action( 'wp_ajax_efs_migrate_css', array( $this, 'convert_css' ) );
+		add_action( 'wp_ajax_efs_convert_css', array( $this, 'convert_css' ) );
+		add_action( 'wp_ajax_efs_get_global_styles', array( $this, 'get_global_styles' ) );
 	}
 
 	/**

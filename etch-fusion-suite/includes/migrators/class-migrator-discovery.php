@@ -24,8 +24,8 @@ class EFS_Migrator_Discovery {
 	/**
 	 * Discovers migrators and registers them with registry.
 	 */
-	public static function discover_migrators( B2E_Migrator_Registry $registry ) {
-		$container     = b2e_container();
+	public static function discover_migrators( EFS_Migrator_Registry $registry ) {
+		$container     = efs_container();
 		$error_handler = $container->has( 'error_handler' ) ? $container->get( 'error_handler' ) : null;
 
 		$builtin_keys = array(

@@ -464,7 +464,3 @@ class EFS_ACF_Field_Groups_Migrator extends Abstract_Migrator {
 		);
 	}
 }
-
-// Legacy alias for backward compatibility
-\class_alias( __NAMESPACE__ . '\\EFS_ACF_Field_Groups_Migrator', 'B2E_ACF_Field_Groups_Migrator' );
-class_alias( __NAMESPACE__ . '\EFS_ACF_Field_Groups_Migrator', __NAMESPACE__ . '\B2E_ACF_Field_Groups_Migrator' );

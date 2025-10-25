@@ -57,7 +57,7 @@ class EFS_Dashboard_Controller {
 			'logs'              => $this->get_logs(),
 			'progress_data'     => $this->get_progress(),
 			'settings'          => $this->get_settings(),
-			'nonce'             => wp_create_nonce( 'b2e_nonce' ),
+			'nonce'             => wp_create_nonce( 'efs_nonce' ),
 			'saved_templates'   => $this->get_saved_templates(),
 		);
 	}

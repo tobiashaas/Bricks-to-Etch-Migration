@@ -1,0 +1,74 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      PLUGIN_DIR: etch-fusion-suite
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+          tools: composer:v2
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache/files
+          key: composer-release-${{ runner.os }}-${{ hashFiles('etch-fusion-suite/composer.lock') }}
+          restore-keys: |
+            composer-release-${{ runner.os }}-
+            composer-${{ runner.os }}-
+
+      - name: Install production dependencies
+        run: composer install --no-dev --prefer-dist --no-progress --optimize-autoloader
+        working-directory: ${{ env.PLUGIN_DIR }}
+
+      - name: Determine tag version
+        id: version
+        run: echo "tag=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Validate plugin headers
+        run: bash scripts/validate-plugin-headers.sh
+        working-directory: ${{ env.PLUGIN_DIR }}
+
+      - name: Package release zip
+        run: |
+          mkdir -p build/artifacts
+          ZIP_NAME="etch-fusion-suite-${{ steps.version.outputs.tag }}.zip"
+          zip -r "build/artifacts/${ZIP_NAME}" . \
+            -x '.git/*' \
+               '.github/*' \
+               'tests/*' \
+               'node_modules/*' \
+               'build/*' \
+               'vendor/bin/*' \
+               'phpunit.xml.dist' \
+               'phpcs.xml.dist' \
+               '*.sh' \
+               '*.ps1' \
+               '*.cmd'
+        working-directory: ${{ env.PLUGIN_DIR }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Etch Fusion Suite ${{ steps.version.outputs.tag }}
+          files: |
+            etch-fusion-suite/build/artifacts/etch-fusion-suite-${{ steps.version.outputs.tag }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

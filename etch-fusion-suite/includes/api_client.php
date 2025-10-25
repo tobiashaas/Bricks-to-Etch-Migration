@@ -526,6 +526,3 @@ class EFS_API_Client {
 		return $decoded_response;
 	}
 }
-
-// Legacy alias for backward compatibility
-class_alias( __NAMESPACE__ . '\EFS_API_Client', __NAMESPACE__ . '\B2E_API_Client' );

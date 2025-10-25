@@ -228,7 +228,7 @@ make validate
 
 **Steps:**
 ```bash
-make wp-bricks ARGS='eval "var_dump(function_exists(\"b2e_container\"));"'
+make wp-bricks ARGS='eval "var_dump(function_exists(\"efs_container\"));"'
 ```
 
 **Expected Result:**
@@ -238,7 +238,7 @@ bool(true)
 
 **Validation:**
 ```bash
-make wp-bricks ARGS='eval "var_dump(b2e_container() instanceof Bricks2Etch\Container\B2E_Service_Container);"'
+make wp-bricks ARGS='eval "var_dump(efs_container() instanceof Bricks2Etch\\Container\\EFS_Service_Container);"'
 # Expected: bool(true)
 ```
 
@@ -253,7 +253,7 @@ make wp-bricks ARGS='eval "var_dump(b2e_container() instanceof Bricks2Etch\Conta
 
 **Steps:**
 ```bash
-make wp-bricks ARGS='eval "var_dump(b2e_container()->has(\"settings_repository\"));"'
+make wp-bricks ARGS='eval "var_dump(efs_container()->has(\"settings_repository\"));"'
 ```
 
 **Expected Result:**
@@ -265,9 +265,9 @@ bool(true)
 ```bash
 # Check all repositories
 make wp-bricks ARGS='eval "
-  \$repos = [\"settings_repository\", \"migration_repository\", \"styles_repository\"];
-  foreach (\$repos as \$repo) {
-    echo \$repo . \": \" . (b2e_container()->has(\$repo) ? \"✓\" : \"✗\") . \"\\n\";
+  $repos = ["settings_repository", "migration_repository", "styles_repository"];
+  foreach ($repos as $repo) {
+    echo $repo . ": " . (efs_container()->has($repo) ? "✓" : "✗") . "\n";
   }
 "'
 ```
@@ -287,7 +287,7 @@ styles_repository: ✓
 ```bash
 make wp-bricks ARGS='eval "
   global \$wp_filter;
-  \$actions = [\"wp_ajax_b2e_start_migration\", \"wp_ajax_b2e_validate_migration_token\"];
+  $actions = ["wp_ajax_efs_start_migration", "wp_ajax_efs_validate_migration_token"];
   foreach (\$actions as \$action) {
     echo \$action . \": \" . (isset(\$wp_filter[\$action]) ? \"✓\" : \"✗\") . \"\\n\";
   }
@@ -296,8 +296,8 @@ make wp-bricks ARGS='eval "
 
 **Expected Output:**
 ```
-wp_ajax_b2e_start_migration: ✓
-wp_ajax_b2e_validate_migration_token: ✓
+wp_ajax_efs_start_migration: ✓
+wp_ajax_efs_validate_migration_token: ✓
 ```
 
 ---

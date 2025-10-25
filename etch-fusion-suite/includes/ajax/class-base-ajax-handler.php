@@ -20,7 +20,7 @@ abstract class EFS_Base_Ajax_Handler {
 	/**
 	 * Nonce action
 	 */
-	protected $nonce_action = 'b2e_nonce';
+	protected $nonce_action = 'efs_nonce';
 
 	/**
 	 * Nonce field

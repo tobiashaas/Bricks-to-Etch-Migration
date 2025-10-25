@@ -925,6 +925,3 @@ class EFS_Content_Parser {
 		);
 	}
 }
-
-// Legacy alias for backward compatibility
-class_alias( __NAMESPACE__ . '\EFS_Content_Parser', __NAMESPACE__ . '\B2E_Content_Parser' );

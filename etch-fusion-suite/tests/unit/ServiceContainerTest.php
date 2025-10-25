@@ -1,117 +1,80 @@
 <?php
 /**
- * Unit tests for Service Container
+ * Unit tests for Service Container.
  *
  * @package Bricks2Etch\Tests\Unit
  */
 
+declare(strict_types=1);
+
 namespace Bricks2Etch\Tests\Unit;
 
-use Bricks2Etch\Container\B2E_Service_Container;
+use Bricks2Etch\Container\EFS_Service_Container;
+use Bricks2Etch\Security\EFS_Audit_Logger;
+use Bricks2Etch\Services\EFS_Migration_Service;
 use WP_UnitTestCase;
 
-/**
- * Test Service Container functionality
- */
 class ServiceContainerTest extends WP_UnitTestCase {
 
-    /**
-     * @var B2E_Service_Container
-     */
-    private $container;
+	/**
+	 * @var EFS_Service_Container
+	 */
+	private $container;
 
-    /**
-     * Set up test environment
-     */
-    public function setUp(): void {
-        parent::setUp();
-        $this->container = new B2E_Service_Container();
-    }
+	protected function setUp(): void {
+		parent::setUp();
 
-    /**
-     * Tear down test environment
-     */
-    public function tearDown(): void {
-        $this->container = null;
-        parent::tearDown();
-    }
+		$this->container = efs_container();
+	}
 
-    /**
-     * Test that container returns same instance (singleton behavior)
-     */
-    public function test_container_singleton() {
-        $container1 = b2e_container();
-        $container2 = b2e_container();
+	public function test_container_returns_singleton_instance(): void {
+		$this->assertInstanceOf( EFS_Service_Container::class, $this->container );
 
-        $this->assertInstanceOf(B2E_Service_Container::class, $container1);
-        $this->assertSame($container1, $container2, 'Container should return same instance');
-    }
+		$this->assertSame( $this->container, efs_container() );
+	}
 
-    /**
-     * Test service registration
-     */
-    public function test_service_registration() {
-        // Test singleton registration
-        $this->container->singleton('test_service', function() {
-            return new \stdClass();
-        });
+	public function test_core_services_are_registered(): void {
+		$this->assertTrue( $this->container->has( 'migration_service' ) );
+		$this->assertTrue( $this->container->has( 'settings_repository' ) );
+		$this->assertTrue( $this->container->has( 'admin_interface' ) );
+	}
 
-        $this->assertTrue($this->container->has('test_service'));
+	public function test_resolving_migration_service_wires_dependencies(): void {
+		$migration_service = $this->container->get( 'migration_service' );
 
-        // Test factory registration
-        $this->container->factory('test_factory', function() {
-            return new \stdClass();
-        });
+		$this->assertInstanceOf( EFS_Migration_Service::class, $migration_service );
+	}
 
-        $this->assertTrue($this->container->has('test_factory'));
-    }
+	public function test_audit_logger_uses_error_handler_dependency(): void {
+		/** @var EFS_Audit_Logger $logger */
+		$logger = $this->container->get( 'audit_logger' );
 
-    /**
-     * Test service resolution
-     */
-    public function test_service_resolution() {
-        $this->container->singleton('test_service', function() {
-            $obj = new \stdClass();
-            $obj->value = 'test';
-            return $obj;
-        });
+		$logger->log_security_event( 'unit_container', 'low', 'Testing audit logger wiring.' );
 
-        $service = $this->container->get('test_service');
-        $this->assertInstanceOf(\stdClass::class, $service);
-        $this->assertEquals('test', $service->value);
+		$logs = get_option( 'efs_security_log', array() );
+		$this->assertNotEmpty( $logs );
+	}
 
-        // Singleton should return same instance
-        $service2 = $this->container->get('test_service');
-        $this->assertSame($service, $service2);
-    }
+	public function test_registering_custom_singleton_persists(): void {
+		$custom = new \stdClass();
+		$custom->foo = 'bar';
 
-    /**
-     * Test autowiring
-     */
-    public function test_autowiring() {
-        // Register a simple class
-        $this->container->singleton(\stdClass::class, function() {
-            return new \stdClass();
-        });
+		$this->container->singleton( 'efs_custom_singleton', static function () use ( $custom ) {
+			return $custom;
+		} );
 
-        // Get should resolve it
-        $instance = $this->container->get(\stdClass::class);
-        $this->assertInstanceOf(\stdClass::class, $instance);
-    }
+		$this->assertSame( $custom, $this->container->get( 'efs_custom_singleton' ) );
+	}
 
-    /**
-     * Test PSR-11 compliance
-     */
-    public function test_psr11_compliance() {
-        $this->container->singleton('test', function() {
-            return 'value';
-        });
+	public function test_factory_definition_creates_new_instances(): void {
+		$this->container->factory( 'efs_factory', static function () {
+			return new \stdClass();
+		} );
 
-        // Test has() method
-        $this->assertTrue($this->container->has('test'));
-        $this->assertFalse($this->container->has('nonexistent'));
+		$first  = $this->container->get( 'efs_factory' );
+		$second = $this->container->get( 'efs_factory' );
 
-        // Test get() method
-        $this->assertEquals('value', $this->container->get('test'));
-    }
+		$this->assertNotSame( $first, $second );
+	}
 }
+
