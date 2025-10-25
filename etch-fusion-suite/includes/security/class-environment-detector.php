@@ -239,7 +239,3 @@ class EFS_Environment_Detector {
 		);
 	}
 }
-
-// Legacy alias for backward compatibility
-\class_alias( __NAMESPACE__ . '\\EFS_Environment_Detector', 'B2E_Environment_Detector' );
-class_alias( __NAMESPACE__ . '\EFS_Environment_Detector', __NAMESPACE__ . '\B2E_Environment_Detector' );

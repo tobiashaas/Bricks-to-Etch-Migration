@@ -247,6 +247,3 @@ class EFS_Content_Service {
 		);
 	}
 }
-
-// Legacy alias for backward compatibility
-class_alias( __NAMESPACE__ . '\EFS_Content_Service', __NAMESPACE__ . '\B2E_Content_Service' );

@@ -410,6 +410,3 @@ class EFS_Error_Handler {
 		error_log( $log_message );
 	}
 }
-
-// Legacy alias for backward compatibility
-class_alias( __NAMESPACE__ . '\EFS_Error_Handler', __NAMESPACE__ . '\B2E_Error_Handler' );

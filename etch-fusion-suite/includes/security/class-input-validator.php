@@ -336,7 +336,3 @@ class EFS_Input_Validator {
 		return $validated;
 	}
 }
-
-// Legacy alias for backward compatibility
-\class_alias( __NAMESPACE__ . '\\EFS_Input_Validator', 'B2E_Input_Validator' );
-class_alias( __NAMESPACE__ . '\EFS_Input_Validator', __NAMESPACE__ . '\B2E_Input_Validator' );

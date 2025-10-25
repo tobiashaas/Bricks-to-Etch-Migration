@@ -227,7 +227,3 @@ class EFS_Rate_Limiter {
 		return isset( $this->default_limits[ $type ] ) ? $this->default_limits[ $type ] : 60;
 	}
 }
-
-// Legacy alias for backward compatibility
-\class_alias( __NAMESPACE__ . '\\EFS_Rate_Limiter', 'B2E_Rate_Limiter' );
-class_alias( __NAMESPACE__ . '\EFS_Rate_Limiter', __NAMESPACE__ . '\B2E_Rate_Limiter' );

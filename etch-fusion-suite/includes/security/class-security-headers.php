@@ -144,7 +144,3 @@ class EFS_Security_Headers {
 		return true;
 	}
 }
-
-// Legacy alias for backward compatibility
-\class_alias( __NAMESPACE__ . '\\EFS_Security_Headers', 'B2E_Security_Headers' );
-class_alias( __NAMESPACE__ . '\EFS_Security_Headers', __NAMESPACE__ . '\B2E_Security_Headers' );

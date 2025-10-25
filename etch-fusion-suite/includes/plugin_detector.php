@@ -357,6 +357,3 @@ class EFS_Plugin_Detector {
 		);
 	}
 }
-
-// Legacy alias for backward compatibility
-class_alias( __NAMESPACE__ . '\EFS_Plugin_Detector', __NAMESPACE__ . '\B2E_Plugin_Detector' );

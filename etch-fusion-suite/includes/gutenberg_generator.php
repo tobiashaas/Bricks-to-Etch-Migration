@@ -1791,6 +1791,3 @@ class EFS_Gutenberg_Generator {
 		return implode( ' ', array_filter( $classes ) );
 	}
 }
-
-// Legacy alias for backward compatibility
-class_alias( __NAMESPACE__ . '\EFS_Gutenberg_Generator', __NAMESPACE__ . '\B2E_Gutenberg_Generator' );

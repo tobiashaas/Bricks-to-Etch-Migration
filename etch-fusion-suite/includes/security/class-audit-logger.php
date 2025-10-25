@@ -325,7 +325,3 @@ class EFS_Audit_Logger {
 		return ! empty( $ip ) ? $ip : 'unknown';
 	}
 }
-
-// Legacy alias for backward compatibility
-\class_alias( __NAMESPACE__ . '\\EFS_Audit_Logger', 'B2E_Audit_Logger' );
-class_alias( __NAMESPACE__ . '\EFS_Audit_Logger', __NAMESPACE__ . '\B2E_Audit_Logger' );

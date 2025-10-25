@@ -2039,6 +2039,3 @@ class EFS_CSS_Converter {
 		return implode( "\n", $cleaned_parts );
 	}
 }
-
-// Legacy alias for backward compatibility
-class_alias( __NAMESPACE__ . '\EFS_CSS_Converter', __NAMESPACE__ . '\B2E_CSS_Converter' );
