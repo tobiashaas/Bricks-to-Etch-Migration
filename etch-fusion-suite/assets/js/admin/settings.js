@@ -6,7 +6,7 @@ const ACTION_TEST_CONNECTION = 'b2e_test_connection';
 const ACTION_GENERATE_KEY = 'b2e_generate_migration_key';
 
 const populateSettingsForm = () => {
-    const form = document.querySelector('[data-b2e-settings-form]');
+    const form = document.querySelector('[data-efs-settings-form]');
     const settings = getInitialData('settings', {});
     if (!form || !settings) {
         return;
@@ -44,7 +44,7 @@ const handleTestConnection = async (event) => {
     try {
         const payload = serializeForm(form);
         if (!payload.target_url || !payload.api_key) {
-            const settingsForm = document.querySelector('[data-b2e-settings-form]');
+            const settingsForm = document.querySelector('[data-efs-settings-form]');
             const settingsPayload = serializeForm(settingsForm);
             payload.target_url = payload.target_url || settingsPayload.target_url;
             payload.api_key = payload.api_key || settingsPayload.api_key;
@@ -67,7 +67,7 @@ const handleGenerateKey = async (event) => {
     try {
         const payload = serializeForm(form);
         const data = await post(ACTION_GENERATE_KEY, payload);
-        const textarea = form.querySelector('[data-b2e-migration-key]');
+        const textarea = form.querySelector('[data-efs-migration-key]');
         if (textarea && data?.key) {
             textarea.value = data.key;
         }
@@ -82,9 +82,9 @@ const handleGenerateKey = async (event) => {
 
 export const bindSettings = () => {
     populateSettingsForm();
-    const settingsForm = document.querySelector('[data-b2e-settings-form]');
-    const testConnectionForm = document.querySelector('[data-b2e-test-connection]');
-    const generateKeyForm = document.querySelector('[data-b2e-generate-key]');
+    const settingsForm = document.querySelector('[data-efs-settings-form]');
+    const testConnectionForm = document.querySelector('[data-efs-test-connection]');
+    const generateKeyForm = document.querySelector('[data-efs-generate-key]');
 
     settingsForm?.addEventListener('submit', handleSaveSettings);
     testConnectionForm?.addEventListener('submit', handleTestConnection);

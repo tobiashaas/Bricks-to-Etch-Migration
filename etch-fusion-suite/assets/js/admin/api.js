@@ -1,13 +1,13 @@
 const ensureAjaxContext = () => {
-    if (!window.b2eData) {
-        throw new Error('B2E admin data is not available on window.b2eData.');
+    if (!window.efsData) {
+        throw new Error('EFS admin data is not available on window.efsData.');
     }
-    const { ajaxUrl, nonce } = window.b2eData;
+    const { ajaxUrl, nonce } = window.efsData;
     if (!ajaxUrl) {
-        throw new Error('AJAX URL is not defined in window.b2eData.ajaxUrl.');
+        throw new Error('AJAX URL is not defined in window.efsData.ajaxUrl.');
     }
     if (!nonce) {
-        throw new Error('Nonce is not defined in window.b2eData.nonce.');
+        throw new Error('Nonce is not defined in window.efsData.nonce.');
     }
     return { ajaxUrl, nonce };
 };
@@ -86,10 +86,10 @@ export const serializeForm = (form) => {
 };
 
 export const getInitialData = (key, defaultValue = null) => {
-    if (!window.b2eData || typeof window.b2eData !== 'object') {
+    if (!window.efsData || typeof window.efsData !== 'object') {
         return defaultValue;
     }
-    return Object.prototype.hasOwnProperty.call(window.b2eData, key)
-        ? window.b2eData[key]
+    return Object.prototype.hasOwnProperty.call(window.efsData, key)
+        ? window.efsData[key]
         : defaultValue;
 };

@@ -43,9 +43,9 @@ export const showToast = (message, type = 'info', { duration = 4000 } = {}) => {
 };
 
 const bindCopyButtons = () => {
-    document.querySelectorAll('[data-b2e-copy-button], [data-b2e-copy]').forEach((button) => {
+    document.querySelectorAll('[data-efs-copy-button], [data-efs-copy]').forEach((button) => {
         button.addEventListener('click', async () => {
-            const selector = button.getAttribute('data-b2e-target') || button.getAttribute('data-b2e-copy');
+            const selector = button.getAttribute('data-efs-target') || button.getAttribute('data-efs-copy');
             const successMessage = button.getAttribute('data-toast-success') || 'Copied to clipboard.';
             if (!selector) {
                 return;
@@ -75,10 +75,10 @@ export const setLoading = (element, isLoading) => {
 };
 
 export const updateProgress = ({ percentage = 0, status = '', steps = [] }) => {
-    const progressRoot = document.querySelector('[data-b2e-progress]');
+    const progressRoot = document.querySelector('[data-efs-progress]');
     const progressFill = progressRoot?.querySelector('.b2e-progress-fill');
-    const currentStep = document.querySelector('[data-b2e-current-step]');
-    const stepsList = document.querySelector('[data-b2e-steps]');
+    const currentStep = document.querySelector('[data-efs-current-step]');
+    const stepsList = document.querySelector('[data-efs-steps]');
 
     progressRoot?.setAttribute('aria-valuenow', String(percentage));
     if (progressFill) {

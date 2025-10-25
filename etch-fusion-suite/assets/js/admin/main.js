@@ -10,7 +10,7 @@ import { serializeForm } from './api.js';
 import { init as initTemplateExtractor } from './template-extractor.js';
 
 const bindMigrationForm = () => {
-    const form = document.querySelector('[data-b2e-migration-form]');
+    const form = document.querySelector('[data-efs-migration-form]');
     form?.addEventListener('submit', async (event) => {
         event.preventDefault();
         const payload = serializeForm(form);
@@ -24,7 +24,7 @@ const bindMigrationForm = () => {
         }
     });
 
-    document.querySelectorAll('[data-b2e-cancel-migration]').forEach((button) => {
+    document.querySelectorAll('[data-efs-cancel-migration]').forEach((button) => {
         button.addEventListener('click', async () => {
             try {
                 await cancelMigration();
@@ -46,7 +46,7 @@ const bootstrap = () => {
     initLogs();
     initTemplateExtractor();
 
-    const progress = window.b2eData?.progress_data;
+    const progress = window.efsData?.progress_data;
     if (progress && !progress.completed) {
         const { migrationId, percentage = 0, status } = progress;
         const isRunning = Boolean(migrationId) || (percentage > 0 && (!status || status !== 'completed'));

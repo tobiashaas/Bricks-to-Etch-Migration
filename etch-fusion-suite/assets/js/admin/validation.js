@@ -43,7 +43,7 @@ const handleValidateApiKey = async (event) => {
 const handleValidateToken = async (event) => {
     event.preventDefault();
     const button = event.currentTarget;
-    const textarea = document.querySelector('[data-b2e-migration-key]');
+    const textarea = document.querySelector('[data-efs-migration-key]');
     if (!textarea) {
         return;
     }
@@ -66,11 +66,11 @@ const handleValidateToken = async (event) => {
 };
 
 export const bindValidation = () => {
-    document.querySelectorAll('[data-b2e-validate-api-key]').forEach((button) => {
+    document.querySelectorAll('[data-efs-validate-api-key]').forEach((button) => {
         button.addEventListener('click', handleValidateApiKey);
     });
 
-    document.querySelectorAll('[data-b2e-validate-migration-key]').forEach((button) => {
+    document.querySelectorAll('[data-efs-validate-migration-key]').forEach((button) => {
         button.addEventListener('click', handleValidateToken);
     });
 };

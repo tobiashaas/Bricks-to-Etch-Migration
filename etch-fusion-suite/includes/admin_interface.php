@@ -88,7 +88,7 @@ class EFS_Admin_Interface {
 		$context            = $this->dashboard_controller->get_dashboard_context();
 		$context['ajaxUrl'] = admin_url( 'admin-ajax.php' );
 
-		wp_localize_script( 'b2e-admin-main', 'b2eData', $context );
+		wp_localize_script( 'b2e-admin-main', 'efsData', $context );
 	}
 
 	public function start_migration() {

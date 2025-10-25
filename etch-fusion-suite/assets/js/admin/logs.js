@@ -7,7 +7,7 @@ const ACTION_CLEAR_LOGS = 'b2e_clear_logs';
 let refreshTimer = null;
 
 const renderLogs = (logs = []) => {
-    const container = document.querySelector('[data-b2e-logs]');
+    const container = document.querySelector('[data-efs-logs]');
     if (!container) {
         return;
     }
@@ -87,7 +87,7 @@ export const stopAutoRefreshLogs = () => {
 };
 
 const bindLogControls = () => {
-    const clearButton = document.querySelector('[data-b2e-clear-logs]');
+    const clearButton = document.querySelector('[data-efs-clear-logs]');
     clearButton?.addEventListener('click', clearLogs);
 };
 
