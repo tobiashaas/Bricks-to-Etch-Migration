@@ -4,13 +4,13 @@
  * 
  * Comprehensive tests for the new modular AJAX handler structure
  * 
- * Usage: docker exec b2e-bricks php /tmp/test-ajax-handlers.php
+ * Usage: docker exec efs-bricks php /tmp/test-ajax-handlers.php
  */
 
 // Load WordPress
 require_once('/var/www/html/wp-load.php');
 
-echo "=== Testing AJAX Handlers (Phase 2) ===\n\n";
+echo "=== Testing AJAX Handlers (EFS) ===\n\n";
 
 // Test counters
 $total_tests = 0;
@@ -45,6 +45,10 @@ $files_to_check = array(
     '/var/www/html/wp-content/plugins/etch-fusion-suite/includes/ajax/handlers/class-content-ajax.php',
     '/var/www/html/wp-content/plugins/etch-fusion-suite/includes/ajax/handlers/class-media-ajax.php',
     '/var/www/html/wp-content/plugins/etch-fusion-suite/includes/ajax/handlers/class-validation-ajax.php',
+    '/var/www/html/wp-content/plugins/etch-fusion-suite/includes/ajax/handlers/class-logs-ajax.php',
+    '/var/www/html/wp-content/plugins/etch-fusion-suite/includes/ajax/handlers/class-connection-ajax.php',
+    '/var/www/html/wp-content/plugins/etch-fusion-suite/includes/ajax/handlers/class-cleanup-ajax.php',
+    '/var/www/html/wp-content/plugins/etch-fusion-suite/includes/ajax/handlers/class-template-ajax.php',
 );
 
 foreach ($files_to_check as $file) {
@@ -61,39 +65,39 @@ echo "--- Test 2: Class Loading ---\n";
 
 try {
     require_once('/var/www/html/wp-content/plugins/etch-fusion-suite/includes/ajax/class-ajax-handler.php');
-    test_result('B2E_Ajax_Handler class loaded', class_exists('B2E_Ajax_Handler'));
+    test_result('EFS_Ajax_Handler class loaded', class_exists('Bricks2Etch\Ajax\EFS_Ajax_Handler'));
 } catch (Exception $e) {
-    test_result('B2E_Ajax_Handler class loaded', false, $e->getMessage());
+    test_result('EFS_Ajax_Handler class loaded', false, $e->getMessage());
 }
 
 try {
-    test_result('B2E_Base_Ajax_Handler class loaded', class_exists('B2E_Base_Ajax_Handler'));
+    test_result('EFS_Base_Ajax_Handler class loaded', class_exists('Bricks2Etch\Ajax\EFS_Base_Ajax_Handler'));
 } catch (Exception $e) {
-    test_result('B2E_Base_Ajax_Handler class loaded', false, $e->getMessage());
+    test_result('EFS_Base_Ajax_Handler class loaded', false, $e->getMessage());
 }
 
 try {
-    test_result('B2E_CSS_Ajax_Handler class loaded', class_exists('B2E_CSS_Ajax_Handler'));
+    test_result('EFS_CSS_Ajax_Handler class loaded', class_exists('Bricks2Etch\Ajax\Handlers\EFS_CSS_Ajax_Handler'));
 } catch (Exception $e) {
-    test_result('B2E_CSS_Ajax_Handler class loaded', false, $e->getMessage());
+    test_result('EFS_CSS_Ajax_Handler class loaded', false, $e->getMessage());
 }
 
 try {
-    test_result('B2E_Content_Ajax_Handler class loaded', class_exists('B2E_Content_Ajax_Handler'));
+    test_result('EFS_Content_Ajax_Handler class loaded', class_exists('Bricks2Etch\Ajax\Handlers\EFS_Content_Ajax_Handler'));
 } catch (Exception $e) {
-    test_result('B2E_Content_Ajax_Handler class loaded', false, $e->getMessage());
+    test_result('EFS_Content_Ajax_Handler class loaded', false, $e->getMessage());
 }
 
 try {
-    test_result('B2E_Media_Ajax_Handler class loaded', class_exists('B2E_Media_Ajax_Handler'));
+    test_result('EFS_Media_Ajax_Handler class loaded', class_exists('Bricks2Etch\Ajax\Handlers\EFS_Media_Ajax_Handler'));
 } catch (Exception $e) {
-    test_result('B2E_Media_Ajax_Handler class loaded', false, $e->getMessage());
+    test_result('EFS_Media_Ajax_Handler class loaded', false, $e->getMessage());
 }
 
 try {
-    test_result('B2E_Validation_Ajax_Handler class loaded', class_exists('B2E_Validation_Ajax_Handler'));
+    test_result('EFS_Validation_Ajax_Handler class loaded', class_exists('Bricks2Etch\Ajax\Handlers\EFS_Validation_Ajax_Handler'));
 } catch (Exception $e) {
-    test_result('B2E_Validation_Ajax_Handler class loaded', false, $e->getMessage());
+    test_result('EFS_Validation_Ajax_Handler class loaded', false, $e->getMessage());
 }
 
 echo "\n";
@@ -106,12 +110,17 @@ echo "--- Test 3: AJAX Action Registration ---\n";
 global $wp_filter;
 
 $actions_to_check = array(
-    'wp_ajax_b2e_migrate_css',
-    'wp_ajax_b2e_migrate_batch',
-    'wp_ajax_b2e_get_bricks_posts',
-    'wp_ajax_b2e_migrate_media',
-    'wp_ajax_b2e_validate_api_key',
-    'wp_ajax_b2e_validate_migration_token',
+    'wp_ajax_efs_migrate_css',
+    'wp_ajax_efs_migrate_batch',
+    'wp_ajax_efs_get_bricks_posts',
+    'wp_ajax_efs_migrate_media',
+    'wp_ajax_efs_validate_api_key',
+    'wp_ajax_efs_validate_migration_token',
+    'wp_ajax_efs_get_logs',
+    'wp_ajax_efs_clear_logs',
+    'wp_ajax_efs_test_connection',
+    'wp_ajax_efs_generate_migration_key',
+    'wp_ajax_efs_cancel_migration',
 );
 
 foreach ($actions_to_check as $action) {
@@ -127,7 +136,7 @@ echo "\n";
 echo "--- Test 4: Base Handler Methods ---\n";
 
 // Create a test handler that extends base
-class Test_Ajax_Handler extends B2E_Base_Ajax_Handler {
+class Test_Ajax_Handler extends Bricks2Etch\Ajax\EFS_Base_Ajax_Handler {
     protected function register_hooks() {
         // No hooks needed for testing
     }
@@ -183,7 +192,16 @@ echo "\n";
 echo "--- Test 5: Handler Instantiation ---\n";
 
 try {
-    $ajax_handler = new B2E_Ajax_Handler();
+    $ajax_handler = new Bricks2Etch\Ajax\EFS_Ajax_Handler(
+        new Bricks2Etch\Ajax\Handlers\EFS_CSS_Ajax_Handler(),
+        new Bricks2Etch\Ajax\Handlers\EFS_Content_Ajax_Handler(),
+        new Bricks2Etch\Ajax\Handlers\EFS_Media_Ajax_Handler(),
+        new Bricks2Etch\Ajax\Handlers\EFS_Validation_Ajax_Handler(),
+        new Bricks2Etch\Ajax\Handlers\EFS_Logs_Ajax_Handler(),
+        new Bricks2Etch\Ajax\Handlers\EFS_Connection_Ajax_Handler(),
+        new Bricks2Etch\Ajax\Handlers\EFS_Cleanup_Ajax_Handler(),
+        new Bricks2Etch\Ajax\Handlers\EFS_Template_Ajax_Handler()
+    );
     test_result('Main AJAX handler instantiates', true);
     
     // Check if handlers are initialized
@@ -283,7 +301,7 @@ try {
     $property->setAccessible(true);
     $ajax_handler_instance = $property->getValue($plugin);
     test_result('Plugin has ajax_handler property', $ajax_handler_instance !== null);
-    test_result('ajax_handler is B2E_Ajax_Handler instance', $ajax_handler_instance instanceof B2E_Ajax_Handler);
+    test_result('ajax_handler is EFS_Ajax_Handler instance', $ajax_handler_instance instanceof Bricks2Etch\Ajax\EFS_Ajax_Handler);
 } catch (Exception $e) {
     test_result('Plugin has ajax_handler property', false, $e->getMessage());
 }
@@ -295,11 +313,11 @@ echo "\n";
 // ============================================
 echo "--- Test 11: Backwards Compatibility ---\n";
 
-// Check if old AJAX handlers still exist in admin_interface
-test_result('Old ajax_migrate_css still exists', method_exists('B2E_Admin_Interface', 'ajax_migrate_css'));
-test_result('Old ajax_migrate_batch still exists', method_exists('B2E_Admin_Interface', 'ajax_migrate_batch'));
-test_result('Old ajax_get_bricks_posts still exists', method_exists('B2E_Admin_Interface', 'ajax_get_bricks_posts'));
-test_result('Old ajax_migrate_media still exists', method_exists('B2E_Admin_Interface', 'ajax_migrate_media'));
+// Check if new AJAX handlers exist in admin_interface
+test_result('New EFS ajax_migrate_css exists', has_action('wp_ajax_efs_migrate_css'));
+test_result('New EFS ajax_migrate_batch exists', has_action('wp_ajax_efs_migrate_batch'));
+test_result('New EFS ajax_get_bricks_posts exists', has_action('wp_ajax_efs_get_bricks_posts'));
+test_result('New EFS ajax_migrate_media exists', has_action('wp_ajax_efs_migrate_media'));
 
 echo "\n";
 

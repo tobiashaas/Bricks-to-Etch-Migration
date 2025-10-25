@@ -1,16 +1,16 @@
 import { showToast, showLoadingState, hideLoadingState } from './ui.js';
 
 const request = async (action, payload = {}) => {
-    if (!window.b2eData || !window.b2eData.ajaxUrl || !window.b2eData.nonce) {
+    if (!window.efsData || !window.efsData.ajaxUrl || !window.efsData.nonce) {
         throw new Error('Settings data missing.');
     }
     const params = new URLSearchParams();
     params.append('action', action);
-    params.append('_ajax_nonce', window.b2eData.nonce);
+    params.append('_ajax_nonce', window.efsData.nonce);
     Object.entries(payload).forEach(([key, value]) => {
         params.append(key, typeof value === 'object' ? JSON.stringify(value) : value);
     });
-    const response = await fetch(window.b2eData.ajaxUrl, {
+    const response = await fetch(window.efsData.ajaxUrl, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
@@ -49,7 +49,7 @@ export const saveSettings = async (form, submitButton) => {
     showLoadingState(submitButton || form.querySelector('[type="submit"]'));
     try {
         const data = serializeForm(form);
-        const response = await request('b2e_save_settings', data);
+        const response = await request('efs_save_settings', data);
         showToast(response?.message || 'Settings saved.', 'success');
         return response;
     } catch (error) {
@@ -67,7 +67,7 @@ export const testConnection = async (form, submitButton) => {
     showLoadingState(submitButton || form.querySelector('[type="submit"]'));
     try {
         const data = serializeForm(form);
-        const response = await request('b2e_test_connection', data);
+        const response = await request('efs_test_connection', data);
         showToast(response?.message || 'Connection succeeded.', 'success');
         return response;
     } catch (error) {
@@ -85,8 +85,8 @@ export const generateMigrationKey = async (form, submitButton) => {
     showLoadingState(submitButton || form.querySelector('[type="submit"]'));
     try {
         const data = serializeForm(form);
-        const response = await request('b2e_generate_migration_key', data);
-        const input = form.querySelector('[data-b2e-migration-key]');
+        const response = await request('efs_generate_migration_key', data);
+        const input = form.querySelector('[data-efs-migration-key]');
         if (input) {
             input.value = response?.key || '';
         }
@@ -114,11 +114,11 @@ export const copyKeyToClipboard = async (input) => {
 };
 
 export const loadSettings = () => {
-    const form = document.querySelector('[data-b2e-settings-form]');
-    if (!form || !window.b2eData?.settings) {
+    const form = document.querySelector('[data-efs-settings-form]');
+    if (!form || !window.efsData?.settings) {
         return;
     }
-    Object.entries(window.b2eData.settings).forEach(([key, value]) => {
+    Object.entries(window.efsData.settings).forEach(([key, value]) => {
         const field = form.querySelector(`[name="${key}"]`);
         if (!field) {
             return;

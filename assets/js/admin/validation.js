@@ -1,14 +1,14 @@
 const request = async (action, payload = {}) => {
-    if (!window.b2eData || !window.b2eData.ajaxUrl || !window.b2eData.nonce) {
+    if (!window.efsData || !window.efsData.ajaxUrl || !window.efsData.nonce) {
         throw new Error('Validation data missing.');
     }
     const params = new URLSearchParams();
     params.append('action', action);
-    params.append('_ajax_nonce', window.b2eData.nonce);
+    params.append('_ajax_nonce', window.efsData.nonce);
     Object.entries(payload).forEach(([key, value]) => {
         params.append(key, value);
     });
-    const response = await fetch(window.b2eData.ajaxUrl, {
+    const response = await fetch(window.efsData.ajaxUrl, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
@@ -36,15 +36,15 @@ const showFieldError = (field, message) => {
     if (!field) {
         return;
     }
-    const container = field.closest('[data-b2e-field]');
+    const container = field.closest('[data-efs-field]');
     if (!container) {
         return;
     }
-    let messageEl = container.querySelector('[data-b2e-error]');
+    let messageEl = container.querySelector('[data-efs-error]');
     if (!messageEl) {
         messageEl = document.createElement('p');
         messageEl.className = 'b2e-error-message';
-        messageEl.dataset.b2eError = '';
+        messageEl.dataset.efsError = '';
         container.appendChild(messageEl);
     }
     messageEl.textContent = message;
@@ -60,7 +60,7 @@ const clearFieldError = (field) => {
         return;
     }
     container.classList.remove('has-error');
-    const messageEl = container.querySelector('[data-b2e-error]');
+    const messageEl = container.querySelector('[data-efs-error]');
     if (messageEl) {
         messageEl.textContent = '';
     }
@@ -121,11 +121,11 @@ export const handleValidationSuccess = (field, data, fallbackMessage = 'Validati
     }
     container.classList.add('has-success');
     const message = data?.message || fallbackMessage;
-    let successEl = container.querySelector('[data-b2e-success]');
+    let successEl = container.querySelector('[data-efs-success]');
     if (!successEl) {
         successEl = document.createElement('p');
         successEl.className = 'b2e-success-message';
-        successEl.dataset.b2eSuccess = '';
+        successEl.dataset.efsSuccess = '';
         container.appendChild(successEl);
     }
     successEl.textContent = message;

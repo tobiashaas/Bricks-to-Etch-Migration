@@ -16,11 +16,11 @@ echo "=== Testing Element Converters ===\n\n";
 require_once('/var/www/html/wp-content/plugins/etch-fusion-suite/includes/converters/class-element-factory.php');
 
 // Get style map
-$style_map = get_option('b2e_style_map', array());
+$style_map = get_option('efs_style_map', array());
 echo "Style map loaded: " . count($style_map) . " entries\n\n";
 
 // Create factory
-$factory = new B2E_Element_Factory($style_map);
+$factory = new \Bricks2Etch\Converters\EFS_Element_Factory($style_map);
 
 // Test 1: Container with ul tag
 echo "--- Test 1: Container with ul tag ---\n";

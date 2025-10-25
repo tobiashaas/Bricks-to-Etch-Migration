@@ -37,12 +37,12 @@ $site_url = isset( $site_url ) ? $site_url : home_url();
 	<section class="b2e-card__section">
 		<h3><?php esc_html_e( 'Share This Site URL', 'etch-fusion-suite' ); ?></h3>
 		<p><?php esc_html_e( 'Provide this URL to the Bricks site during migration setup.', 'etch-fusion-suite' ); ?></p>
-		<div class="b2e-field" data-b2e-field>
+		<div class="b2e-field" data-efs-field>
 			<label for="b2e-site-url"><?php esc_html_e( 'Site URL', 'etch-fusion-suite' ); ?></label>
 			<input id="b2e-site-url" type="text" readonly value="<?php echo esc_attr( $site_url ); ?>" />
 		</div>
 		<div class="b2e-actions">
-			<button type="button" class="button" data-b2e-copy data-b2e-copy="#b2e-site-url" data-toast-success="<?php echo esc_attr__( 'Site URL copied to clipboard.', 'etch-fusion-suite' ); ?>">
+			<button type="button" class="button" data-efs-copy data-efs-copy="#b2e-site-url" data-toast-success="<?php echo esc_attr__( 'Site URL copied to clipboard.', 'etch-fusion-suite' ); ?>">
 				<?php esc_html_e( 'Copy URL', 'etch-fusion-suite' ); ?>
 			</button>
 		</div>
@@ -51,16 +51,16 @@ $site_url = isset( $site_url ) ? $site_url : home_url();
 	<section class="b2e-card__section">
 		<h3><?php esc_html_e( 'Generate Migration Key', 'etch-fusion-suite' ); ?></h3>
 		<p><?php esc_html_e( 'Generate a migration key to share with the Bricks source site.', 'etch-fusion-suite' ); ?></p>
-		<form method="post" class="b2e-inline-form" data-b2e-generate-key>
+		<form method="post" class="b2e-inline-form" data-efs-generate-key>
 			<input type="hidden" name="nonce" value="<?php echo esc_attr( $nonce ); ?>" />
 			<button type="submit" class="button button-primary"><?php esc_html_e( 'Generate Key', 'etch-fusion-suite' ); ?></button>
 		</form>
-		<div class="b2e-field" data-b2e-field>
+		<div class="b2e-field" data-efs-field>
 			<label for="b2e-generated-key"><?php esc_html_e( 'Latest Generated Key', 'etch-fusion-suite' ); ?></label>
-			<textarea id="b2e-generated-key" rows="3" readonly data-b2e-migration-key></textarea>
+			<textarea id="b2e-generated-key" rows="3" readonly data-efs-migration-key></textarea>
 		</div>
 		<div class="b2e-actions">
-			<button type="button" class="button" data-b2e-copy data-b2e-copy="#b2e-generated-key" data-toast-success="<?php echo esc_attr__( 'Migration key copied to clipboard.', 'etch-fusion-suite' ); ?>">
+			<button type="button" class="button" data-efs-copy data-efs-copy="#b2e-generated-key" data-toast-success="<?php echo esc_attr__( 'Migration key copied to clipboard.', 'etch-fusion-suite' ); ?>">
 				<?php esc_html_e( 'Copy Key', 'etch-fusion-suite' ); ?>
 			</button>
 		</div>

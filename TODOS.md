@@ -7,7 +7,7 @@
 - [ ] Complete remaining rebrand tasks - **Added:** 2025-10-25 16:37
   - [ ] Migrator classes (ACF, CPT, MetaBox, Media)
   - [ ] Converter classes (Element Factory, individual converters)
-  - [ ] JS/CSS assets (`b2eData`, `data-b2e-*` attributes)
+  - [✅] JS/CSS assets (`b2eData`, `data-b2e-*` attributes) - **Completed:** 2025-10-25 17:10
   - [ ] PHPUnit tests
   - [ ] GitHub Actions workflows
 

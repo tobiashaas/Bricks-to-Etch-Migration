@@ -5,11 +5,11 @@ import { saveSettings, testConnection, generateMigrationKey, copyKeyToClipboard,
 import { autoRefreshLogs, stopAutoRefreshLogs, clearLogs, fetchLogs } from './logs.js';
 
 const bindMigrationForm = () => {
-    const form = document.querySelector('[data-b2e-migration-form]');
+    const form = document.querySelector('[data-efs-migration-form]');
     if (!form) {
         return;
     }
-    const startButton = form.querySelector('[data-b2e-start-migration]');
+    const startButton = form.querySelector('[data-efs-start-migration]');
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
         startButton?.setAttribute('disabled', 'disabled');
@@ -22,11 +22,11 @@ const bindMigrationForm = () => {
         }
     });
 
-    document.querySelectorAll('[data-b2e-migration-batch]').forEach((button) => {
+    document.querySelectorAll('[data-efs-migration-batch]').forEach((button) => {
         button.addEventListener('click', async () => {
             button.setAttribute('disabled', 'disabled');
             try {
-                const payload = button.dataset.b2eMigrationBatch ? JSON.parse(button.dataset.b2eMigrationBatch) : {};
+                const payload = button.dataset.efsMigrationBatch ? JSON.parse(button.dataset.efsMigrationBatch) : {};
                 await processBatch(payload);
             } catch (error) {
                 showToast(error.message || 'Batch failed.', 'error');
@@ -36,7 +36,7 @@ const bindMigrationForm = () => {
         });
     });
 
-    const cancelButton = document.querySelector('[data-b2e-cancel-migration]');
+    const cancelButton = document.querySelector('[data-efs-cancel-migration]');
     cancelButton?.addEventListener('click', () => {
         cancelMigrationPolling();
         showToast('Migration cancelled.', 'warning');
@@ -45,7 +45,7 @@ const bindMigrationForm = () => {
 };
 
 const bindValidationForms = () => {
-    document.querySelectorAll('[data-b2e-validate-api]').forEach((form) => {
+    document.querySelectorAll('[data-efs-validate-api]').forEach((form) => {
         const field = form.querySelector('[name="api_key"]');
         const submit = form.querySelector('[type="submit"]');
         form.addEventListener('submit', async (event) => {
@@ -58,7 +58,7 @@ const bindValidationForms = () => {
         });
     });
 
-    document.querySelectorAll('[data-b2e-validate-token]').forEach((form) => {
+    document.querySelectorAll('[data-efs-validate-token]').forEach((form) => {
         const field = form.querySelector('[name="migration_token"]');
         const submit = form.querySelector('[type="submit"]');
         form.addEventListener('submit', async (event) => {
@@ -73,7 +73,7 @@ const bindValidationForms = () => {
 };
 
 const bindSettingsForms = () => {
-    const saveForm = document.querySelector('[data-b2e-settings-form]');
+    const saveForm = document.querySelector('[data-efs-settings-form]');
     if (saveForm) {
         saveForm.addEventListener('submit', async (event) => {
             event.preventDefault();
@@ -86,7 +86,7 @@ const bindSettingsForms = () => {
         });
     }
 
-    document.querySelectorAll('[data-b2e-test-connection]').forEach((form) => {
+    document.querySelectorAll('[data-efs-test-connection]').forEach((form) => {
         form.addEventListener('submit', async (event) => {
             event.preventDefault();
             const submit = form.querySelector('[type="submit"]');
@@ -98,7 +98,7 @@ const bindSettingsForms = () => {
         });
     });
 
-    document.querySelectorAll('[data-b2e-generate-key]').forEach((form) => {
+    document.querySelectorAll('[data-efs-generate-key]').forEach((form) => {
         form.addEventListener('submit', async (event) => {
             event.preventDefault();
             const submit = form.querySelector('[type="submit"]');
@@ -110,9 +110,9 @@ const bindSettingsForms = () => {
         });
     });
 
-    document.querySelectorAll('[data-b2e-copy-button]').forEach((button) => {
+    document.querySelectorAll('[data-efs-copy-button]').forEach((button) => {
         button.addEventListener('click', async () => {
-            const selector = button.getAttribute('data-b2e-target');
+            const selector = button.getAttribute('data-efs-target');
             if (!selector) {
                 return;
             }
@@ -130,7 +130,7 @@ const bindSettingsForms = () => {
 };
 
 const bindLogs = () => {
-    const clearButton = document.querySelector('[data-b2e-clear-logs]');
+    const clearButton = document.querySelector('[data-efs-clear-logs]');
     if (clearButton) {
         clearButton.addEventListener('click', async () => {
             clearButton.setAttribute('disabled', 'disabled');
@@ -144,7 +144,7 @@ const bindLogs = () => {
         });
     }
 
-    const logsContainer = document.querySelector('[data-b2e-logs]');
+    const logsContainer = document.querySelector('[data-efs-logs]');
     if (logsContainer) {
         autoRefreshLogs();
         document.addEventListener('visibilitychange', () => {
@@ -156,7 +156,7 @@ const bindLogs = () => {
         });
     }
 
-    document.addEventListener('b2e:migration-complete', () => {
+    document.addEventListener('efs:migration-complete', () => {
         fetchLogs();
     });
 };

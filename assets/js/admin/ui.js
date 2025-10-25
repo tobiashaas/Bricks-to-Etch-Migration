@@ -44,12 +44,12 @@ export const showToast = (message, type = 'info', duration = TOAST_DEFAULT_DURAT
 
 export const updateProgressBar = (percentage = 0) => {
     const progress = Math.min(Math.max(Number(percentage) || 0, 0), 100);
-    const progressEl = document.querySelector('[data-b2e-progress]');
+    const progressEl = document.querySelector('[data-efs-progress]');
     if (!progressEl) {
         return;
     }
     progressEl.style.setProperty('--b2e-progress', `${progress}%`);
-    progressEl.setAttribute('data-b2e-progress-value', progress.toFixed(0));
+    progressEl.setAttribute('data-efs-progress-value', progress.toFixed(0));
 };
 
 export const toggleSection = (sectionId, force) => {
@@ -81,18 +81,18 @@ export const hideLoadingState = (element) => {
 };
 
 export const bindDismissibleSections = () => {
-    document.querySelectorAll('[data-b2e-toggle]').forEach((trigger) => {
+    document.querySelectorAll('[data-efs-toggle]').forEach((trigger) => {
         trigger.addEventListener('click', () => {
-            const targetId = trigger.getAttribute('data-b2e-toggle');
+            const targetId = trigger.getAttribute('data-efs-toggle');
             toggleSection(targetId);
         });
     });
 };
 
 export const bindCopyToClipboard = () => {
-    document.querySelectorAll('[data-b2e-copy]').forEach((button) => {
+    document.querySelectorAll('[data-efs-copy]').forEach((button) => {
         button.addEventListener('click', async () => {
-            const target = button.getAttribute('data-b2e-copy');
+            const target = button.getAttribute('data-efs-copy');
             const input = document.querySelector(target);
             if (!input) {
                 return;
@@ -107,25 +107,29 @@ export const bindCopyToClipboard = () => {
     });
 };
 
+export const handleProgressUpdate = (detail = {}) => {
+    if (typeof detail.percentage === 'number') {
+        updateProgressBar(detail.percentage);
+    }
+    if (detail.status) {
+        const current = document.querySelector('[data-efs-current-step]');
+        if (current) {
+            current.textContent = detail.status;
+        }
+    }
+};
+
 export const initUI = () => {
     bindDismissibleSections();
     bindCopyToClipboard();
 };
 
-document.addEventListener('b2e:migration-progress', (event) => {
+document.addEventListener('efs:migration-progress', (event) => {
     const detail = event.detail || {};
-    if (detail.percentage !== undefined) {
-        updateProgressBar(detail.percentage);
-    }
-    if (detail.status) {
-        const current = document.querySelector('[data-b2e-current-step]');
-        if (current) {
-            current.textContent = detail.status;
-        }
-    }
+    handleProgressUpdate(detail);
 });
 
-document.addEventListener('b2e:migration-complete', (event) => {
+document.addEventListener('efs:migration-complete', (event) => {
     const detail = event.detail || {};
     if (detail.message) {
         showToast(detail.message, 'success');
@@ -133,7 +137,7 @@ document.addEventListener('b2e:migration-complete', (event) => {
     updateProgressBar(100);
 });
 
-document.addEventListener('b2e:migration-error', (event) => {
+document.addEventListener('efs:migration-error', (event) => {
     const detail = event.detail || {};
     if (detail.message) {
         showToast(detail.message, 'error');

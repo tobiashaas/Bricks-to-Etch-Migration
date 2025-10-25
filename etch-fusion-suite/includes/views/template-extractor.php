@@ -10,37 +10,37 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 $saved_templates = isset( $saved_templates ) ? $saved_templates : array();
-$nonce           = isset( $nonce ) ? $nonce : wp_create_nonce( 'b2e_nonce' );
+$nonce           = isset( $nonce ) ? $nonce : wp_create_nonce( 'efs_nonce' );
 ?>
 
-<div class="b2e-template-extractor" data-template-extractor>
-	<header class="b2e-section-header">
+<div class="efs-template-extractor" data-efs-template-extractor>
+	<header class="efs-section-header">
 		<h2><?php esc_html_e( 'Framer Template Extractor', 'etch-fusion-suite' ); ?></h2>
 		<p><?php esc_html_e( 'Import Framer templates directly into Etch. Extract from a live Framer URL or paste HTML code.', 'etch-fusion-suite' ); ?></p>
 	</header>
 
 	<!-- Input Section -->
-	<section class="b2e-card">
-		<div class="b2e-tabs">
-			<button class="b2e-tab active" data-tab="url"><?php esc_html_e( 'From URL', 'etch-fusion-suite' ); ?></button>
-			<button class="b2e-tab" data-tab="html"><?php esc_html_e( 'From HTML', 'etch-fusion-suite' ); ?></button>
+	<section class="efs-card">
+		<div class="efs-tabs">
+			<button class="efs-tab active" data-efs-tab="url"><?php esc_html_e( 'From URL', 'etch-fusion-suite' ); ?></button>
+			<button class="efs-tab" data-efs-tab="html"><?php esc_html_e( 'From HTML', 'etch-fusion-suite' ); ?></button>
 		</div>
 
 		<!-- URL Tab -->
-		<div class="b2e-tab-content active" data-tab-content="url">
-			<form data-extract-url-form>
+		<div class="efs-tab-content active" data-efs-tab-content="url">
+			<form data-efs-extract-url-form>
 				<input type="hidden" name="nonce" value="<?php echo esc_attr( $nonce ); ?>">
-				<div class="b2e-form-group">
+				<div class="efs-form-group">
 					<label for="framer_url"><?php esc_html_e( 'Framer Website URL', 'etch-fusion-suite' ); ?></label>
 					<input 
 						type="url" 
 						id="framer_url" 
 						name="framer_url" 
-						class="b2e-input" 
+						class="efs-input" 
 						placeholder="https://example.framer.website/"
 						required
 					>
-					<p class="b2e-help-text"><?php esc_html_e( 'Enter the full URL of your published Framer website.', 'etch-fusion-suite' ); ?></p>
+					<p class="efs-help-text"><?php esc_html_e( 'Enter the full URL of your published Framer website.', 'etch-fusion-suite' ); ?></p>
 				</div>
 				<button type="submit" class="button button-primary">
 					<?php esc_html_e( 'Extract Template', 'etch-fusion-suite' ); ?>
@@ -49,20 +49,20 @@ $nonce           = isset( $nonce ) ? $nonce : wp_create_nonce( 'b2e_nonce' );
 		</div>
 
 		<!-- HTML Tab -->
-		<div class="b2e-tab-content" data-tab-content="html">
-			<form data-extract-html-form>
+		<div class="efs-tab-content" data-efs-tab-content="html">
+			<form data-efs-extract-html-form>
 				<input type="hidden" name="nonce" value="<?php echo esc_attr( $nonce ); ?>">
-				<div class="b2e-form-group">
+				<div class="efs-form-group">
 					<label for="framer_html"><?php esc_html_e( 'Framer HTML Code', 'etch-fusion-suite' ); ?></label>
 					<textarea 
 						id="framer_html" 
 						name="framer_html" 
-						class="b2e-textarea" 
+						class="efs-textarea" 
 						rows="10"
 						placeholder="<html>...</html>"
 						required
 					></textarea>
-					<p class="b2e-help-text"><?php esc_html_e( 'Paste the complete HTML source code from your Framer page.', 'etch-fusion-suite' ); ?></p>
+					<p class="efs-help-text"><?php esc_html_e( 'Paste the complete HTML source code from your Framer page.', 'etch-fusion-suite' ); ?></p>
 				</div>
 				<button type="submit" class="button button-primary">
 					<?php esc_html_e( 'Extract from HTML', 'etch-fusion-suite' ); ?>
@@ -72,34 +72,34 @@ $nonce           = isset( $nonce ) ? $nonce : wp_create_nonce( 'b2e_nonce' );
 	</section>
 
 	<!-- Progress Section -->
-	<section class="b2e-card hidden" data-template-progress>
+	<section class="efs-card hidden" data-efs-template-progress>
 		<h3><?php esc_html_e( 'Extraction Progress', 'etch-fusion-suite' ); ?></h3>
-		<div class="b2e-progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-			<span class="b2e-progress-fill" data-progress-bar style="width: 0%;"></span>
+		<div class="efs-progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+			<span class="efs-progress-fill" data-progress-bar style="width: 0%;"></span>
 		</div>
-		<p class="b2e-status-text" data-status-text><?php esc_html_e( 'Starting extraction...', 'etch-fusion-suite' ); ?></p>
-		<ol class="b2e-steps-list" data-steps-list></ol>
+		<p class="efs-status-text" data-status-text><?php esc_html_e( 'Starting extraction...', 'etch-fusion-suite' ); ?></p>
+		<ol class="efs-steps-list" data-steps-list></ol>
 	</section>
 
 	<!-- Preview Section -->
-	<section class="b2e-card hidden" data-template-preview>
+	<section class="efs-card hidden" data-efs-template-preview>
 		<h3><?php esc_html_e( 'Template Preview', 'etch-fusion-suite' ); ?></h3>
 		
-		<div class="b2e-template-metadata" data-template-metadata>
+		<div class="efs-template-metadata" data-template-metadata>
 			<!-- Metadata populated by JS -->
 		</div>
 
-		<div class="b2e-blocks-preview" data-blocks-preview>
+		<div class="efs-blocks-preview" data-blocks-preview>
 			<!-- Block preview populated by JS -->
 		</div>
 
-		<div class="b2e-form-group">
+		<div class="efs-form-group">
 			<label for="template_name"><?php esc_html_e( 'Template Name', 'etch-fusion-suite' ); ?></label>
 			<input 
 				type="text" 
 				id="template_name" 
 				name="template_name" 
-				class="b2e-input" 
+				class="efs-input" 
 				placeholder="<?php esc_attr_e( 'My Framer Template', 'etch-fusion-suite' ); ?>"
 			>
 		</div>

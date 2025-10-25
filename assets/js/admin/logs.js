@@ -3,16 +3,16 @@ import { showToast } from './ui.js';
 let refreshTimer = null;
 
 const request = async (action, payload = {}) => {
-    if (!window.b2eData || !window.b2eData.ajaxUrl || !window.b2eData.nonce) {
+    if (!window.efsData || !window.efsData.ajaxUrl || !window.efsData.nonce) {
         throw new Error('Logs data missing.');
     }
     const params = new URLSearchParams();
     params.append('action', action);
-    params.append('_ajax_nonce', window.b2eData.nonce);
+    params.append('_ajax_nonce', window.efsData.nonce);
     Object.entries(payload).forEach(([key, value]) => {
         params.append(key, typeof value === 'object' ? JSON.stringify(value) : value);
     });
-    const response = await fetch(window.b2eData.ajaxUrl, {
+    const response = await fetch(window.efsData.ajaxUrl, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
@@ -29,7 +29,7 @@ const request = async (action, payload = {}) => {
 };
 
 const renderLogs = (logs = []) => {
-    const container = document.querySelector('[data-b2e-logs]');
+    const container = document.querySelector('[data-efs-logs]');
     if (!container) {
         return;
     }

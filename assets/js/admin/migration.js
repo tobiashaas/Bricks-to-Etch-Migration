@@ -3,19 +3,19 @@ let pollingTimer = null;
 let activeMigrationId = null;
 
 const request = async (action, payload = {}) => {
-    if (!window.b2eData || !window.b2eData.ajaxUrl || !window.b2eData.nonce) {
+    if (!window.efsData || !window.efsData.ajaxUrl || !window.efsData.nonce) {
         throw new Error('Migration data is not initialized.');
     }
     const params = new URLSearchParams();
     params.append('action', action);
-    params.append('_ajax_nonce', window.b2eData.nonce);
+    params.append('_ajax_nonce', window.efsData.nonce);
     Object.entries(payload).forEach(([key, value]) => {
         if (value === undefined || value === null) {
             return;
         }
         params.append(key, typeof value === 'object' ? JSON.stringify(value) : value);
     });
-    const response = await fetch(window.b2eData.ajaxUrl, {
+    const response = await fetch(window.efsData.ajaxUrl, {
         method: 'POST',
         credentials: 'same-origin',
         headers: {
@@ -38,14 +38,14 @@ const request = async (action, payload = {}) => {
 };
 
 const updateMigrationStatus = (status) => {
-    const statusElement = document.querySelector('[data-b2e-current-step]');
+    const statusElement = document.querySelector('[data-efs-current-step]');
     if (statusElement) {
         statusElement.textContent = status;
     }
 };
 
 const renderSteps = (steps = []) => {
-    const list = document.querySelector('[data-b2e-steps]');
+    const list = document.querySelector('[data-efs-steps]');
     if (!list) {
         return;
     }
@@ -59,7 +59,7 @@ const renderSteps = (steps = []) => {
 };
 
 const updateProgress = (progress) => {
-    const event = new CustomEvent('b2e:migration-progress', { detail: progress });
+    const event = new CustomEvent('efs:migration-progress', { detail: progress });
     document.dispatchEvent(event);
 };
 
