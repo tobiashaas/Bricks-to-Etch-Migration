@@ -13,7 +13,7 @@ require_once('/var/www/html/wp-load.php');
 echo "=== Testing Element Converters ===\n\n";
 
 // Load the new converters
-require_once('/var/www/html/wp-content/plugins/bricks-etch-migration/includes/converters/class-element-factory.php');
+require_once('/var/www/html/wp-content/plugins/etch-fusion-suite/includes/converters/class-element-factory.php');
 
 // Get style map
 $style_map = get_option('b2e_style_map', array());

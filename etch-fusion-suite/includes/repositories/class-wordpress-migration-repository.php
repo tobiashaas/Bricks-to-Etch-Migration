@@ -1,0 +1,304 @@
+<?php
+/**
+ * WordPress Migration Repository
+ *
+ * WordPress-backed implementation of Migration Repository using Options API.
+ *
+ * @package Bricks2Etch\Repositories
+ * @since 1.0.0
+ */
+
+namespace Bricks2Etch\Repositories;
+
+use Bricks2Etch\Repositories\Interfaces\Migration_Repository_Interface;
+
+/**
+ * Class B2E_WordPress_Migration_Repository
+ *
+ * Manages migration progress, steps, stats, and tokens with transient caching.
+ */
+class EFS_WordPress_Migration_Repository implements Migration_Repository_Interface {
+
+	/**
+	 * Cache expiration for progress/steps (2 minutes for real-time updates).
+	 */
+	const CACHE_EXPIRATION_SHORT = 120;
+
+	/**
+	 * Cache expiration for stats/tokens (10 minutes).
+	 */
+	const CACHE_EXPIRATION_LONG = 600;
+
+	/**
+	 * Get migration progress.
+	 *
+	 * @return array Progress data array.
+	 */
+	public function get_progress(): array {
+		$cache_key = 'b2e_cache_migration_progress';
+		$cached    = get_transient( $cache_key );
+
+		if ( false !== $cached ) {
+			return $cached;
+		}
+
+		$progress = get_option( 'b2e_migration_progress', array() );
+		set_transient( $cache_key, $progress, self::CACHE_EXPIRATION_SHORT );
+
+		return $progress;
+	}
+
+	/**
+	 * Save migration progress.
+	 *
+	 * @param array $progress Progress data to save.
+	 * @return bool True on success, false on failure.
+	 */
+	public function save_progress( array $progress ): bool {
+		$this->invalidate_cache( 'b2e_cache_migration_progress' );
+		return update_option( 'b2e_migration_progress', $progress );
+	}
+
+	/**
+	 * Delete migration progress.
+	 *
+	 * @return bool True on success, false on failure.
+	 */
+	public function delete_progress(): bool {
+		$this->invalidate_cache( 'b2e_cache_migration_progress' );
+		return delete_option( 'b2e_migration_progress' );
+	}
+
+	/**
+	 * Get migration steps.
+	 *
+	 * @return array Steps data array.
+	 */
+	public function get_steps(): array {
+		$cache_key = 'b2e_cache_migration_steps';
+		$cached    = get_transient( $cache_key );
+
+		if ( false !== $cached ) {
+			return $cached;
+		}
+
+		$steps = get_option( 'b2e_migration_steps', array() );
+		set_transient( $cache_key, $steps, self::CACHE_EXPIRATION_SHORT );
+
+		return $steps;
+	}
+
+	/**
+	 * Save migration steps.
+	 *
+	 * @param array $steps Steps data to save.
+	 * @return bool True on success, false on failure.
+	 */
+	public function save_steps( array $steps ): bool {
+		$this->invalidate_cache( 'b2e_cache_migration_steps' );
+		return update_option( 'b2e_migration_steps', $steps );
+	}
+
+	/**
+	 * Delete migration steps.
+	 *
+	 * @return bool True on success, false on failure.
+	 */
+	public function delete_steps(): bool {
+		$this->invalidate_cache( 'b2e_cache_migration_steps' );
+		return delete_option( 'b2e_migration_steps' );
+	}
+
+	/**
+	 * Get migration statistics.
+	 *
+	 * @return array Stats data array.
+	 */
+	public function get_stats(): array {
+		$cache_key = 'b2e_cache_migration_stats';
+		$cached    = get_transient( $cache_key );
+
+		if ( false !== $cached ) {
+			return $cached;
+		}
+
+		$stats = get_option( 'b2e_migration_stats', array() );
+		set_transient( $cache_key, $stats, self::CACHE_EXPIRATION_LONG );
+
+		return $stats;
+	}
+
+	/**
+	 * Save migration statistics.
+	 *
+	 * @param array $stats Stats data to save.
+	 * @return bool True on success, false on failure.
+	 */
+	public function save_stats( array $stats ): bool {
+		$this->invalidate_cache( 'b2e_cache_migration_stats' );
+		return update_option( 'b2e_migration_stats', $stats );
+	}
+
+	/**
+	 * Get token data.
+	 *
+	 * @return array Token data array.
+	 */
+	public function get_token_data(): array {
+		$cache_key = 'b2e_cache_migration_token_data';
+		$cached    = get_transient( $cache_key );
+
+		if ( false !== $cached ) {
+			return $cached;
+		}
+
+		$token_data = get_option( 'b2e_migration_token', array() );
+		set_transient( $cache_key, $token_data, self::CACHE_EXPIRATION_LONG );
+
+		return $token_data;
+	}
+
+	/**
+	 * Save token data.
+	 *
+	 * @param array $token_data Token data to save.
+	 * @return bool True on success, false on failure.
+	 */
+	public function save_token_data( array $token_data ): bool {
+		$this->invalidate_cache( 'b2e_cache_migration_token_data' );
+		return update_option( 'b2e_migration_token', $token_data );
+	}
+
+	/**
+	 * Get token value.
+	 *
+	 * @return string Token value or empty string if not set.
+	 */
+	public function get_token_value(): string {
+		$cache_key = 'b2e_cache_migration_token_value';
+		$cached    = get_transient( $cache_key );
+
+		if ( false !== $cached ) {
+			return $cached;
+		}
+
+		$token = get_option( 'b2e_migration_token_value', '' );
+		set_transient( $cache_key, $token, self::CACHE_EXPIRATION_LONG );
+
+		return $token;
+	}
+
+	/**
+	 * Save token value.
+	 *
+	 * @param string $token Token value to save.
+	 * @return bool True on success, false on failure.
+	 */
+	public function save_token_value( string $token ): bool {
+		$this->invalidate_cache( 'b2e_cache_migration_token_value' );
+		return update_option( 'b2e_migration_token_value', $token );
+	}
+
+	/**
+	 * Delete token data and value.
+	 *
+	 * @return bool True on success, false on failure.
+	 */
+	public function delete_token_data(): bool {
+		$this->invalidate_cache( 'b2e_cache_migration_token_data' );
+		$this->invalidate_cache( 'b2e_cache_migration_token_value' );
+
+		$result = true;
+		$result = delete_option( 'b2e_migration_token' ) && $result;
+		$result = delete_option( 'b2e_migration_token_value' ) && $result;
+		$result = delete_option( 'b2e_private_key' ) && $result;
+
+		return $result;
+	}
+
+	/**
+	 * Get imported data by type.
+	 *
+	 * @param string $type Data type: 'cpts', 'acf_field_groups', or 'metabox_configs'.
+	 * @return array Imported data array.
+	 */
+	public function get_imported_data( string $type ): array {
+		$option_key = $this->get_imported_data_option_key( $type );
+		$cache_key  = 'b2e_cache_imported_' . $type;
+		$cached     = get_transient( $cache_key );
+
+		if ( false !== $cached ) {
+			return $cached;
+		}
+
+		$data = get_option( $option_key, array() );
+		set_transient( $cache_key, $data, self::CACHE_EXPIRATION_LONG );
+
+		return $data;
+	}
+
+	/**
+	 * Save imported data by type.
+	 *
+	 * @param string $type Data type: 'cpts', 'acf_field_groups', or 'metabox_configs'.
+	 * @param array  $data Data to save.
+	 * @return bool True on success, false on failure.
+	 */
+	public function save_imported_data( string $type, array $data ): bool {
+		$option_key = $this->get_imported_data_option_key( $type );
+		$cache_key  = 'b2e_cache_imported_' . $type;
+
+		$this->invalidate_cache( $cache_key );
+		return update_option( $option_key, $data );
+	}
+
+	/**
+	 * Cleanup expired token transients.
+	 *
+	 * @return int Number of expired transients deleted.
+	 */
+	public function cleanup_expired_tokens(): int {
+		global $wpdb;
+
+		$count = $wpdb->query(
+			$wpdb->prepare(
+				"DELETE FROM {$wpdb->options} 
+				WHERE option_name LIKE %s 
+				AND option_value < %d",
+				$wpdb->esc_like( '_transient_timeout_b2e_token_' ) . '%',
+				time()
+			)
+		);
+
+		return (int) $count;
+	}
+
+	/**
+	 * Get option key for imported data type.
+	 *
+	 * @param string $type Data type.
+	 * @return string Option key.
+	 */
+	private function get_imported_data_option_key( string $type ): string {
+		$key_map = array(
+			'cpts'             => 'b2e_imported_cpts',
+			'acf_field_groups' => 'b2e_imported_acf_field_groups',
+			'metabox_configs'  => 'b2e_imported_metabox_configs',
+		);
+
+		return $key_map[ $type ] ?? 'b2e_imported_' . $type;
+	}
+
+	/**
+	 * Invalidate a specific cache key.
+	 *
+	 * @param string $cache_key Cache key to invalidate.
+	 */
+	private function invalidate_cache( string $cache_key ): void {
+		delete_transient( $cache_key );
+	}
+}
+
+// Legacy alias for backward compatibility
+\class_alias( __NAMESPACE__ . '\\EFS_WordPress_Migration_Repository', 'B2E_WordPress_Migration_Repository' );
+class_alias( __NAMESPACE__ . '\EFS_WordPress_Migration_Repository', __NAMESPACE__ . '\B2E_WordPress_Migration_Repository' );

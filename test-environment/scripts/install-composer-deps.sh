@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DOCKER_COMPOSE_BIN="${DOCKER_COMPOSE:-docker-compose}"
 WPCLI_SERVICE="${WPCLI_SERVICE:-wpcli}"
-PLUGIN_PATH="${PLUGIN_PATH:-/var/www/html/bricks/wp-content/plugins/bricks-etch-migration}"
+PLUGIN_PATH="${PLUGIN_PATH:-/var/www/html/bricks/wp-content/plugins/etch-fusion-suite}"
 
 run_compose() {
   ${DOCKER_COMPOSE_BIN} "$@"

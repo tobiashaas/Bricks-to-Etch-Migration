@@ -1,0 +1,38 @@
+{
+  "name": "etch-fusion-suite",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local development environment tooling for the Etch Fusion Suite plugin",
+  "scripts": {
+    "dev": "node scripts/dev.js",
+    "setup": "npm run dev",
+    "wp-env": "wp-env",
+    "wp": "wp-env run cli wp",
+    "wp:tests": "wp-env run tests-cli wp",
+    "wp:bricks": "npm run wp --",
+    "wp:etch": "npm run wp:tests --",
+    "stop": "wp-env stop",
+    "destroy": "wp-env destroy",
+    "logs": "wp-env logs",
+    "logs:bricks": "wp-env logs --environment development",
+    "logs:etch": "wp-env logs --environment tests",
+    "composer:install": "wp-env run cli --env-cwd=wp-content/plugins/etch-fusion-suite composer install --no-dev --optimize-autoloader",
+    "activate": "node scripts/activate-plugins.js",
+    "test:connection": "node scripts/test-connection.js",
+    "test:migration": "node scripts/test-migration.js",
+    "create-test-content": "node scripts/create-test-content.js",
+    "reset": "wp-env clean all && npm run dev",
+    "shell:bricks": "wp-env run cli bash",
+    "shell:etch": "wp-env run tests-cli bash",
+    "db:export:bricks": "wp-env run cli wp db export",
+    "db:export:etch": "wp-env run tests-cli wp db export",
+    "plugin:list": "wp-env run cli wp plugin list && wp-env run tests-cli wp plugin list",
+    "debug": "node scripts/debug-info.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@wordpress/env": "^10.30.0"
+  }
+}

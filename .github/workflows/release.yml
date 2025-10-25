@@ -30,18 +30,18 @@ jobs:
         run: |
           chmod +x scripts/validate-plugin-headers.sh
           scripts/validate-plugin-headers.sh
-        working-directory: bricks-etch-migration
+        working-directory: etch-fusion-suite
         env:
           GITHUB_REF_NAME: ${{ github.ref_name }}
 
       - name: Install production dependencies
         run: composer install --no-dev --optimize-autoloader --prefer-dist --no-progress
-        working-directory: bricks-etch-migration
+        working-directory: etch-fusion-suite
 
       - name: Create plugin ZIP
         run: |
-          cd bricks-etch-migration
-          zip -r ../bricks-etch-migration.zip . \
+          cd etch-fusion-suite
+          zip -r ../etch-fusion-suite.zip . \
             -x "*.git*" \
             -x "*node_modules/*" \
             -x "*.wp-env*" \
@@ -66,7 +66,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@c062e08bd532815e2082a85e87e3ef29c3e6d191
         with:
-          files: bricks-etch-migration.zip
+          files: etch-fusion-suite.zip
           body: ${{ steps.changelog.outputs.CHANGELOG }}
           draft: false
           prerelease: false

@@ -8,8 +8,8 @@
 require_once('/var/www/html/wp-load.php');
 
 // Load CSS Converter
-require_once('/var/www/html/wp-content/plugins/bricks-etch-migration/includes/css_converter.php');
-require_once('/var/www/html/wp-content/plugins/bricks-etch-migration/includes/error_handler.php');
+require_once('/var/www/html/wp-content/plugins/etch-fusion-suite/includes/css_converter.php');
+require_once('/var/www/html/wp-content/plugins/etch-fusion-suite/includes/error_handler.php');
 
 echo "========================================\n";
 echo "🎨 CSS Converter Test\n";

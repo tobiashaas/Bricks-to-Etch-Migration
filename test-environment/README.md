@@ -6,7 +6,7 @@
 
 Please use the npm-based wp-env workflow instead.
 
-**See [`../bricks-etch-migration/README.md`](../bricks-etch-migration/README.md) for current setup instructions.**
+**See [`../etch-fusion-suite/README.md`](../etch-fusion-suite/README.md) for current setup instructions.**
 
 This document is retained for reference only.
 
@@ -25,7 +25,7 @@ Each site is fully isolated, auto-installs WordPress core, and mounts the plugin
 
 1. Change into the plugin directory:
    ```bash
-   cd ../bricks-etch-migration
+   cd ../etch-fusion-suite
    ```
 2. Install dependencies:
    ```bash
@@ -113,15 +113,15 @@ Copy `.wp-env.override.json.example` to `.wp-env.override.json` (in the plugin r
 ### Quick Start
 
 ```bash
-cd ../bricks-etch-migration
+cd ../etch-fusion-suite
 npm install
 npm run dev
 ```
 
 ### Documentation
 
-- **Setup & Commands:** [`../bricks-etch-migration/README.md`](../bricks-etch-migration/README.md)
-- **Testing Guide:** [`../bricks-etch-migration/TESTING.md`](../bricks-etch-migration/TESTING.md)
+- **Setup & Commands:** [`../etch-fusion-suite/README.md`](../etch-fusion-suite/README.md)
+- **Testing Guide:** [`../etch-fusion-suite/TESTING.md`](../etch-fusion-suite/TESTING.md)
 - **Plugin Setup:** [`PLUGIN-SETUP.md`](PLUGIN-SETUP.md)
 
 ### Legacy Docker Resources

@@ -5,9 +5,9 @@ DOCKER_COMPOSE_BIN="${DOCKER_COMPOSE:-docker-compose}"
 BRICKS_CONTAINER="${BRICKS_CONTAINER:-b2e-bricks-wp}"
 ETCH_CONTAINER="${ETCH_CONTAINER:-b2e-etch-wp}"
 WPCLI_SERVICE="${WPCLI_SERVICE:-wpcli}"
-PLUGIN_SOURCE="${PLUGIN_SOURCE:-../bricks-etch-migration}"
-BRICKS_PLUGIN_PATH="${BRICKS_PLUGIN_PATH:-/var/www/html/wp-content/plugins/bricks-etch-migration}"
-ETCH_PLUGIN_PATH="${ETCH_PLUGIN_PATH:-/var/www/html/wp-content/plugins/bricks-etch-migration}"
+PLUGIN_SOURCE="${PLUGIN_SOURCE:-../etch-fusion-suite}"
+BRICKS_PLUGIN_PATH="${BRICKS_PLUGIN_PATH:-/var/www/html/wp-content/plugins/etch-fusion-suite}"
+ETCH_PLUGIN_PATH="${ETCH_PLUGIN_PATH:-/var/www/html/wp-content/plugins/etch-fusion-suite}"
 WATCH_MODE=0
 
 usage() {
@@ -59,14 +59,14 @@ sync_once() {
   ${DOCKER_COMPOSE_BIN} exec -T bricks-wp chown -R www-data:www-data "${BRICKS_PLUGIN_PATH}"
   ${DOCKER_COMPOSE_BIN} exec -T etch-wp chown -R www-data:www-data "${ETCH_PLUGIN_PATH}"
 
-  ${DOCKER_COMPOSE_BIN} exec -T "${WPCLI_SERVICE}" sh -c "cd /var/www/html/bricks/wp-content/plugins/bricks-etch-migration && composer install --no-dev --optimize-autoloader" || true
-  ${DOCKER_COMPOSE_BIN} exec -T "${WPCLI_SERVICE}" sh -c "cd /var/www/html/etch/wp-content/plugins/bricks-etch-migration && composer install --no-dev --optimize-autoloader" || true
+  ${DOCKER_COMPOSE_BIN} exec -T "${WPCLI_SERVICE}" sh -c "cd /var/www/html/bricks/wp-content/plugins/etch-fusion-suite && composer install --no-dev --optimize-autoloader" || true
+  ${DOCKER_COMPOSE_BIN} exec -T "${WPCLI_SERVICE}" sh -c "cd /var/www/html/etch/wp-content/plugins/etch-fusion-suite && composer install --no-dev --optimize-autoloader" || true
 
-  ${DOCKER_COMPOSE_BIN} exec -T "${WPCLI_SERVICE}" wp plugin deactivate bricks-etch-migration --path="/var/www/html/bricks" >/dev/null 2>&1 || true
-  ${DOCKER_COMPOSE_BIN} exec -T "${WPCLI_SERVICE}" wp plugin activate bricks-etch-migration --path="/var/www/html/bricks"
+  ${DOCKER_COMPOSE_BIN} exec -T "${WPCLI_SERVICE}" wp plugin deactivate etch-fusion-suite --path="/var/www/html/bricks" >/dev/null 2>&1 || true
+  ${DOCKER_COMPOSE_BIN} exec -T "${WPCLI_SERVICE}" wp plugin activate etch-fusion-suite --path="/var/www/html/bricks"
 
-  ${DOCKER_COMPOSE_BIN} exec -T "${WPCLI_SERVICE}" wp plugin deactivate bricks-etch-migration --path="/var/www/html/etch" >/dev/null 2>&1 || true
-  ${DOCKER_COMPOSE_BIN} exec -T "${WPCLI_SERVICE}" wp plugin activate bricks-etch-migration --path="/var/www/html/etch"
+  ${DOCKER_COMPOSE_BIN} exec -T "${WPCLI_SERVICE}" wp plugin deactivate etch-fusion-suite --path="/var/www/html/etch" >/dev/null 2>&1 || true
+  ${DOCKER_COMPOSE_BIN} exec -T "${WPCLI_SERVICE}" wp plugin activate etch-fusion-suite --path="/var/www/html/etch"
 
   echo "[sync-plugin] Sync completed."
 }

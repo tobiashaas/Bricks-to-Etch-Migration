@@ -58,7 +58,7 @@ reset_etch() {
     --admin_user="admin" \
     --admin_password="admin" \
     --admin_email="admin@local.dev"
-  wp_cli "${ETCH_SITE_PATH}" plugin activate bricks-etch-migration || true
+  wp_cli "${ETCH_SITE_PATH}" plugin activate etch-fusion-suite || true
 }
 
 fetch_application_password() {
@@ -98,18 +98,18 @@ check_prerequisites() {
   fi
   
   # Check if plugin is activated
-  if ! wp_cli "${BRICKS_SITE_PATH}" plugin is-active bricks-etch-migration >/dev/null 2>&1; then
+  if ! wp_cli "${BRICKS_SITE_PATH}" plugin is-active etch-fusion-suite >/dev/null 2>&1; then
     echo "[test-migration] ERROR: Plugin not activated on Bricks site" >&2
     return 1
   fi
   
-  if ! wp_cli "${ETCH_SITE_PATH}" plugin is-active bricks-etch-migration >/dev/null 2>&1; then
+  if ! wp_cli "${ETCH_SITE_PATH}" plugin is-active etch-fusion-suite >/dev/null 2>&1; then
     echo "[test-migration] ERROR: Plugin not activated on Etch site" >&2
     return 1
   fi
   
   # Check Composer dependencies
-  if ! run_compose exec -T "${WPCLI_SERVICE}" sh -c "test -f '${BRICKS_SITE_PATH}/wp-content/plugins/bricks-etch-migration/vendor/autoload.php'" >/dev/null 2>&1; then
+  if ! run_compose exec -T "${WPCLI_SERVICE}" sh -c "test -f '${BRICKS_SITE_PATH}/wp-content/plugins/etch-fusion-suite/vendor/autoload.php'" >/dev/null 2>&1; then
     echo "[test-migration] ERROR: Composer dependencies not installed" >&2
     return 1
   fi

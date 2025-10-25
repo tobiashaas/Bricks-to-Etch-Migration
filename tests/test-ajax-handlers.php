@@ -39,12 +39,12 @@ function test_result($test_name, $passed, $message = '') {
 echo "--- Test 1: File Structure ---\n";
 
 $files_to_check = array(
-    '/var/www/html/wp-content/plugins/bricks-etch-migration/includes/ajax/class-base-ajax-handler.php',
-    '/var/www/html/wp-content/plugins/bricks-etch-migration/includes/ajax/class-ajax-handler.php',
-    '/var/www/html/wp-content/plugins/bricks-etch-migration/includes/ajax/handlers/class-css-ajax.php',
-    '/var/www/html/wp-content/plugins/bricks-etch-migration/includes/ajax/handlers/class-content-ajax.php',
-    '/var/www/html/wp-content/plugins/bricks-etch-migration/includes/ajax/handlers/class-media-ajax.php',
-    '/var/www/html/wp-content/plugins/bricks-etch-migration/includes/ajax/handlers/class-validation-ajax.php',
+    '/var/www/html/wp-content/plugins/etch-fusion-suite/includes/ajax/class-base-ajax-handler.php',
+    '/var/www/html/wp-content/plugins/etch-fusion-suite/includes/ajax/class-ajax-handler.php',
+    '/var/www/html/wp-content/plugins/etch-fusion-suite/includes/ajax/handlers/class-css-ajax.php',
+    '/var/www/html/wp-content/plugins/etch-fusion-suite/includes/ajax/handlers/class-content-ajax.php',
+    '/var/www/html/wp-content/plugins/etch-fusion-suite/includes/ajax/handlers/class-media-ajax.php',
+    '/var/www/html/wp-content/plugins/etch-fusion-suite/includes/ajax/handlers/class-validation-ajax.php',
 );
 
 foreach ($files_to_check as $file) {
@@ -60,7 +60,7 @@ echo "\n";
 echo "--- Test 2: Class Loading ---\n";
 
 try {
-    require_once('/var/www/html/wp-content/plugins/bricks-etch-migration/includes/ajax/class-ajax-handler.php');
+    require_once('/var/www/html/wp-content/plugins/etch-fusion-suite/includes/ajax/class-ajax-handler.php');
     test_result('B2E_Ajax_Handler class loaded', class_exists('B2E_Ajax_Handler'));
 } catch (Exception $e) {
     test_result('B2E_Ajax_Handler class loaded', false, $e->getMessage());
@@ -273,7 +273,7 @@ echo "\n";
 echo "--- Test 10: Plugin Integration ---\n";
 
 // Check if plugin has ajax_handler property
-$plugin = Bricks_Etch_Migration::get_instance();
+$plugin = etch_fusion_suite::get_instance();
 test_result('Plugin instance exists', $plugin !== null);
 
 // Use reflection to check private property

@@ -87,13 +87,13 @@ fi
 
 # Check 4: Plugin directory mounted
 echo "[4/9] Checking plugin directory..."
-if run_compose exec -T "${WPCLI_SERVICE}" sh -c "test -d '${BRICKS_PATH}/wp-content/plugins/bricks-etch-migration'" >/dev/null 2>&1; then
+if run_compose exec -T "${WPCLI_SERVICE}" sh -c "test -d '${BRICKS_PATH}/wp-content/plugins/etch-fusion-suite'" >/dev/null 2>&1; then
   check_pass "Plugin directory mounted on Bricks site"
 else
   check_fail "Plugin directory not found on Bricks site"
 fi
 
-if run_compose exec -T "${WPCLI_SERVICE}" sh -c "test -d '${ETCH_PATH}/wp-content/plugins/bricks-etch-migration'" >/dev/null 2>&1; then
+if run_compose exec -T "${WPCLI_SERVICE}" sh -c "test -d '${ETCH_PATH}/wp-content/plugins/etch-fusion-suite'" >/dev/null 2>&1; then
   check_pass "Plugin directory mounted on Etch site"
 else
   check_fail "Plugin directory not found on Etch site"
@@ -101,7 +101,7 @@ fi
 
 # Check 5: Composer autoloader exists
 echo "[5/9] Checking Composer autoloader..."
-if run_compose exec -T "${WPCLI_SERVICE}" sh -c "test -f '${BRICKS_PATH}/wp-content/plugins/bricks-etch-migration/vendor/autoload.php'" >/dev/null 2>&1; then
+if run_compose exec -T "${WPCLI_SERVICE}" sh -c "test -f '${BRICKS_PATH}/wp-content/plugins/etch-fusion-suite/vendor/autoload.php'" >/dev/null 2>&1; then
   check_pass "Composer autoloader exists"
 else
   check_fail "Composer autoloader not found. Run 'make composer-install'"
@@ -109,15 +109,15 @@ fi
 
 # Check 6: Plugin activated
 echo "[6/9] Checking plugin activation..."
-if wp_cli "${BRICKS_PATH}" plugin is-active bricks-etch-migration >/dev/null 2>&1; then
-  PLUGIN_VERSION=$(wp_cli "${BRICKS_PATH}" plugin get bricks-etch-migration --field=version 2>/dev/null || echo "unknown")
+if wp_cli "${BRICKS_PATH}" plugin is-active etch-fusion-suite >/dev/null 2>&1; then
+  PLUGIN_VERSION=$(wp_cli "${BRICKS_PATH}" plugin get etch-fusion-suite --field=version 2>/dev/null || echo "unknown")
   check_pass "Plugin activated on Bricks site (version ${PLUGIN_VERSION})"
 else
   check_fail "Plugin not activated on Bricks site"
 fi
 
-if wp_cli "${ETCH_PATH}" plugin is-active bricks-etch-migration >/dev/null 2>&1; then
-  PLUGIN_VERSION=$(wp_cli "${ETCH_PATH}" plugin get bricks-etch-migration --field=version 2>/dev/null || echo "unknown")
+if wp_cli "${ETCH_PATH}" plugin is-active etch-fusion-suite >/dev/null 2>&1; then
+  PLUGIN_VERSION=$(wp_cli "${ETCH_PATH}" plugin get etch-fusion-suite --field=version 2>/dev/null || echo "unknown")
   check_pass "Plugin activated on Etch site (version ${PLUGIN_VERSION})"
 else
   check_fail "Plugin not activated on Etch site"

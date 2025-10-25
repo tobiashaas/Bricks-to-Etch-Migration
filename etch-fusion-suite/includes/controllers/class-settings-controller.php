@@ -1,0 +1,99 @@
+<?php
+namespace Bricks2Etch\Controllers;
+
+use Bricks2Etch\Api\EFS_API_Client;
+use Bricks2Etch\Repositories\Interfaces\Settings_Repository_Interface;
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+class EFS_Settings_Controller {
+	private $api_client;
+	private $settings_repository;
+
+	/**
+	 * Constructor
+	 *
+	 * @param EFS_API_Client $api_client
+	 * @param Settings_Repository_Interface $settings_repository
+	 */
+	public function __construct( EFS_API_Client $api_client, Settings_Repository_Interface $settings_repository ) {
+		$this->api_client          = $api_client;
+		$this->settings_repository = $settings_repository;
+	}
+
+	public function save_settings( array $data ) {
+		$settings = $this->sanitize_settings( $data );
+		$this->settings_repository->save_migration_settings( $settings );
+		return array(
+			'message'  => __( 'Settings saved successfully.', 'bricks-etch-migration' ),
+			'settings' => $settings,
+		);
+	}
+
+	public function get_settings() {
+		$settings = $this->settings_repository->get_migration_settings();
+		return is_array( $settings ) ? $settings : array();
+	}
+
+	public function test_connection( array $data ) {
+		$settings = $this->sanitize_settings( $data );
+		$url      = $settings['target_url'];
+		$key      = $settings['api_key'];
+		$result   = $this->api_client->test_connection( $url, $key );
+
+		if ( is_wp_error( $result ) ) {
+			return new \WP_Error( 'connection_failed', $result->get_error_message() );
+		}
+
+		if ( ! isset( $result['valid'] ) || ! $result['valid'] ) {
+			$errors  = isset( $result['errors'] ) && is_array( $result['errors'] ) ? array_filter( $result['errors'] ) : array();
+			$message = ! empty( $errors ) ? implode( ' ', array_map( 'wp_strip_all_tags', $errors ) ) : __( 'Connection failed.', 'bricks-etch-migration' );
+			return new \WP_Error( 'connection_failed', $message );
+		}
+
+		return array(
+			'message' => __( 'Connection successful.', 'bricks-etch-migration' ),
+			'valid'   => true,
+			'plugins' => isset( $result['plugins'] ) ? $result['plugins'] : array(),
+		);
+	}
+
+	public function generate_migration_key( array $data ) {
+		$url    = isset( $data['target_url'] ) ? $this->sanitize_url( $data['target_url'] ) : '';
+		$key    = isset( $data['api_key'] ) ? $this->sanitize_text( $data['api_key'] ) : '';
+		$result = $this->api_client->generate_migration_key( $url, $key );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		return array(
+			'message' => __( 'Migration key generated.', 'bricks-etch-migration' ),
+			'key'     => isset( $result['key'] ) ? $result['key'] : '',
+		);
+	}
+
+	private function sanitize_settings( array $data ) {
+		return array(
+			'target_url'    => isset( $data['target_url'] ) ? $this->sanitize_url( $data['target_url'] ) : '',
+			'api_key'       => isset( $data['api_key'] ) ? $this->sanitize_text( $data['api_key'] ) : '',
+			'migration_key' => isset( $data['migration_key'] ) ? $this->sanitize_textarea( $data['migration_key'] ) : '',
+		);
+	}
+
+	private function sanitize_url( $url ) {
+		return esc_url_raw( $url );
+	}
+
+	private function sanitize_text( $text ) {
+		return sanitize_text_field( $text );
+	}
+
+	private function sanitize_textarea( $text ) {
+		return sanitize_textarea_field( $text );
+	}
+}
+
+// Legacy alias for backward compatibility
+\class_alias( __NAMESPACE__ . '\\EFS_Settings_Controller', 'B2E_Settings_Controller' );
+class_alias( __NAMESPACE__ . '\EFS_Settings_Controller', __NAMESPACE__ . '\B2E_Settings_Controller' );

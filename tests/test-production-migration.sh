@@ -111,7 +111,7 @@ fi
 # Start migration
 START_RESPONSE=$(curl -s -X POST "$BRICKS_URL/wp-admin/admin-ajax.php" \
     -F "action=b2e_start_migration" \
-    -F "nonce=$(curl -s "$BRICKS_URL/wp-admin/admin.php?page=bricks-etch-migration" | grep -o 'b2e_ajax":{"ajax_url":"[^"]*","nonce":"[^"]*"' | grep -o 'nonce":"[^"]*"' | sed 's/nonce":"//;s/"//' || echo 'test_nonce')" \
+    -F "nonce=$(curl -s "$BRICKS_URL/wp-admin/admin.php?page=etch-fusion-suite" | grep -o 'b2e_ajax":{"ajax_url":"[^"]*","nonce":"[^"]*"' | grep -o 'nonce":"[^"]*"' | sed 's/nonce":"//;s/"//' || echo 'test_nonce')" \
     -F "target_url=$API_DOMAIN" \
     -F "api_key=$API_KEY")
 

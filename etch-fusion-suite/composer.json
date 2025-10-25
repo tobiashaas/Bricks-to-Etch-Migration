@@ -1,0 +1,47 @@
+{
+    "name": "etchfusion/suite",
+    "description": "Etch Fusion Suite - End-to-end migration and orchestration toolkit with PSR-4 autoloading.",
+    "type": "wordpress-plugin",
+    "license": "GPL-2.0-or-later",
+    "require": {
+        "php": "^7.4",
+        "psr/container": "1.1"
+    },
+    "require-dev": {
+        "wp-coding-standards/wpcs": "^3.1",
+        "phpcompatibility/phpcompatibility-wp": "^2.1",
+        "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+        "yoast/phpunit-polyfills": "^2.0",
+        "phpunit/phpunit": "^9.6",
+        "mockery/mockery": "^1.6"
+    },
+    "autoload": {
+        "psr-4": {
+            "Bricks2Etch\\": "includes/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Bricks2Etch\\Tests\\": "tests/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Etch Fusion Suite Contributors"
+        }
+    ],
+    "config": {
+        "platform": {
+            "php": "7.4.0"
+        },
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
+    },
+    "scripts": {
+        "lint": "phpcs",
+        "lint:fix": "phpcbf",
+        "test": "phpunit",
+        "test:coverage": "phpunit --coverage-html build/coverage"
+    }
+}

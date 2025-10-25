@@ -77,7 +77,7 @@ echo "Composer version:"
 run_compose exec -T "${WPCLI_SERVICE}" composer --version 2>/dev/null || echo "Composer not installed"
 echo ""
 echo "Installed packages:"
-run_compose exec -T "${WPCLI_SERVICE}" sh -c "cd '${BRICKS_PATH}/wp-content/plugins/bricks-etch-migration' && composer show 2>/dev/null" || echo "Could not list packages"
+run_compose exec -T "${WPCLI_SERVICE}" sh -c "cd '${BRICKS_PATH}/wp-content/plugins/etch-fusion-suite' && composer show 2>/dev/null" || echo "Could not list packages"
 
 # 6. Plugin configuration
 section "6. Plugin Configuration"
@@ -117,10 +117,10 @@ run_compose exec -T "${BRICKS_SERVICE}" curl -s -I http://etch-wp/wp-json/b2e/v1
 # 10. File permissions
 section "10. Plugin Directory Permissions"
 echo "Bricks plugin directory:"
-run_compose exec -T "${BRICKS_SERVICE}" ls -la /var/www/html/wp-content/plugins/bricks-etch-migration 2>/dev/null | head -20 || echo "Could not list directory"
+run_compose exec -T "${BRICKS_SERVICE}" ls -la /var/www/html/wp-content/plugins/etch-fusion-suite 2>/dev/null | head -20 || echo "Could not list directory"
 echo ""
 echo "Vendor directory exists:"
-run_compose exec -T "${BRICKS_SERVICE}" sh -c "if [ -d /var/www/html/wp-content/plugins/bricks-etch-migration/vendor ]; then echo 'Yes'; ls -la /var/www/html/wp-content/plugins/bricks-etch-migration/vendor | head -10; else echo 'No'; fi" 2>/dev/null
+run_compose exec -T "${BRICKS_SERVICE}" sh -c "if [ -d /var/www/html/wp-content/plugins/etch-fusion-suite/vendor ]; then echo 'Yes'; ls -la /var/www/html/wp-content/plugins/etch-fusion-suite/vendor | head -10; else echo 'No'; fi" 2>/dev/null
 
 # 11. Disk space
 section "11. Disk Space"

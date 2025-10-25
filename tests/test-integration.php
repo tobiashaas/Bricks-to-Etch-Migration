@@ -13,7 +13,7 @@ require_once('/var/www/html/wp-load.php');
 echo "=== Testing Integration of Modular Converters ===\n\n";
 
 // Load Gutenberg Generator
-require_once('/var/www/html/wp-content/plugins/bricks-etch-migration/includes/gutenberg_generator.php');
+require_once('/var/www/html/wp-content/plugins/etch-fusion-suite/includes/gutenberg_generator.php');
 
 // Get Post 10 (Feature Section Sierra)
 $post_id = 10;

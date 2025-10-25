@@ -123,18 +123,18 @@ setup_bricks_site() {
   fi
   
   # Check Composer dependencies before activating plugin
-  if ! run_compose exec -T "${WPCLI_SERVICE}" sh -c "test -f '${BRICKS_PATH}/wp-content/plugins/bricks-etch-migration/vendor/autoload.php'" >/dev/null 2>&1; then
-    echo "[setup-wordpress] WARNING: Composer autoloader not found at ${BRICKS_PATH}/wp-content/plugins/bricks-etch-migration/vendor/autoload.php" >&2
+  if ! run_compose exec -T "${WPCLI_SERVICE}" sh -c "test -f '${BRICKS_PATH}/wp-content/plugins/etch-fusion-suite/vendor/autoload.php'" >/dev/null 2>&1; then
+    echo "[setup-wordpress] WARNING: Composer autoloader not found at ${BRICKS_PATH}/wp-content/plugins/etch-fusion-suite/vendor/autoload.php" >&2
     echo "[setup-wordpress] Plugin may fail to activate. Run 'make composer-install' first." >&2
   fi
   
   # Activate B2E plugin with proper error handling
-  if ! wp_cli "${BRICKS_PATH}" plugin activate bricks-etch-migration; then
-    echo "[setup-wordpress] ERROR: Failed to activate bricks-etch-migration plugin on Bricks site" >&2
+  if ! wp_cli "${BRICKS_PATH}" plugin activate etch-fusion-suite; then
+    echo "[setup-wordpress] ERROR: Failed to activate etch-fusion-suite plugin on Bricks site" >&2
     echo "[setup-wordpress] Ensure the plugin is mounted correctly and Composer dependencies are installed" >&2
     exit 1
   fi
-  echo "[setup-wordpress] Successfully activated bricks-etch-migration on Bricks site"
+  echo "[setup-wordpress] Successfully activated etch-fusion-suite on Bricks site"
   
   # Debug output: Show plugin status
   echo "[setup-wordpress] Active plugins on Bricks site:"
@@ -182,18 +182,18 @@ setup_etch_site() {
   fi
   
   # Check Composer dependencies before activating plugin
-  if ! run_compose exec -T "${WPCLI_SERVICE}" sh -c "test -f '${ETCH_PATH}/wp-content/plugins/bricks-etch-migration/vendor/autoload.php'" >/dev/null 2>&1; then
-    echo "[setup-wordpress] WARNING: Composer autoloader not found at ${ETCH_PATH}/wp-content/plugins/bricks-etch-migration/vendor/autoload.php" >&2
+  if ! run_compose exec -T "${WPCLI_SERVICE}" sh -c "test -f '${ETCH_PATH}/wp-content/plugins/etch-fusion-suite/vendor/autoload.php'" >/dev/null 2>&1; then
+    echo "[setup-wordpress] WARNING: Composer autoloader not found at ${ETCH_PATH}/wp-content/plugins/etch-fusion-suite/vendor/autoload.php" >&2
     echo "[setup-wordpress] Plugin may fail to activate. Run 'make composer-install' first." >&2
   fi
   
   # Activate B2E plugin with proper error handling
-  if ! wp_cli "${ETCH_PATH}" plugin activate bricks-etch-migration; then
-    echo "[setup-wordpress] ERROR: Failed to activate bricks-etch-migration plugin on Etch site" >&2
+  if ! wp_cli "${ETCH_PATH}" plugin activate etch-fusion-suite; then
+    echo "[setup-wordpress] ERROR: Failed to activate etch-fusion-suite plugin on Etch site" >&2
     echo "[setup-wordpress] Ensure the plugin is mounted correctly and Composer dependencies are installed" >&2
     exit 1
   fi
-  echo "[setup-wordpress] Successfully activated bricks-etch-migration on Etch site"
+  echo "[setup-wordpress] Successfully activated etch-fusion-suite on Etch site"
   
   # Debug output: Show plugin status
   echo "[setup-wordpress] Active plugins on Etch site:"

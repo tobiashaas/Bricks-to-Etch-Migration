@@ -1,4 +1,108 @@
-# Changelog - Bricks to Etch Migration
+# Changelog - Etch Fusion Suite
+
+## [0.10.2] - 2025-10-25 (14:55) - Framer Extractor Test Coverage
+
+### 🧪 Testing
+- Added Framer extractor fixtures and PHPUnit suites covering sanitizer semantics, template analyzer heuristics, and full pipeline validation (`tests/fixtures/framer-sample.html`, `tests/unit/*`, `tests/integration/FramerExtractionIntegrationTest.php`).
+- Updated `TemplateExtractorServiceTest` to assert payload structure and validation results using the DI container.
+
+### 📚 Documentation
+- Documented new fixture and test coverage in `DOCUMENTATION.md`, including instructions for running the suites via `composer test`.
+
+## [0.10.1] - 2025-10-25 (14:41) - Template Extractor Public API
+
+### ✨ New Features
+- Added REST API endpoints under `/b2e/v1/template/*` for extracting, listing, previewing, importing, and deleting Etch templates generated from Framer sources, complete with rate limiting, CORS enforcement, and input validation.
+- Embedded the Template Extractor interface directly into the Etch dashboard with saved-template context, providing a single entry point for Framer imports.
+
+### 🧪 Testing
+- Introduced `TemplateExtractorServiceTest` to cover `EFS_Template_Extractor_Service` validation helpers and supported-source metadata using PHPUnit mocks.
+
+### 📚 Documentation
+- Authored `docs/FRAMER-EXTRACTION.md` with architecture, pipeline steps, REST usage, troubleshooting, and testing guidance.
+- Updated `README.md` and `DOCUMENTATION.md` to reference the new extractor documentation and summarize REST/AJAX capabilities.
+
+## [0.10.0] - 2025-10-25 (11:05) - Framer Template Extraction
+
+### ✨ New Features
+- **Framer Template Extraction Framework**: Complete pipeline for importing Framer website templates into Etch
+  - HTML Parser: DOMDocument-based robust HTML parsing with error handling
+  - HTML Sanitizer: Removes Framer-specific markup, semanticizes DOM structure
+  - Template Analyzer: Detects sections (hero, features, CTA, footer), components, layout structure
+  - Etch Template Generator: Converts sanitized DOM to Etch-compatible Gutenberg blocks
+  - Template Extractor Service: Orchestrates complete extraction pipeline
+
+### 🎨 UI
+- **New 'Template Extractor' Tab**: Admin dashboard integration for template import
+- **Dual Input Methods**: Support for URL-based extraction and HTML string paste
+- **Live Progress Updates**: Real-time extraction progress with step-by-step status
+- **Template Preview**: Metadata display with complexity scoring and block preview
+- **Saved Templates Management**: Save, delete, and import extracted templates
+
+### 🔌 API
+- **AJAX Handlers**: Complete AJAX integration for template extraction workflow
+  - `b2e_extract_template`: Initiates extraction from URL or HTML
+  - `b2e_get_extraction_progress`: Polls extraction progress
+  - `b2e_save_template`: Persists extracted template as draft
+  - `b2e_get_saved_templates`: Retrieves saved templates list
+  - `b2e_delete_template`: Removes saved template
+- **Rate Limiting**: Configured limits (10 req/min extraction, 60 req/min progress)
+- **Security**: Capability checks, nonce validation, audit logging for all operations
+
+### 🏗️ Architecture
+- **Four Core Interfaces**: `Template_Extractor`, `HTML_Sanitizer`, `Template_Analyzer`, `Etch_Template_Generator`
+- **Two Framer Implementations**: `Framer_HTML_Sanitizer`, `Framer_Template_Analyzer`
+- **Service Layer Integration**: Registered in DI container with autowiring
+- **Controller Pattern**: `Template_Controller` delegates to `Template_Extractor_Service`
+- **Reusable Components**: Leverages existing `Element_Factory` and `Gutenberg_Generator` patterns
+
+### 🔧 Technical Details
+- **HTML Parsing**: DOMDocument + DOMXPath for robust invalid HTML handling
+- **Framer-Specific Sanitization**: 
+  - Removes `data-framer-*` attributes and hash classes (`framer-xxxxx`)
+  - Unwraps unnecessary single-child div wrappers
+  - Semanticizes generic divs to `<header>`, `<nav>`, `<section>`, `<footer>`
+  - Converts `data-framer-component-type` to appropriate HTML tags
+- **Semantic Analysis**: Heuristic-based section detection (hero, features, CTA recognition)
+- **Etch Block Generation**: Gutenberg block HTML with `etchData` metadata structure
+- **Complexity Scoring**: 0-100 scale based on DOM depth, component count, layout complexity
+- **CSS Variable Extraction**: Captures `--framer-*` inline styles for style mapping
+
+## [0.9.0-beta] - 2025-10-25 (08:55) - Legacy Alias Cleanup
+
+### 🐛 Bug Fixes
+- Resolved remaining `B2E_*` class alias warnings across admin interface, security services, and migrator components to restore backward compatibility.
+
+### 🔧 Technical Changes
+- Standardized `class_alias()` calls so each legacy alias points to its corresponding `EFS_*` class, covering admin bootstrap, validator/logger services, and all core migrators.
+
+## [0.9.0-beta] - 2025-10-24 (16:25) - Etch Fusion Suite Rebrand
+
+### 🎨 Rebranding
+- **Plugin Name**: Renamed from "Bricks to Etch Migration" to "Etch Fusion Suite"
+- **Repository**: Moved to https://github.com/tobiashaas/EtchFusion-Suite
+- **Description**: Updated to reflect expanded capabilities as end-to-end migration and orchestration toolkit
+- **Text Domain**: Changed from `bricks-etch-migration` to `etch-fusion-suite` (with backward compatibility)
+
+### 🔧 Technical Changes
+- **Class Prefix**: All 55+ classes renamed from `B2E_*` to `EFS_*` (Etch Fusion Suite)
+- **Constants**: Updated to `EFS_PLUGIN_*` prefix
+- **Helper Functions**: Renamed to `efs_container()`, `efs_debug_log()`
+- **Backward Compatibility**: All old `B2E_*` names preserved via `class_alias()` for seamless upgrades
+- **Main Class**: `EFS_Plugin` (formerly `Bricks_Etch_Migration`)
+- **Container**: `EFS_Service_Container`, `EFS_Service_Provider`
+
+### 📚 Documentation
+- **README**: Updated with new branding and repository links
+- **CHANGELOG**: Rebranded header and added rebrand entry
+- **Plugin Header**: Updated metadata for WordPress.org compatibility
+
+### 📁 File Structure
+- **Plugin Folder**: Renamed from `bricks-etch-migration/` to `etch-fusion-suite/`
+- **Main File**: Renamed from `bricks-etch-migration.php` to `etch-fusion-suite.php`
+- **All References**: Updated across scripts, workflows, and documentation
+
+---
 
 ## [0.8.0-beta] - 2025-10-24 (14:07) - CI/CD Integration & Beta Release
 

@@ -4,10 +4,10 @@
  */
 
 require_once('/var/www/html/wp-load.php');
-require_once('/var/www/html/wp-content/plugins/bricks-etch-migration/includes/content_parser.php');
-require_once('/var/www/html/wp-content/plugins/bricks-etch-migration/includes/gutenberg_generator.php');
-require_once('/var/www/html/wp-content/plugins/bricks-etch-migration/includes/dynamic_data_converter.php');
-require_once('/var/www/html/wp-content/plugins/bricks-etch-migration/includes/error_handler.php');
+require_once('/var/www/html/wp-content/plugins/etch-fusion-suite/includes/content_parser.php');
+require_once('/var/www/html/wp-content/plugins/etch-fusion-suite/includes/gutenberg_generator.php');
+require_once('/var/www/html/wp-content/plugins/etch-fusion-suite/includes/dynamic_data_converter.php');
+require_once('/var/www/html/wp-content/plugins/etch-fusion-suite/includes/error_handler.php');
 
 echo "========================================\n";
 echo "🔄 Content Conversion Test\n";

@@ -1,7 +1,7 @@
 # Technical Documentation - Bricks to Etch Migration
 
-**Last Updated:** 2025-10-24 13:30  
-**Version:** 0.8.0
+**Last Updated:** 2025-10-25 14:41  
+**Version:** 0.10.0
 
 ---
 
@@ -15,6 +15,7 @@
 6. [API Communication](#api-communication)
 7. [Frontend Rendering](#frontend-rendering)
 8. [Test Environment](#test-environment)
+9. [Framer Template Extraction](#framer-template-extraction)
 
 ---
 
@@ -820,7 +821,7 @@ $supported = $registry->get_supported();
 
 ## Test Environment
 
-**Updated:** 2025-10-24 00:45
+**Updated:** 2025-10-23 21:12
 
 ### wp-env Workflow
 
@@ -830,6 +831,30 @@ The local development and testing stack now relies on `@wordpress/env` instead o
 - **tests** (http://localhost:8889) – Etch target site
 
 Both instances mount the plugin directory directly, automatically install WordPress core, and provide integrated WP-CLI access through npm scripts.
+
+---
+
+## Framer Template Extraction
+
+**Updated:** 2025-10-25 14:55
+
+- For the full extractor specification, refer to [docs/FRAMER-EXTRACTION.md](etch-fusion-suite/docs/FRAMER-EXTRACTION.md).
+- Core services: `EFS_HTML_Parser`, `EFS_Framer_HTML_Sanitizer`, `EFS_Framer_Template_Analyzer`, and `EFS_Etch_Template_Generator`, orchestrated by `EFS_Template_Extractor_Service` and exposed through `EFS_Template_Controller`.
+- Admin experience: **Dashboard → Template Extractor** supports URL/HTML imports with live progress, preview, and saved-template management.
+- REST API: `/wp-json/b2e/v1/template/*` endpoints handle extraction (`POST /template/extract`), listing, preview, deletion, and import operations with rate limits between 10–30 requests per minute.
+- AJAX parity: Administrator-only AJAX actions mirror REST workflows, sharing nonce verification, capability checks, and audit logging.
+
+### Testing Coverage
+
+**Updated:** 2025-10-25 14:55
+
+- Fixture: `tests/fixtures/framer-sample.html` provides a representative Framer export with header, hero, feature cards, footer, Framer script tags, hashed classes, and `--framer-*` CSS variables.
+- Unit tests:
+  - `tests/unit/TemplateExtractorServiceTest.php` validates payload shape and template validation edge cases via the service container.
+  - `tests/unit/FramerHtmlSanitizerTest.php` ensures Framer scripts are removed and semantic conversions (sections, headings) apply as expected.
+  - `tests/unit/FramerTemplateAnalyzerTest.php` checks section detection heuristics (`hero`, `features`, `footer`) and media source annotations for Framer CDN assets.
+- Integration test: `tests/integration/FramerExtractionIntegrationTest.php` exercises the full DI-driven pipeline and asserts that Etch blocks, metadata, and CSS variable styles are generated end-to-end.
+- Run with `composer test` (requires WordPress test suite installed via `bin/install-wp-tests.sh`).
 
 ### Configuration Files
 

@@ -1,13 +1,13 @@
-# Bricks to Etch Migration Plugin
+# Etch Fusion Suite
 
-![CI](https://github.com/tobiashaas/Bricks2Etch/workflows/CI/badge.svg)
-![CodeQL](https://github.com/tobiashaas/Bricks2Etch/workflows/CodeQL/badge.svg)
+![CI](https://github.com/tobiashaas/EtchFusion-Suite/workflows/CI/badge.svg)
+![CodeQL](https://github.com/tobiashaas/EtchFusion-Suite/workflows/CodeQL/badge.svg)
 ![PHP Version](https://img.shields.io/badge/PHP-7.4%20%7C%208.1%20%7C%208.2%20%7C%208.3%20%7C%208.4-blue)
 
-**Version:** 0.8.0  
+**Version:** 0.8.0-beta  
 **Status:** ✅ Production Ready
 
-One-time migration tool for converting Bricks Builder websites to Etch PageBuilder with complete automation.
+End-to-end migration and orchestration toolkit for transforming Bricks Builder sites into fully native Etch experiences. Automates content conversion, Gutenberg block generation, style remapping, asset handling, and API provisioning—backed by security logging, rate limiting, and deep WordPress integration.
 
 ---
 
@@ -51,7 +51,7 @@ One-time migration tool for converting Bricks Builder websites to Etch PageBuild
 
 ### 2. Configuration
 
-1. Go to **Bricks Dashboard** → **Bricks to Etch Migration**
+1. Go to **Bricks Dashboard** → **Etch Fusion Suite**
 2. Enter **Etch Site URL** (e.g., `https://your-etch-site.com`)
 3. Enter **Application Password** from Etch site
 4. Click **Test Connection** to verify
@@ -75,10 +75,10 @@ Progress is shown in real-time with detailed logs.
 
 ### Recommended: wp-env Workflow
 
-See **[bricks-etch-migration/README.md](bricks-etch-migration/README.md)** for complete setup instructions.
+See **[etch-fusion-suite/README.md](etch-fusion-suite/README.md)** for complete setup instructions.
 
 ```bash
-cd bricks-etch-migration
+cd etch-fusion-suite
 npm install
 npm run dev
 ```
@@ -104,7 +104,8 @@ npm run dev
 ### Main Documentation
 - **[CHANGELOG.md](CHANGELOG.md)** - Version history and changes
 - **[DOCUMENTATION.md](DOCUMENTATION.md)** - Technical documentation
-- **[docs/MIGRATOR-API.md](bricks-etch-migration/docs/MIGRATOR-API.md)** - Developer guide for the migrator system
+- **[docs/MIGRATOR-API.md](etch-fusion-suite/docs/MIGRATOR-API.md)** - Developer guide for the migrator system
+- **[docs/FRAMER-EXTRACTION.md](etch-fusion-suite/docs/FRAMER-EXTRACTION.md)** - Framer template extraction pipeline
 
 ---
 
@@ -113,7 +114,7 @@ npm run dev
 ### Plugin Structure
 
 ```
-bricks-etch-migration/
+etch-fusion-suite/
 ├── includes/
 │   ├── admin_interface.php      # Admin UI and AJAX handlers
 │   ├── css_converter.php         # CSS conversion logic
@@ -124,7 +125,7 @@ bricks-etch-migration/
 ├── assets/
 │   ├── css/                      # Admin styles
 │   └── fonts/                    # Custom fonts
-└── bricks-etch-migration.php     # Main plugin file
+└── etch-fusion-suite.php     # Main plugin file
 ```
 
 ### Key Features
@@ -303,7 +304,7 @@ This is a one-time migration tool. For issues or improvements:
 3. Test in wp-env environment first
 4. Run code quality checks locally:
    ```bash
-   cd bricks-etch-migration
+   cd etch-fusion-suite
    composer lint
    composer test
    ```
