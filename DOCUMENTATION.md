@@ -1,7 +1,7 @@
-# Technical Documentation - Bricks to Etch Migration
+# Technical Documentation - Etch Fusion Suite
 
-**Last Updated:** 2025-10-25 14:41  
-**Version:** 0.10.0
+**Last Updated:** 2025-10-25 16:37  
+**Version:** 0.11.0
 
 ---
 
@@ -55,13 +55,15 @@ bricks-etch-migration/
 The plugin uses a dependency injection container for service management:
 
 **Key Services:**
-- `css_converter` → `\Bricks2Etch\Parsers\B2E_CSS_Converter`
-- `api_client` → `\Bricks2Etch\Api\B2E_API_Client`
-- `style_repository` → `\Bricks2Etch\Repositories\B2E_WordPress_Style_Repository`
-- `settings_repository` → `\Bricks2Etch\Repositories\B2E_WordPress_Settings_Repository`
-- `migration_repository` → `\Bricks2Etch\Repositories\B2E_WordPress_Migration_Repository`
+- `css_converter` → `\Bricks2Etch\Parsers\EFS_CSS_Converter`
+- `api_client` → `\Bricks2Etch\Api\EFS_API_Client`
+- `style_repository` → `\Bricks2Etch\Repositories\EFS_WordPress_Style_Repository`
+- `settings_repository` → `\Bricks2Etch\Repositories\EFS_WordPress_Settings_Repository`
+- `migration_repository` → `\Bricks2Etch\Repositories\EFS_WordPress_Migration_Repository`
 
 **Important:** All service bindings use fully qualified class names (FQCN) with correct namespaces.
+
+**Updated:** 2025-10-25 16:37 - All class names migrated from `B2E_*` to `EFS_*` prefix.
 
 ### Autoloading & Namespaces
 

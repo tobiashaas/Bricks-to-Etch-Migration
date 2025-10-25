@@ -202,13 +202,9 @@ class EFS_Validation_Ajax_Handler extends EFS_Base_Ajax_Handler {
 	 */
 	private function convert_to_internal_url( $url ) {
 		if ( strpos( $url, 'localhost:8081' ) !== false ) {
-			$url = str_replace( 'http://localhost:8081', 'http://b2e-etch', $url );
-			$url = str_replace( 'https://localhost:8081', 'http://b2e-etch', $url );
+			$url = str_replace( 'http://localhost:8081', 'http://efs-etch', $url );
+			$url = str_replace( 'https://localhost:8081', 'http://efs-etch', $url );
 		}
 		return $url;
 	}
 }
-
-// Legacy alias for backward compatibility
-\class_alias( __NAMESPACE__ . '\\EFS_Validation_Ajax_Handler', 'B2E_Validation_Ajax_Handler' );
-class_alias( __NAMESPACE__ . '\EFS_Validation_Ajax_Handler', __NAMESPACE__ . '\B2E_Validation_Ajax_Handler' );

@@ -1,7 +1,7 @@
 <?php
 namespace Bricks2Etch\Controllers;
 
-use Bricks2Etch\Core\B2E_Migration_Manager;
+use Bricks2Etch\Core\EFS_Migration_Manager;
 use Bricks2Etch\Api\EFS_API_Client;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -15,10 +15,10 @@ class EFS_Migration_Controller {
 	/**
 	 * Constructor
 	 *
-	 * @param B2E_Migration_Manager $manager
+	 * @param EFS_Migration_Manager $manager
 	 * @param EFS_API_Client $api_client
 	 */
-	public function __construct( B2E_Migration_Manager $manager, EFS_API_Client $api_client ) {
+	public function __construct( EFS_Migration_Manager $manager, EFS_API_Client $api_client ) {
 		$this->manager    = $manager;
 		$this->api_client = $api_client;
 	}
@@ -27,14 +27,14 @@ class EFS_Migration_Controller {
 		$token = isset( $data['migration_token'] ) ? sanitize_text_field( $data['migration_token'] ) : '';
 		$batch = isset( $data['batch_size'] ) ? intval( $data['batch_size'] ) : 50;
 		if ( ! $token ) {
-			return new \WP_Error( 'missing_token', __( 'Migration token is required.', 'bricks-etch-migration' ) );
+			return new \WP_Error( 'missing_token', __( 'Migration token is required.', 'etch-fusion-suite' ) );
 		}
 		$result = $this->manager->start_migration( $token, $batch );
 		if ( is_wp_error( $result ) ) {
 			return $result;
 		}
 		return array(
-			'message'     => __( 'Migration started.', 'bricks-etch-migration' ),
+			'message'     => __( 'Migration started.', 'etch-fusion-suite' ),
 			'migrationId' => isset( $result['id'] ) ? $result['id'] : '',
 			'progress'    => isset( $result['progress'] ) ? $result['progress'] : array(),
 			'steps'       => isset( $result['steps'] ) ? $result['steps'] : array(),
@@ -75,7 +75,7 @@ class EFS_Migration_Controller {
 			return $result;
 		}
 		return array(
-			'message'   => isset( $result['message'] ) ? $result['message'] : __( 'Migration cancelled.', 'bricks-etch-migration' ),
+			'message'   => isset( $result['message'] ) ? $result['message'] : __( 'Migration cancelled.', 'etch-fusion-suite' ),
 			'progress'  => isset( $result['progress'] ) ? $result['progress'] : array(),
 			'steps'     => isset( $result['steps'] ) ? $result['steps'] : array(),
 			'completed' => ! empty( $result['completed'] ),
@@ -100,12 +100,8 @@ class EFS_Migration_Controller {
 			return $result;
 		}
 		return array(
-			'message' => __( 'Migration key generated.', 'bricks-etch-migration' ),
+			'message' => __( 'Migration key generated.', 'etch-fusion-suite' ),
 			'key'     => isset( $result['key'] ) ? $result['key'] : '',
 		);
 	}
 }
-
-// Legacy alias for backward compatibility
-\class_alias( __NAMESPACE__ . '\\EFS_Migration_Controller', 'B2E_Migration_Controller' );
-class_alias( __NAMESPACE__ . '\EFS_Migration_Controller', __NAMESPACE__ . '\B2E_Migration_Controller' );

@@ -194,7 +194,7 @@ class EFS_CSS_Converter {
 		// Collect inline CSS from code blocks (stored during content parsing)
 		global $wpdb;
 		$inline_css_options = $wpdb->get_results(
-			"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE 'b2e_inline_css_%'",
+			"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE 'efs_inline_css_%'",
 			ARRAY_A
 		);
 

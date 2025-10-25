@@ -1,6 +1,6 @@
 <?php
 /**
- * Error Handler for Bricks to Etch Migration Plugin
+ * Error Handler for Etch Fusion Suite
  *
  * Handles all errors, warnings, and logging for the migration process
  */
@@ -42,7 +42,7 @@ class EFS_Error_Handler {
 		'E005' => array(
 			'title'       => 'Custom Field Not Found',
 			'description' => 'ACF or custom field referenced but not found',
-			'solution'    => 'Ensure custom fields are migrated and field names match',
+			'solution'    => 'Check if the custom field exists in the source site and is properly configured',
 		),
 
 		// API Errors (E1xx)
@@ -252,7 +252,7 @@ class EFS_Error_Handler {
 		// Also log to WordPress error log
 		error_log(
 			sprintf(
-				'[B2E Migration] %s: %s - %s',
+				'[Etch Fusion Suite] %s: %s - %s',
 				$code,
 				$error_info['title'],
 				$error_info['description']
@@ -297,7 +297,7 @@ class EFS_Error_Handler {
 	 * @param array $log_entry Log entry data
 	 */
 	private function add_to_log( $log_entry ) {
-		$log   = get_option( 'b2e_migration_log', array() );
+		$log   = get_option( 'efs_migration_log', array() );
 		$log[] = $log_entry;
 
 		// Keep only last 1000 entries
@@ -305,7 +305,7 @@ class EFS_Error_Handler {
 			$log = array_slice( $log, -1000 );
 		}
 
-		update_option( 'b2e_migration_log', $log );
+		update_option( 'efs_migration_log', $log );
 	}
 
 	/**
@@ -315,7 +315,7 @@ class EFS_Error_Handler {
 	 * @return array
 	 */
 	public function get_log( $type = 'all' ) {
-		$log = get_option( 'b2e_migration_log', array() );
+		$log = get_option( 'efs_migration_log', array() );
 
 		if ( $type !== 'all' ) {
 			$log = array_filter(
@@ -359,7 +359,7 @@ class EFS_Error_Handler {
 		}
 
 		// Clear migration log option
-		delete_option( 'b2e_migration_log' );
+		delete_option( 'efs_migration_log' );
 
 		return true;
 	}
@@ -389,9 +389,9 @@ class EFS_Error_Handler {
 	 *
 	 * @param string $message Debug message
 	 * @param mixed $data Optional data to log
-	 * @param string $context Context identifier (default: B2E_DEBUG)
+	 * @param string $context Context identifier (default: EFS_DEBUG)
 	 */
-	public function debug_log( $message, $data = null, $context = 'B2E_DEBUG' ) {
+	public function debug_log( $message, $data = null, $context = 'EFS_DEBUG' ) {
 		if ( ! WP_DEBUG || ! WP_DEBUG_LOG ) {
 			return;
 		}

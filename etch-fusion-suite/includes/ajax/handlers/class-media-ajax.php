@@ -4,7 +4,7 @@
  *
  * Handles media migration AJAX requests
  *
- * @package Bricks_Etch_Migration
+ * @package Etch_Fusion_Suite
  * @since 0.5.1
  */
 
@@ -61,7 +61,7 @@ class EFS_Media_Ajax_Handler extends EFS_Base_Ajax_Handler {
 		// Verify nonce
 		if ( ! $this->verify_nonce() ) {
 			$this->log( '❌ Media Migration: Invalid nonce' );
-			wp_send_json_error( 'Invalid nonce' );
+			wp_send_json_error( __( 'Invalid request.', 'etch-fusion-suite' ) );
 			return;
 		}
 
@@ -157,12 +157,8 @@ class EFS_Media_Ajax_Handler extends EFS_Base_Ajax_Handler {
 	 */
 	private function convert_to_internal_url( $url ) {
 		if ( strpos( $url, 'localhost:8081' ) !== false ) {
-			return str_replace( 'localhost:8081', 'b2e-etch', $url );
+			return str_replace( 'localhost:8081', 'efs-etch', $url );
 		}
 		return $url;
 	}
 }
-
-// Legacy alias for backward compatibility
-\class_alias( __NAMESPACE__ . '\\EFS_Media_Ajax_Handler', 'B2E_Media_Ajax_Handler' );
-class_alias( __NAMESPACE__ . '\EFS_Media_Ajax_Handler', __NAMESPACE__ . '\B2E_Media_Ajax_Handler' );

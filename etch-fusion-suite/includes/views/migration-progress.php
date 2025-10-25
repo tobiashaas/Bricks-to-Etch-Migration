@@ -3,13 +3,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 $b2e_progress   = isset( $progress_data ) && is_array( $progress_data ) ? $progress_data : array();
-$b2e_status     = isset( $b2e_progress['status'] ) ? $b2e_progress['status'] : esc_html__( 'Awaiting migration start.', 'bricks-etch-migration' );
+$b2e_status     = isset( $b2e_progress['status'] ) ? $b2e_progress['status'] : esc_html__( 'Awaiting migration start.', 'etch-fusion-suite' );
 $b2e_percentage = isset( $b2e_progress['percentage'] ) ? (float) $b2e_progress['percentage'] : 0;
 $b2e_steps      = isset( $b2e_progress['steps'] ) && is_array( $b2e_progress['steps'] ) ? $b2e_progress['steps'] : array();
 ?>
 <section class="b2e-card b2e-card--progress">
 	<header class="b2e-card__header">
-		<h2><?php esc_html_e( 'Migration Progress', 'bricks-etch-migration' ); ?></h2>
+		<h2><?php esc_html_e( 'Migration Progress', 'etch-fusion-suite' ); ?></h2>
 		<p data-b2e-current-step><?php echo esc_html( $b2e_status ); ?></p>
 	</header>
 
@@ -35,6 +35,6 @@ $b2e_steps      = isset( $b2e_progress['steps'] ) && is_array( $b2e_progress['st
 	<?php endif; ?>
 
 	<footer class="b2e-card__footer">
-		<button type="button" class="button" data-b2e-cancel-migration><?php esc_html_e( 'Cancel Migration', 'bricks-etch-migration' ); ?></button>
+		<button type="button" class="button" data-b2e-cancel-migration><?php esc_html_e( 'Cancel Migration', 'etch-fusion-suite' ); ?></button>
 	</footer>
 </section>

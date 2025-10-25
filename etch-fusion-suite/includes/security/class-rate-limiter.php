@@ -5,7 +5,7 @@
  * Implements transient-based rate limiting with sliding window algorithm.
  * Protects AJAX and REST API endpoints from abuse.
  *
- * @package    Bricks2Etch
+ * @package    EtchFusion
  * @subpackage Security
  * @since      0.5.0
  */
@@ -214,7 +214,7 @@ class EFS_Rate_Limiter {
 	private function get_transient_key( $identifier, $action ) {
 		// Hash identifier to keep key length reasonable
 		$identifier_hash = md5( $identifier );
-		return 'b2e_rate_limit_' . $action . '_' . $identifier_hash;
+		return 'efs_rate_limit_' . $action . '_' . $identifier_hash;
 	}
 
 	/**

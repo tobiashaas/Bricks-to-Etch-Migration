@@ -48,7 +48,7 @@ class EFS_CSS_Service {
 				return array(
 					'success'  => true,
 					'migrated' => 0,
-					'message'  => __( 'No CSS classes found to migrate.', 'bricks-etch-migration' ),
+					'message'  => __( 'No CSS classes found to migrate.', 'etch-fusion-suite' ),
 				);
 			}
 
@@ -78,7 +78,7 @@ class EFS_CSS_Service {
 			return array(
 				'success'  => true,
 				'migrated' => count( $etch_styles ),
-				'message'  => __( 'CSS classes migrated successfully.', 'bricks-etch-migration' ),
+				'message'  => __( 'CSS classes migrated successfully.', 'etch-fusion-suite' ),
 				'response' => $response,
 			);
 		} catch ( \Exception $exception ) {
@@ -133,5 +133,3 @@ class EFS_CSS_Service {
 	}
 }
 
-// Legacy alias for backward compatibility
-class_alias( __NAMESPACE__ . '\EFS_CSS_Service', __NAMESPACE__ . '\B2E_CSS_Service' );

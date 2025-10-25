@@ -1,6 +1,6 @@
 <?php
 /**
- * API Client for Bricks to Etch Migration Plugin
+ * API Client for Etch Fusion Suite
  *
  * Handles communication with target site API
  */
@@ -37,30 +37,25 @@ class EFS_API_Client {
 	 * @param string $api_key API key/Application Password
 	 */
 	public static function save_api_credentials( $target_url, $api_username, $api_key ) {
-		$settings                 = get_option( 'b2e_settings', array() );
+		$settings                 = get_option( 'efs_settings', array() );
 		$settings['target_url']   = $target_url;
 		$settings['api_username'] = $api_username;
 		$settings['api_key']      = $api_key;
-		update_option( 'b2e_settings', $settings );
+		update_option( 'efs_settings', $settings );
 	}
 
 	/**
 	 * Send request to target site
 	 */
 	private function send_request( $url, $api_key, $endpoint, $method = 'GET', $data = null ) {
-		$full_url = rtrim( $url, '/' ) . '/wp-json/b2e/v1' . $endpoint;
+		$full_url = rtrim( $url, '/' ) . '/wp-json/efs/v1' . $endpoint;
 
 		// Remove spaces from API key (Application Passwords have spaces for readability)
 		$clean_api_key = str_replace( ' ', '', $api_key );
 
 		// Get username from settings or default to 'admin'
-		$settings      = get_option( 'b2e_settings', array() );
+		$settings      = get_option( 'efs_settings', array() );
 		$auth_username = ! empty( $settings['api_username'] ) ? $settings['api_username'] : 'admin';
-
-		// Debug log
-		error_log( '🔐 B2E API Client: Using username: ' . $auth_username );
-		error_log( '🔐 B2E API Client: Full URL: ' . $full_url );
-		error_log( '🔐 B2E API Client: Auth header: Basic ' . base64_encode( $auth_username . ':' . $clean_api_key ) );
 
 		$args = array(
 			'method'  => $method,
@@ -237,14 +232,11 @@ class EFS_API_Client {
 	 */
 	public function send_css_styles( $url, $api_key, $etch_styles ) {
 		$styles_count = is_array( $etch_styles ) ? count( $etch_styles ) : 0;
-		error_log( '🌐 API Client: Sending ' . $styles_count . ' CSS styles to ' . $url );
 
 		$result = $this->send_request( $url, $api_key, '/import/css-classes', 'POST', $etch_styles );
 
 		if ( is_wp_error( $result ) ) {
-			error_log( '❌ API Client: Failed to send CSS styles: ' . $result->get_error_message() );
 		} else {
-			error_log( '✅ API Client: CSS styles sent successfully' );
 		}
 
 		return $result;
@@ -347,7 +339,7 @@ class EFS_API_Client {
 	 * Generate API key for target site
 	 */
 	public function generate_api_key() {
-		return 'b2e_' . wp_generate_password( 32, false );
+		return 'efs_' . wp_generate_password( 32, false );
 	}
 
 	/**
@@ -372,7 +364,7 @@ class EFS_API_Client {
 	 */
 	public function get_api_key_expiration( $api_key ) {
 		// API keys are valid for 8 hours
-		$created_time = get_option( 'b2e_api_key_created_' . md5( $api_key ) );
+		$created_time = get_option( 'efs_api_key_created_' . md5( $api_key ) );
 
 		if ( ! $created_time ) {
 			return null;
@@ -403,10 +395,10 @@ class EFS_API_Client {
 		$created_time = time();
 
 		// Store creation time
-		update_option( 'b2e_api_key_created_' . md5( $api_key ), $created_time );
+		update_option( 'efs_api_key_created_' . md5( $api_key ), $created_time );
 
 		// Store the key
-		update_option( 'b2e_api_key', $api_key );
+		update_option( 'efs_api_key', $api_key );
 
 		return $api_key;
 	}

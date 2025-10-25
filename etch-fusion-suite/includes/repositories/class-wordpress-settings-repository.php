@@ -4,7 +4,7 @@
  *
  * WordPress-backed implementation of Settings Repository using Options API.
  *
- * @package Bricks2Etch\Repositories
+ * @package EtchFusion\Repositories
  * @since 1.0.0
  */
 
@@ -13,7 +13,7 @@ namespace Bricks2Etch\Repositories;
 use Bricks2Etch\Repositories\Interfaces\Settings_Repository_Interface;
 
 /**
- * Class B2E_WordPress_Settings_Repository
+ * Class EFS_WordPress_Settings_Repository
  *
  * Manages plugin settings, API keys, and migration settings with transient caching.
  */
@@ -30,14 +30,14 @@ class EFS_WordPress_Settings_Repository implements Settings_Repository_Interface
 	 * @return array Plugin settings array.
 	 */
 	public function get_plugin_settings(): array {
-		$cache_key = 'b2e_cache_settings_plugin';
+		$cache_key = 'efs_cache_settings_plugin';
 		$cached    = get_transient( $cache_key );
 
 		if ( false !== $cached ) {
 			return $cached;
 		}
 
-		$settings = get_option( 'b2e_settings', array() );
+		$settings = get_option( 'efs_settings', array() );
 		set_transient( $cache_key, $settings, self::CACHE_EXPIRATION );
 
 		return $settings;
@@ -50,8 +50,8 @@ class EFS_WordPress_Settings_Repository implements Settings_Repository_Interface
 	 * @return bool True on success, false on failure.
 	 */
 	public function save_plugin_settings( array $settings ): bool {
-		$this->invalidate_cache( 'b2e_cache_settings_plugin' );
-		return update_option( 'b2e_settings', $settings );
+		$this->invalidate_cache( 'efs_cache_settings_plugin' );
+		return update_option( 'efs_settings', $settings );
 	}
 
 	/**
@@ -60,14 +60,14 @@ class EFS_WordPress_Settings_Repository implements Settings_Repository_Interface
 	 * @return string API key or empty string if not set.
 	 */
 	public function get_api_key(): string {
-		$cache_key = 'b2e_cache_settings_api_key';
+		$cache_key = 'efs_cache_settings_api_key';
 		$cached    = get_transient( $cache_key );
 
 		if ( false !== $cached ) {
 			return $cached;
 		}
 
-		$api_key = get_option( 'b2e_api_key', '' );
+		$api_key = get_option( 'efs_api_key', '' );
 		set_transient( $cache_key, $api_key, self::CACHE_EXPIRATION );
 
 		return $api_key;
@@ -80,8 +80,8 @@ class EFS_WordPress_Settings_Repository implements Settings_Repository_Interface
 	 * @return bool True on success, false on failure.
 	 */
 	public function save_api_key( string $key ): bool {
-		$this->invalidate_cache( 'b2e_cache_settings_api_key' );
-		return update_option( 'b2e_api_key', $key );
+		$this->invalidate_cache( 'efs_cache_settings_api_key' );
+		return update_option( 'efs_api_key', $key );
 	}
 
 	/**
@@ -90,8 +90,8 @@ class EFS_WordPress_Settings_Repository implements Settings_Repository_Interface
 	 * @return bool True on success, false on failure.
 	 */
 	public function delete_api_key(): bool {
-		$this->invalidate_cache( 'b2e_cache_settings_api_key' );
-		return delete_option( 'b2e_api_key' );
+		$this->invalidate_cache( 'efs_cache_settings_api_key' );
+		return delete_option( 'efs_api_key' );
 	}
 
 	/**
@@ -100,14 +100,14 @@ class EFS_WordPress_Settings_Repository implements Settings_Repository_Interface
 	 * @return array Migration settings array.
 	 */
 	public function get_migration_settings(): array {
-		$cache_key = 'b2e_cache_settings_migration';
+		$cache_key = 'efs_cache_settings_migration';
 		$cached    = get_transient( $cache_key );
 
 		if ( false !== $cached ) {
 			return $cached;
 		}
 
-		$settings = get_option( 'b2e_migration_settings', array() );
+		$settings = get_option( 'efs_migration_settings', array() );
 		set_transient( $cache_key, $settings, self::CACHE_EXPIRATION );
 
 		return $settings;
@@ -120,8 +120,8 @@ class EFS_WordPress_Settings_Repository implements Settings_Repository_Interface
 	 * @return bool True on success, false on failure.
 	 */
 	public function save_migration_settings( array $settings ): bool {
-		$this->invalidate_cache( 'b2e_cache_settings_migration' );
-		return update_option( 'b2e_migration_settings', $settings );
+		$this->invalidate_cache( 'efs_cache_settings_migration' );
+		return update_option( 'efs_migration_settings', $settings );
 	}
 
 	/**
@@ -130,18 +130,18 @@ class EFS_WordPress_Settings_Repository implements Settings_Repository_Interface
 	 * @return bool True on success, false on failure.
 	 */
 	public function clear_all_settings(): bool {
-		$this->invalidate_cache( 'b2e_cache_settings_plugin' );
-		$this->invalidate_cache( 'b2e_cache_settings_api_key' );
-		$this->invalidate_cache( 'b2e_cache_settings_migration' );
-		$this->invalidate_cache( 'b2e_cache_cors_origins' );
-		$this->invalidate_cache( 'b2e_cache_security_settings' );
+		$this->invalidate_cache( 'efs_cache_settings_plugin' );
+		$this->invalidate_cache( 'efs_cache_settings_api_key' );
+		$this->invalidate_cache( 'efs_cache_settings_migration' );
+		$this->invalidate_cache( 'efs_cache_cors_origins' );
+		$this->invalidate_cache( 'efs_cache_security_settings' );
 
 		$result = true;
-		$result = delete_option( 'b2e_settings' ) && $result;
-		$result = delete_option( 'b2e_api_key' ) && $result;
-		$result = delete_option( 'b2e_migration_settings' ) && $result;
-		$result = delete_option( 'b2e_cors_allowed_origins' ) && $result;
-		$result = delete_option( 'b2e_security_settings' ) && $result;
+		$result = delete_option( 'efs_settings' ) && $result;
+		$result = delete_option( 'efs_api_key' ) && $result;
+		$result = delete_option( 'efs_migration_settings' ) && $result;
+		$result = delete_option( 'efs_cors_allowed_origins' ) && $result;
+		$result = delete_option( 'efs_security_settings' ) && $result;
 
 		return $result;
 	}
@@ -152,14 +152,14 @@ class EFS_WordPress_Settings_Repository implements Settings_Repository_Interface
 	 * @return array Array of allowed CORS origin URLs.
 	 */
 	public function get_cors_allowed_origins(): array {
-		$cache_key = 'b2e_cache_cors_origins';
+		$cache_key = 'efs_cache_cors_origins';
 		$cached    = get_transient( $cache_key );
 
 		if ( false !== $cached ) {
 			return $cached;
 		}
 
-		$origins = get_option( 'b2e_cors_allowed_origins', array() );
+		$origins = get_option( 'efs_cors_allowed_origins', array() );
 		set_transient( $cache_key, $origins, self::CACHE_EXPIRATION );
 
 		return $origins;
@@ -177,8 +177,8 @@ class EFS_WordPress_Settings_Repository implements Settings_Repository_Interface
 			return false;
 		}
 
-		$this->invalidate_cache( 'b2e_cache_cors_origins' );
-		return update_option( 'b2e_cors_allowed_origins', $origins );
+		$this->invalidate_cache( 'efs_cache_cors_origins' );
+		return update_option( 'efs_cors_allowed_origins', $origins );
 	}
 
 	/**
@@ -189,7 +189,7 @@ class EFS_WordPress_Settings_Repository implements Settings_Repository_Interface
 	 * @return array Security settings array.
 	 */
 	public function get_security_settings(): array {
-		$cache_key = 'b2e_cache_security_settings';
+		$cache_key = 'efs_cache_security_settings';
 		$cached    = get_transient( $cache_key );
 
 		if ( false !== $cached ) {
@@ -204,7 +204,7 @@ class EFS_WordPress_Settings_Repository implements Settings_Repository_Interface
 			'require_https'         => false,
 		);
 
-		$settings = get_option( 'b2e_security_settings', $defaults );
+		$settings = get_option( 'efs_security_settings', $defaults );
 		$settings = wp_parse_args( $settings, $defaults );
 
 		set_transient( $cache_key, $settings, self::CACHE_EXPIRATION );
@@ -224,8 +224,8 @@ class EFS_WordPress_Settings_Repository implements Settings_Repository_Interface
 			return false;
 		}
 
-		$this->invalidate_cache( 'b2e_cache_security_settings' );
-		return update_option( 'b2e_security_settings', $settings );
+		$this->invalidate_cache( 'efs_cache_security_settings' );
+		return update_option( 'efs_security_settings', $settings );
 	}
 
 	/**
@@ -237,7 +237,3 @@ class EFS_WordPress_Settings_Repository implements Settings_Repository_Interface
 		delete_transient( $cache_key );
 	}
 }
-
-// Legacy alias for backward compatibility
-\class_alias( __NAMESPACE__ . '\\EFS_WordPress_Settings_Repository', 'B2E_WordPress_Settings_Repository' );
-class_alias( __NAMESPACE__ . '\EFS_WordPress_Settings_Repository', __NAMESPACE__ . '\B2E_WordPress_Settings_Repository' );

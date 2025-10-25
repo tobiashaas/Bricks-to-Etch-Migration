@@ -107,5 +107,3 @@ class EFS_Media_Service {
 	}
 }
 
-// Legacy alias for backward compatibility
-class_alias( __NAMESPACE__ . '\EFS_Media_Service', __NAMESPACE__ . '\B2E_Media_Service' );

@@ -1,5 +1,48 @@
 # Changelog - Etch Fusion Suite
 
+## [0.11.0] - 2025-10-25 (16:37) - Complete EFS Rebrand Implementation
+
+### 🎨 Rebranding (Phase 2 - Code Implementation)
+- **REST API**: Migrated namespace from `/b2e/v1/` to `/efs/v1/` across all endpoints
+- **Options & Transients**: Updated all WordPress options from `b2e_*` to `efs_*` prefix
+  - Settings: `efs_settings`, `efs_api_key`, `efs_api_username`
+  - Migration: `efs_migration_progress`, `efs_migration_steps`, `efs_migration_stats`
+  - Cache: `efs_cache_*` transients for repositories
+  - Inline Code: `efs_inline_css_*`, `efs_inline_js_*`
+  - Rate Limiting: `efs_rate_limit_*` transients
+  - Tokens: `efs_token_*`, `efs_short_*`
+- **Text Domain**: All translatable strings migrated to `etch-fusion-suite`
+- **API Key Generation**: Updated prefix from `b2e_` to `efs_`
+- **Security Components**: CORS Manager, Rate Limiter, Input Validator rebranded
+- **Container Functions**: Updated from `b2e_container()` to `efs_container()`
+
+### 🔧 Technical Changes
+- **Services**: Migration, CSS, Media, Content services fully rebranded
+- **Repositories**: WordPress Migration, Settings, Style repositories updated
+- **Core Components**: Error Handler, Plugin Detector, Content Parser, CSS Converter
+- **API Client**: Request URLs, authentication headers, option storage updated
+- **Token Manager**: Migration token storage and validation rebranded
+- **Logging**: All error logs updated from "B2E" to "EFS" or "Etch Fusion Suite"
+
+### 🗑️ Cleanup
+- **Legacy Aliases Removed**: All `class_alias()` backward compatibility removed
+  - Services: `B2E_Migration_Service`, `B2E_CSS_Service`, etc.
+  - Repositories: `B2E_WordPress_Migration_Repository`, etc.
+  - Security: `B2E_CORS_Manager`, `B2E_Rate_Limiter`, etc.
+  - API: `B2E_API_Endpoints`, `B2E_API_Client`
+- **Debug Logging**: Removed verbose B2E debug statements from API client
+
+### ⚠️ Breaking Changes
+- **REST API Namespace**: Clients must update from `/b2e/v1/` to `/efs/v1/`
+- **Option Keys**: All `b2e_*` options renamed to `efs_*` (migration required)
+- **Class Names**: All `B2E_*` classes renamed to `EFS_*` (no backward compatibility)
+- **Container Function**: `b2e_container()` renamed to `efs_container()`
+
+### 📝 Notes
+- This completes the core rebrand implementation
+- Remaining: Migrator classes, Converter classes, JS/CSS assets, Tests, Workflows
+- Migration script needed for existing installations to rename options
+
 ## [0.10.2] - 2025-10-25 (14:55) - Framer Extractor Test Coverage
 
 ### 🧪 Testing

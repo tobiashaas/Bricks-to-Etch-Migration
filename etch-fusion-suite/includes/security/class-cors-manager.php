@@ -5,7 +5,7 @@
  * Manages Cross-Origin Resource Sharing (CORS) with whitelist-based origin validation.
  * Replaces wildcard CORS with secure, configurable origin checking.
  *
- * @package    Bricks2Etch
+ * @package    EtchFusion
  * @subpackage Security
  * @since      0.5.0
  */
@@ -110,9 +110,9 @@ class EFS_CORS_Manager {
 		// Check if origin is allowed
 		if ( ! $this->is_origin_allowed( $origin ) ) {
 			// Log CORS violation if audit logger is available
-			if ( function_exists( 'b2e_container' ) ) {
+			if ( function_exists( 'efs_container' ) ) {
 				try {
-					$container = b2e_container();
+					$container = efs_container();
 					if ( $container->has( 'audit_logger' ) ) {
 						$audit_logger = $container->get( 'audit_logger' );
 						$audit_logger->log_security_event(
@@ -153,7 +153,3 @@ class EFS_CORS_Manager {
 		}
 	}
 }
-
-// Legacy alias for backward compatibility
-\class_alias( __NAMESPACE__ . '\\EFS_CORS_Manager', 'B2E_CORS_Manager' );
-class_alias( __NAMESPACE__ . '\EFS_CORS_Manager', __NAMESPACE__ . '\B2E_CORS_Manager' );

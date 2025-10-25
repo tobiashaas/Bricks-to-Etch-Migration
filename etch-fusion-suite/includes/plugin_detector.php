@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Detector for Bricks to Etch Migration Plugin
+ * Plugin Detector for Etch Fusion Suite
  *
  * Detects installed plugins and validates migration requirements
  */

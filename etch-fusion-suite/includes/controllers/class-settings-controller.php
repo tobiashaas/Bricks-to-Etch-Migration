@@ -27,7 +27,7 @@ class EFS_Settings_Controller {
 		$settings = $this->sanitize_settings( $data );
 		$this->settings_repository->save_migration_settings( $settings );
 		return array(
-			'message'  => __( 'Settings saved successfully.', 'bricks-etch-migration' ),
+			'message'  => __( 'Settings saved successfully.', 'etch-fusion-suite' ),
 			'settings' => $settings,
 		);
 	}
@@ -49,12 +49,12 @@ class EFS_Settings_Controller {
 
 		if ( ! isset( $result['valid'] ) || ! $result['valid'] ) {
 			$errors  = isset( $result['errors'] ) && is_array( $result['errors'] ) ? array_filter( $result['errors'] ) : array();
-			$message = ! empty( $errors ) ? implode( ' ', array_map( 'wp_strip_all_tags', $errors ) ) : __( 'Connection failed.', 'bricks-etch-migration' );
+			$message = ! empty( $errors ) ? implode( ' ', array_map( 'wp_strip_all_tags', $errors ) ) : __( 'Connection failed.', 'etch-fusion-suite' );
 			return new \WP_Error( 'connection_failed', $message );
 		}
 
 		return array(
-			'message' => __( 'Connection successful.', 'bricks-etch-migration' ),
+			'message' => __( 'Connection successful.', 'etch-fusion-suite' ),
 			'valid'   => true,
 			'plugins' => isset( $result['plugins'] ) ? $result['plugins'] : array(),
 		);
@@ -68,7 +68,7 @@ class EFS_Settings_Controller {
 			return $result;
 		}
 		return array(
-			'message' => __( 'Migration key generated.', 'bricks-etch-migration' ),
+			'message' => __( 'Migration key generated.', 'etch-fusion-suite' ),
 			'key'     => isset( $result['key'] ) ? $result['key'] : '',
 		);
 	}
@@ -93,7 +93,3 @@ class EFS_Settings_Controller {
 		return sanitize_textarea_field( $text );
 	}
 }
-
-// Legacy alias for backward compatibility
-\class_alias( __NAMESPACE__ . '\\EFS_Settings_Controller', 'B2E_Settings_Controller' );
-class_alias( __NAMESPACE__ . '\EFS_Settings_Controller', __NAMESPACE__ . '\B2E_Settings_Controller' );

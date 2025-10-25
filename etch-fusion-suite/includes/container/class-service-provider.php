@@ -529,6 +529,3 @@ class EFS_Service_Provider {
 		);
 	}
 }
-
-// Legacy alias for backward compatibility
-class_alias( __NAMESPACE__ . '\EFS_Service_Provider', __NAMESPACE__ . '\B2E_Service_Provider' );

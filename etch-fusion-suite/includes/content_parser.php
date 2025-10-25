@@ -31,7 +31,7 @@ class EFS_Content_Parser {
 	 */
 	public function __construct( EFS_Error_Handler $error_handler ) {
 		$this->error_handler = $error_handler;
-		$this->style_map     = get_option( 'b2e_style_map', array() );
+		$this->style_map     = get_option( 'efs_style_map', array() );
 	}
 
 	/**
@@ -159,14 +159,14 @@ class EFS_Content_Parser {
 				// Code blocks with CSS/JS - store for later processing
 				if ( ! empty( $element['settings']['cssCode'] ) ) {
 					// Store CSS code globally for CSS converter to pick up
-					update_option( 'b2e_inline_css_' . $post_id, $element['settings']['cssCode'], false );
+					update_option( 'efs_inline_css_' . $post_id, $element['settings']['cssCode'], false );
 				}
 
 				if ( ! empty( $element['settings']['javascriptCode'] ) ) {
 					// Store JavaScript code for Gutenberg generator to pick up
-					$existing_js = get_option( 'b2e_inline_js_' . $post_id, '' );
+					$existing_js = get_option( 'efs_inline_js_' . $post_id, '' );
 					$new_js      = $existing_js . "\n" . $element['settings']['javascriptCode'];
-					update_option( 'b2e_inline_js_' . $post_id, $new_js, false );
+					update_option( 'efs_inline_js_' . $post_id, $new_js, false );
 				}
 
 				// Skip code elements in content (CSS/JS handled separately)
@@ -220,7 +220,7 @@ class EFS_Content_Parser {
 	 * Process div element
 	 */
 	private function process_div_element( $element, $post_id ) {
-		$settings            = get_option( 'b2e_settings', array() );
+		$settings            = get_option( 'efs_settings', array() );
 		$convert_div_to_flex = $settings['convert_div_to_flex'] ?? true;
 
 		if ( $convert_div_to_flex ) {

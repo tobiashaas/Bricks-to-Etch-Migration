@@ -4,7 +4,7 @@ namespace Bricks2Etch\Services;
 use Bricks2Etch\Api\EFS_API_Client;
 use Bricks2Etch\Core\EFS_Error_Handler;
 use Bricks2Etch\Core\EFS_Plugin_Detector;
-use Bricks2Etch\Migrators\B2E_Migrator_Registry;
+use Bricks2Etch\Migrators\EFS_Migrator_Registry;
 use Bricks2Etch\Migrators\Interfaces\Migrator_Interface;
 use Bricks2Etch\Parsers\EFS_Content_Parser;
 use Bricks2Etch\Repositories\Interfaces\Migration_Repository_Interface;
@@ -32,7 +32,7 @@ class EFS_Migration_Service {
 	/** @var EFS_API_Client */
 	private $api_client;
 
-	/** @var B2E_Migrator_Registry */
+	/** @var EFS_Migrator_Registry */
 	private $migrator_registry;
 
 	/** @var Migration_Repository_Interface */
@@ -46,6 +46,7 @@ class EFS_Migration_Service {
 	 * @param EFS_Media_Service                $media_service
 	 * @param EFS_Content_Service              $content_service
 	 * @param EFS_API_Client                   $api_client
+	 * @param EFS_Migrator_Registry            $migrator_registry
 	 * @param Migration_Repository_Interface   $migration_repository
 	 */
 	public function __construct(
@@ -56,7 +57,7 @@ class EFS_Migration_Service {
 		EFS_Media_Service $media_service,
 		EFS_Content_Service $content_service,
 		EFS_API_Client $api_client,
-		B2E_Migrator_Registry $migrator_registry,
+		EFS_Migrator_Registry $migrator_registry,
 		Migration_Repository_Interface $migration_repository
 	) {
 		$this->error_handler        = $error_handler;
@@ -82,7 +83,7 @@ class EFS_Migration_Service {
 		try {
 			$this->init_progress();
 
-			$this->update_progress( 'validation', 10, __( 'Validating migration requirements...', 'bricks-etch-migration' ) );
+			$this->update_progress( 'validation', 10, __( 'Validating migration requirements...', 'etch-fusion-suite' ) );
 			$validation_result = $this->validate_target_site_requirements();
 
 			if ( ! $validation_result['valid'] ) {
@@ -99,13 +100,13 @@ class EFS_Migration_Service {
 				return new \WP_Error( 'validation_failed', $error_message );
 			}
 
-			$this->update_progress( 'analyzing', 20, __( 'Analyzing content...', 'bricks-etch-migration' ) );
+			$this->update_progress( 'analyzing', 20, __( 'Analyzing content...', 'etch-fusion-suite' ) );
 			$analysis = $this->content_service->analyze_content();
 			$this->update_progress(
 				'analyzing',
 				25,
 				sprintf(
-					__( 'Found %1$d Bricks posts, %2$d Gutenberg posts, %3$d media files (%4$d total)', 'bricks-etch-migration' ),
+					__( 'Found %1$d Bricks posts, %2$d Gutenberg posts, %3$d media files (%4$d total)', 'etch-fusion-suite' ),
 					$analysis['bricks_posts'],
 					$analysis['gutenberg_posts'],
 					$analysis['media'],
@@ -118,31 +119,31 @@ class EFS_Migration_Service {
 				return $migrator_result;
 			}
 
-			$this->update_progress( 'media', 60, __( 'Migrating media files...', 'bricks-etch-migration' ) );
+			$this->update_progress( 'media', 60, __( 'Migrating media files...', 'etch-fusion-suite' ) );
 			$media_result = $this->media_service->migrate_media( $target_url, $api_key );
 			if ( is_wp_error( $media_result ) ) {
 				return $media_result;
 			}
 
-			$this->update_progress( 'css_classes', 70, __( 'Converting CSS classes...', 'bricks-etch-migration' ) );
+			$this->update_progress( 'css_classes', 70, __( 'Converting CSS classes...', 'etch-fusion-suite' ) );
 			$css_result = $this->css_service->migrate_css_classes( $target_url, $api_key );
 			if ( is_wp_error( $css_result ) || ( is_array( $css_result ) && isset( $css_result['success'] ) && ! $css_result['success'] ) ) {
 				return is_wp_error( $css_result ) ? $css_result : new \WP_Error( 'css_migration_failed', $css_result['message'] );
 			}
 
-			$this->update_progress( 'posts', 80, __( 'Migrating posts and content...', 'bricks-etch-migration' ) );
+			$this->update_progress( 'posts', 80, __( 'Migrating posts and content...', 'etch-fusion-suite' ) );
 			$posts_result = $this->content_service->migrate_posts( $target_url, $api_key, $this->api_client );
 			if ( is_wp_error( $posts_result ) ) {
 				return $posts_result;
 			}
 
-			$this->update_progress( 'finalization', 95, __( 'Finalizing migration...', 'bricks-etch-migration' ) );
+			$this->update_progress( 'finalization', 95, __( 'Finalizing migration...', 'etch-fusion-suite' ) );
 			$finalization_result = $this->finalize_migration( $posts_result );
 			if ( is_wp_error( $finalization_result ) ) {
 				return $finalization_result;
 			}
 
-			$this->update_progress( 'completed', 100, __( 'Migration completed successfully!', 'bricks-etch-migration' ) );
+			$this->update_progress( 'completed', 100, __( 'Migration completed successfully!', 'etch-fusion-suite' ) );
 
 			$migration_stats                   = $this->migration_repository->get_stats();
 			$migration_stats['last_migration'] = current_time( 'mysql' );
@@ -153,7 +154,7 @@ class EFS_Migration_Service {
 				'progress'  => $this->get_progress_data(),
 				'steps'     => $this->get_steps_state(),
 				'completed' => true,
-				'message'   => __( 'Migration completed successfully!', 'bricks-etch-migration' ),
+				'message'   => __( 'Migration completed successfully!', 'etch-fusion-suite' ),
 				'details'   => array(
 					'media' => $media_result,
 					'css'   => $css_result,
@@ -231,7 +232,7 @@ class EFS_Migration_Service {
 		);
 
 		return array(
-			'message'   => __( 'Migration cancelled.', 'bricks-etch-migration' ),
+			'message'   => __( 'Migration cancelled.', 'etch-fusion-suite' ),
 			'progress'  => $this->get_progress_data(),
 			'steps'     => $this->get_steps_state(),
 			'completed' => false,
@@ -277,7 +278,7 @@ class EFS_Migration_Service {
 		if ( ! is_array( $result ) ) {
 			return array(
 				'valid'  => false,
-				'errors' => array( __( 'Unknown validation response.', 'bricks-etch-migration' ) ),
+				'errors' => array( __( 'Unknown validation response.', 'etch-fusion-suite' ) ),
 			);
 		}
 
@@ -297,7 +298,7 @@ class EFS_Migration_Service {
 			return $this->api_client->start_import_process( $source_domain, $token );
 		}
 
-		return new \WP_Error( 'not_supported', __( 'Start import process is not available on the current API client version.', 'bricks-etch-migration' ) );
+		return new \WP_Error( 'not_supported', __( 'Start import process is not available on the current API client version.', 'etch-fusion-suite' ) );
 	}
 
 	/**
@@ -475,7 +476,7 @@ class EFS_Migration_Service {
 		foreach ( $supported_migrators as $migrator ) {
 			$progress = (int) floor( $base_percentage + ( $increment * $index ) );
 			$step_key = $this->get_migrator_step_key( $migrator );
-			$this->update_progress( $step_key, $progress, sprintf( __( 'Migrating %s...', 'bricks-etch-migration' ), $migrator->get_name() ) );
+			$this->update_progress( $step_key, $progress, sprintf( __( 'Migrating %s...', 'etch-fusion-suite' ), $migrator->get_name() ) );
 
 			$validation = $migrator->validate();
 			if ( isset( $validation['valid'] ) && ! $validation['valid'] ) {
@@ -527,6 +528,3 @@ class EFS_Migration_Service {
 		return $mapping[ $type ] ?? $type;
 	}
 }
-
-// Legacy alias for backward compatibility
-class_alias( __NAMESPACE__ . '\EFS_Migration_Service', __NAMESPACE__ . '\B2E_Migration_Service' );

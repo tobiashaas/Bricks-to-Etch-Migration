@@ -21,9 +21,9 @@ class EFS_Cleanup_Ajax_Handler extends EFS_Base_Ajax_Handler {
 	 * Constructor
 	 *
 	 * @param mixed $api_client API client instance.
-	 * @param \Bricks2Etch\Security\B2E_Rate_Limiter|null $rate_limiter Rate limiter instance (optional).
-	 * @param \Bricks2Etch\Security\B2E_Input_Validator|null $input_validator Input validator instance (optional).
-	 * @param \Bricks2Etch\Security\B2E_Audit_Logger|null $audit_logger Audit logger instance (optional).
+	 * @param \Bricks2Etch\Security\EFS_Rate_Limiter|null $rate_limiter Rate limiter instance (optional).
+	 * @param \Bricks2Etch\Security\EFS_Input_Validator|null $input_validator Input validator instance (optional).
+	 * @param \Bricks2Etch\Security\EFS_Audit_Logger|null $audit_logger Audit logger instance (optional).
 	 */
 	public function __construct( $api_client = null, $rate_limiter = null, $input_validator = null, $audit_logger = null ) {
 		$this->api_client = $api_client;
@@ -77,7 +77,7 @@ class EFS_Cleanup_Ajax_Handler extends EFS_Base_Ajax_Handler {
 
 		// Require confirmation for destructive operation
 		if ( $confirm !== 'true' && $confirm !== true ) {
-			wp_send_json_error( __( 'Cleanup requires confirmation. Please confirm this destructive operation.', 'bricks-etch-migration' ) );
+			wp_send_json_error( __( 'Cleanup requires confirmation. Please confirm this destructive operation.', 'etch-fusion-suite' ) );
 			return;
 		}
 
@@ -101,13 +101,9 @@ class EFS_Cleanup_Ajax_Handler extends EFS_Base_Ajax_Handler {
 
 		wp_send_json_success(
 			array(
-				'message'  => __( 'Cleanup commands generated.', 'bricks-etch-migration' ),
+				'message'  => __( 'Cleanup commands generated.', 'etch-fusion-suite' ),
 				'commands' => $commands,
 			)
 		);
 	}
 }
-
-// Legacy aliases for backward compatibility
-\class_alias( __NAMESPACE__ . '\\EFS_Cleanup_Ajax_Handler', 'B2E_Cleanup_Ajax_Handler' );
-class_alias( __NAMESPACE__ . '\EFS_Cleanup_Ajax_Handler', __NAMESPACE__ . '\B2E_Cleanup_Ajax_Handler' );

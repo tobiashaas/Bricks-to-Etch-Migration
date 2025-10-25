@@ -84,14 +84,14 @@ class EFS_Connection_Ajax_Handler extends EFS_Base_Ajax_Handler {
 			);
 			wp_send_json_success(
 				array(
-					'message' => __( 'Connection successful.', 'bricks-etch-migration' ),
+					'message' => __( 'Connection successful.', 'etch-fusion-suite' ),
 					'plugins' => $result['plugins'] ?? array(),
 				)
 			);
 		}
 
 		// Log failed connection test
-		$errors = isset( $result['errors'] ) && is_array( $result['errors'] ) ? implode( ', ', $result['errors'] ) : __( 'Connection failed.', 'bricks-etch-migration' );
+		$errors = isset( $result['errors'] ) && is_array( $result['errors'] ) ? implode( ', ', $result['errors'] ) : __( 'Connection failed.', 'etch-fusion-suite' );
 		$this->log_security_event(
 			'ajax_action',
 			'Export connection test failed: ' . $errors,
@@ -151,14 +151,14 @@ class EFS_Connection_Ajax_Handler extends EFS_Base_Ajax_Handler {
 			);
 			wp_send_json_success(
 				array(
-					'message' => __( 'Connection successful.', 'bricks-etch-migration' ),
+					'message' => __( 'Connection successful.', 'etch-fusion-suite' ),
 					'plugins' => $result['plugins'] ?? array(),
 				)
 			);
 		}
 
 		// Log failed connection test
-		$errors = isset( $result['errors'] ) && is_array( $result['errors'] ) ? implode( ', ', $result['errors'] ) : __( 'Connection failed.', 'bricks-etch-migration' );
+		$errors = isset( $result['errors'] ) && is_array( $result['errors'] ) ? implode( ', ', $result['errors'] ) : __( 'Connection failed.', 'etch-fusion-suite' );
 		$this->log_security_event(
 			'ajax_action',
 			'Import connection test failed: ' . $errors,
@@ -171,12 +171,8 @@ class EFS_Connection_Ajax_Handler extends EFS_Base_Ajax_Handler {
 
 	private function convert_to_internal_url( $url ) {
 		if ( strpos( $url, 'localhost:8081' ) !== false ) {
-			$url = str_replace( array( 'http://localhost:8081', 'https://localhost:8081' ), 'http://b2e-etch', $url );
+			$url = str_replace( array( 'http://localhost:8081', 'https://localhost:8081' ), 'http://efs-etch', $url );
 		}
 		return $url;
 	}
 }
-
-// Legacy alias for backward compatibility
-\class_alias( __NAMESPACE__ . '\\EFS_Connection_Ajax_Handler', 'B2E_Connection_Ajax_Handler' );
-class_alias( __NAMESPACE__ . '\EFS_Connection_Ajax_Handler', __NAMESPACE__ . '\B2E_Connection_Ajax_Handler' );

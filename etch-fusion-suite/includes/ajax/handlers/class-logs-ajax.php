@@ -57,7 +57,7 @@ class EFS_Logs_Ajax_Handler extends EFS_Base_Ajax_Handler {
 
 		wp_send_json_success(
 			array(
-				'message' => __( 'Migration logs cleared successfully.', 'bricks-etch-migration' ),
+				'message' => __( 'Migration logs cleared successfully.', 'etch-fusion-suite' ),
 			)
 		);
 	}
@@ -85,7 +85,3 @@ class EFS_Logs_Ajax_Handler extends EFS_Base_Ajax_Handler {
 		);
 	}
 }
-
-// Legacy alias for backward compatibility
-\class_alias( __NAMESPACE__ . '\\EFS_Logs_Ajax_Handler', 'B2E_Logs_Ajax_Handler' );
-class_alias( __NAMESPACE__ . '\EFS_Logs_Ajax_Handler', __NAMESPACE__ . '\B2E_Logs_Ajax_Handler' );

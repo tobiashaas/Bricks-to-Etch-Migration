@@ -137,5 +137,3 @@ class EFS_Template_Controller {
 		);
 	}
 }
-
-class_alias( __NAMESPACE__ . '\\EFS_Template_Controller', __NAMESPACE__ . '\\B2E_Template_Controller' );

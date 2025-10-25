@@ -88,7 +88,3 @@ class EFS_Ajax_Handler {
 		return $this->handlers[ $type ] ?? null;
 	}
 }
-
-// Legacy alias for backward compatibility
-\class_alias( __NAMESPACE__ . '\\EFS_Ajax_Handler', 'B2E_Ajax_Handler' );
-class_alias( __NAMESPACE__ . '\EFS_Ajax_Handler', __NAMESPACE__ . '\B2E_Ajax_Handler' );

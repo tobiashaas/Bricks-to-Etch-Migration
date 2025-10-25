@@ -4,7 +4,7 @@
  *
  * WordPress-backed implementation of Migration Repository using Options API.
  *
- * @package Bricks2Etch\Repositories
+ * @package EtchFusion\Repositories
  * @since 1.0.0
  */
 
@@ -13,7 +13,7 @@ namespace Bricks2Etch\Repositories;
 use Bricks2Etch\Repositories\Interfaces\Migration_Repository_Interface;
 
 /**
- * Class B2E_WordPress_Migration_Repository
+ * Class EFS_WordPress_Migration_Repository
  *
  * Manages migration progress, steps, stats, and tokens with transient caching.
  */
@@ -35,14 +35,14 @@ class EFS_WordPress_Migration_Repository implements Migration_Repository_Interfa
 	 * @return array Progress data array.
 	 */
 	public function get_progress(): array {
-		$cache_key = 'b2e_cache_migration_progress';
+		$cache_key = 'efs_cache_migration_progress';
 		$cached    = get_transient( $cache_key );
 
 		if ( false !== $cached ) {
 			return $cached;
 		}
 
-		$progress = get_option( 'b2e_migration_progress', array() );
+		$progress = get_option( 'efs_migration_progress', array() );
 		set_transient( $cache_key, $progress, self::CACHE_EXPIRATION_SHORT );
 
 		return $progress;
@@ -55,8 +55,8 @@ class EFS_WordPress_Migration_Repository implements Migration_Repository_Interfa
 	 * @return bool True on success, false on failure.
 	 */
 	public function save_progress( array $progress ): bool {
-		$this->invalidate_cache( 'b2e_cache_migration_progress' );
-		return update_option( 'b2e_migration_progress', $progress );
+		$this->invalidate_cache( 'efs_cache_migration_progress' );
+		return update_option( 'efs_migration_progress', $progress );
 	}
 
 	/**
@@ -65,8 +65,8 @@ class EFS_WordPress_Migration_Repository implements Migration_Repository_Interfa
 	 * @return bool True on success, false on failure.
 	 */
 	public function delete_progress(): bool {
-		$this->invalidate_cache( 'b2e_cache_migration_progress' );
-		return delete_option( 'b2e_migration_progress' );
+		$this->invalidate_cache( 'efs_cache_migration_progress' );
+		return delete_option( 'efs_migration_progress' );
 	}
 
 	/**
@@ -75,14 +75,14 @@ class EFS_WordPress_Migration_Repository implements Migration_Repository_Interfa
 	 * @return array Steps data array.
 	 */
 	public function get_steps(): array {
-		$cache_key = 'b2e_cache_migration_steps';
+		$cache_key = 'efs_cache_migration_steps';
 		$cached    = get_transient( $cache_key );
 
 		if ( false !== $cached ) {
 			return $cached;
 		}
 
-		$steps = get_option( 'b2e_migration_steps', array() );
+		$steps = get_option( 'efs_migration_steps', array() );
 		set_transient( $cache_key, $steps, self::CACHE_EXPIRATION_SHORT );
 
 		return $steps;
@@ -95,8 +95,8 @@ class EFS_WordPress_Migration_Repository implements Migration_Repository_Interfa
 	 * @return bool True on success, false on failure.
 	 */
 	public function save_steps( array $steps ): bool {
-		$this->invalidate_cache( 'b2e_cache_migration_steps' );
-		return update_option( 'b2e_migration_steps', $steps );
+		$this->invalidate_cache( 'efs_cache_migration_steps' );
+		return update_option( 'efs_migration_steps', $steps );
 	}
 
 	/**
@@ -105,8 +105,8 @@ class EFS_WordPress_Migration_Repository implements Migration_Repository_Interfa
 	 * @return bool True on success, false on failure.
 	 */
 	public function delete_steps(): bool {
-		$this->invalidate_cache( 'b2e_cache_migration_steps' );
-		return delete_option( 'b2e_migration_steps' );
+		$this->invalidate_cache( 'efs_cache_migration_steps' );
+		return delete_option( 'efs_migration_steps' );
 	}
 
 	/**
@@ -115,14 +115,14 @@ class EFS_WordPress_Migration_Repository implements Migration_Repository_Interfa
 	 * @return array Stats data array.
 	 */
 	public function get_stats(): array {
-		$cache_key = 'b2e_cache_migration_stats';
+		$cache_key = 'efs_cache_migration_stats';
 		$cached    = get_transient( $cache_key );
 
 		if ( false !== $cached ) {
 			return $cached;
 		}
 
-		$stats = get_option( 'b2e_migration_stats', array() );
+		$stats = get_option( 'efs_migration_stats', array() );
 		set_transient( $cache_key, $stats, self::CACHE_EXPIRATION_LONG );
 
 		return $stats;
@@ -135,8 +135,8 @@ class EFS_WordPress_Migration_Repository implements Migration_Repository_Interfa
 	 * @return bool True on success, false on failure.
 	 */
 	public function save_stats( array $stats ): bool {
-		$this->invalidate_cache( 'b2e_cache_migration_stats' );
-		return update_option( 'b2e_migration_stats', $stats );
+		$this->invalidate_cache( 'efs_cache_migration_stats' );
+		return update_option( 'efs_migration_stats', $stats );
 	}
 
 	/**
@@ -145,14 +145,14 @@ class EFS_WordPress_Migration_Repository implements Migration_Repository_Interfa
 	 * @return array Token data array.
 	 */
 	public function get_token_data(): array {
-		$cache_key = 'b2e_cache_migration_token_data';
+		$cache_key = 'efs_cache_migration_token_data';
 		$cached    = get_transient( $cache_key );
 
 		if ( false !== $cached ) {
 			return $cached;
 		}
 
-		$token_data = get_option( 'b2e_migration_token', array() );
+		$token_data = get_option( 'efs_migration_token', array() );
 		set_transient( $cache_key, $token_data, self::CACHE_EXPIRATION_LONG );
 
 		return $token_data;
@@ -165,8 +165,8 @@ class EFS_WordPress_Migration_Repository implements Migration_Repository_Interfa
 	 * @return bool True on success, false on failure.
 	 */
 	public function save_token_data( array $token_data ): bool {
-		$this->invalidate_cache( 'b2e_cache_migration_token_data' );
-		return update_option( 'b2e_migration_token', $token_data );
+		$this->invalidate_cache( 'efs_cache_migration_token_data' );
+		return update_option( 'efs_migration_token', $token_data );
 	}
 
 	/**
@@ -175,14 +175,14 @@ class EFS_WordPress_Migration_Repository implements Migration_Repository_Interfa
 	 * @return string Token value or empty string if not set.
 	 */
 	public function get_token_value(): string {
-		$cache_key = 'b2e_cache_migration_token_value';
+		$cache_key = 'efs_cache_migration_token_value';
 		$cached    = get_transient( $cache_key );
 
 		if ( false !== $cached ) {
 			return $cached;
 		}
 
-		$token = get_option( 'b2e_migration_token_value', '' );
+		$token = get_option( 'efs_migration_token_value', '' );
 		set_transient( $cache_key, $token, self::CACHE_EXPIRATION_LONG );
 
 		return $token;
@@ -195,8 +195,8 @@ class EFS_WordPress_Migration_Repository implements Migration_Repository_Interfa
 	 * @return bool True on success, false on failure.
 	 */
 	public function save_token_value( string $token ): bool {
-		$this->invalidate_cache( 'b2e_cache_migration_token_value' );
-		return update_option( 'b2e_migration_token_value', $token );
+		$this->invalidate_cache( 'efs_cache_migration_token_value' );
+		return update_option( 'efs_migration_token_value', $token );
 	}
 
 	/**
@@ -205,13 +205,13 @@ class EFS_WordPress_Migration_Repository implements Migration_Repository_Interfa
 	 * @return bool True on success, false on failure.
 	 */
 	public function delete_token_data(): bool {
-		$this->invalidate_cache( 'b2e_cache_migration_token_data' );
-		$this->invalidate_cache( 'b2e_cache_migration_token_value' );
+		$this->invalidate_cache( 'efs_cache_migration_token_data' );
+		$this->invalidate_cache( 'efs_cache_migration_token_value' );
 
 		$result = true;
-		$result = delete_option( 'b2e_migration_token' ) && $result;
-		$result = delete_option( 'b2e_migration_token_value' ) && $result;
-		$result = delete_option( 'b2e_private_key' ) && $result;
+		$result = delete_option( 'efs_migration_token' ) && $result;
+		$result = delete_option( 'efs_migration_token_value' ) && $result;
+		$result = delete_option( 'efs_private_key' ) && $result;
 
 		return $result;
 	}
@@ -224,7 +224,7 @@ class EFS_WordPress_Migration_Repository implements Migration_Repository_Interfa
 	 */
 	public function get_imported_data( string $type ): array {
 		$option_key = $this->get_imported_data_option_key( $type );
-		$cache_key  = 'b2e_cache_imported_' . $type;
+		$cache_key  = 'efs_cache_imported_' . $type;
 		$cached     = get_transient( $cache_key );
 
 		if ( false !== $cached ) {
@@ -265,7 +265,7 @@ class EFS_WordPress_Migration_Repository implements Migration_Repository_Interfa
 				"DELETE FROM {$wpdb->options} 
 				WHERE option_name LIKE %s 
 				AND option_value < %d",
-				$wpdb->esc_like( '_transient_timeout_b2e_token_' ) . '%',
+				$wpdb->esc_like( '_transient_timeout_efs_token_' ) . '%',
 				time()
 			)
 		);
@@ -281,12 +281,12 @@ class EFS_WordPress_Migration_Repository implements Migration_Repository_Interfa
 	 */
 	private function get_imported_data_option_key( string $type ): string {
 		$key_map = array(
-			'cpts'             => 'b2e_imported_cpts',
-			'acf_field_groups' => 'b2e_imported_acf_field_groups',
-			'metabox_configs'  => 'b2e_imported_metabox_configs',
+			'cpts'             => 'efs_imported_cpts',
+			'acf_field_groups' => 'efs_imported_acf_field_groups',
+			'metabox_configs'  => 'efs_imported_metabox_configs',
 		);
 
-		return $key_map[ $type ] ?? 'b2e_imported_' . $type;
+		return $key_map[ $type ] ?? 'efs_imported_' . $type;
 	}
 
 	/**
@@ -298,7 +298,3 @@ class EFS_WordPress_Migration_Repository implements Migration_Repository_Interfa
 		delete_transient( $cache_key );
 	}
 }
-
-// Legacy alias for backward compatibility
-\class_alias( __NAMESPACE__ . '\\EFS_WordPress_Migration_Repository', 'B2E_WordPress_Migration_Repository' );
-class_alias( __NAMESPACE__ . '\EFS_WordPress_Migration_Repository', __NAMESPACE__ . '\B2E_WordPress_Migration_Repository' );

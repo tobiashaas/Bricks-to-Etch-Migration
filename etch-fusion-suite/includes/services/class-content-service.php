@@ -68,7 +68,7 @@ class EFS_Content_Service {
 		if ( empty( $all_posts ) ) {
 			return array(
 				'migrated_posts' => 0,
-				'message'        => __( 'No posts found for migration.', 'bricks-etch-migration' ),
+				'message'        => __( 'No posts found for migration.', 'etch-fusion-suite' ),
 			);
 		}
 
@@ -94,7 +94,7 @@ class EFS_Content_Service {
 			}
 		}
 
-		$summary['message'] = __( 'Posts migrated successfully.', 'bricks-etch-migration' );
+		$summary['message'] = __( 'Posts migrated successfully.', 'etch-fusion-suite' );
 
 		return $summary;
 	}
@@ -134,7 +134,7 @@ class EFS_Content_Service {
 
 		$post = get_post( $post_id );
 		if ( ! $post ) {
-			return new \WP_Error( 'post_not_found', sprintf( __( 'Post with ID %d not found.', 'bricks-etch-migration' ), $post_id ) );
+			return new \WP_Error( 'post_not_found', sprintf( __( 'Post with ID %d not found.', 'etch-fusion-suite' ), $post_id ) );
 		}
 
 		return $this->send_post_to_target( $post, $etch_content, $api_client, $target_url, $api_key );
@@ -191,7 +191,7 @@ class EFS_Content_Service {
 
 		return array(
 			'valid'   => true,
-			'message' => __( 'Validation not implemented for this version.', 'bricks-etch-migration' ),
+			'message' => __( 'Validation not implemented for this version.', 'etch-fusion-suite' ),
 		);
 	}
 

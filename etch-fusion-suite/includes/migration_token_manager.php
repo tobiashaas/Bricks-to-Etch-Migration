@@ -1,6 +1,6 @@
 <?php
 /**
- * Migration Token Manager for Bricks to Etch Migration Plugin
+ * Migration Token Manager for Etch Fusion Suite
  *
  * Elegant migration system with domain-embedded tokens
  * Generates secure migration URLs with embedded authentication
@@ -39,7 +39,7 @@ class EFS_Migration_Token_Manager {
 	 */
 	public function __construct( Migration_Repository_Interface $migration_repository = null ) {
 		$this->error_handler        = new \Bricks2Etch\Core\EFS_Error_Handler();
-		$this->migration_repository = $migration_repository ?: new \Bricks2Etch\Repositories\B2E_WordPress_Migration_Repository();
+		$this->migration_repository = $migration_repository ?: new \Bricks2Etch\Repositories\EFS_WordPress_Migration_Repository();
 	}
 
 	/**
@@ -139,7 +139,7 @@ class EFS_Migration_Token_Manager {
 		$this->migration_repository->save_token_value( $token );
 
 		// Also store in transients for faster access
-		set_transient( 'b2e_token_' . substr( $token, 0, 16 ), $token_data, $expiration_seconds );
+		set_transient( 'efs_token_' . substr( $token, 0, 16 ), $token_data, $expiration_seconds );
 	}
 
 	/**
@@ -152,7 +152,7 @@ class EFS_Migration_Token_Manager {
 	 */
 	public function validate_migration_token( $token, $source_domain, $expires ) {
 		// Debug logging
-		error_log( 'B2E Token Validation Debug:' );
+		error_log( 'EFS Token Validation Debug:' );
 		error_log( '- Received token: ' . substr( $token, 0, 20 ) . '...' );
 		error_log( '- Source domain: ' . $source_domain );
 		error_log( '- Expires: ' . $expires . ' (' . date( 'Y-m-d H:i:s', $expires ) . ')' );
@@ -251,7 +251,7 @@ class EFS_Migration_Token_Manager {
 		$short_url = wp_generate_password( 8, false );
 
 		// Store short URL mapping
-		set_transient( 'b2e_short_' . $short_url, $migration_url, self::TOKEN_EXPIRATION );
+		set_transient( 'efs_short_' . $short_url, $migration_url, self::TOKEN_EXPIRATION );
 
 		return array(
 			'full_url'  => $migration_url,
@@ -260,8 +260,3 @@ class EFS_Migration_Token_Manager {
 		);
 	}
 }
-
-\class_alias( __NAMESPACE__ . '\\B2E_Migration_Token_Manager', 'B2E_Migration_Token_Manager' );
-
-// Legacy alias for backward compatibility
-class_alias( __NAMESPACE__ . '\EFS_Migration_Token_Manager', __NAMESPACE__ . '\B2E_Migration_Token_Manager' );

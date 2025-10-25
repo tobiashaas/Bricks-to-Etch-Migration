@@ -146,5 +146,3 @@ class EFS_Template_Ajax_Handler extends EFS_Base_Ajax_Handler {
 		wp_send_json_success( array( 'deleted' => true ) );
 	}
 }
-
-class_alias( __NAMESPACE__ . '\\EFS_Template_Ajax_Handler', __NAMESPACE__ . '\\B2E_Template_Ajax_Handler' );

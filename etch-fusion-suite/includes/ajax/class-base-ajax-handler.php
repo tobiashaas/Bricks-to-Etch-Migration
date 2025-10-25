@@ -61,9 +61,9 @@ abstract class EFS_Base_Ajax_Handler {
 		$this->audit_logger    = $audit_logger;
 
 		// Try to resolve from container if not provided
-		if ( function_exists( 'b2e_container' ) ) {
+		if ( function_exists( 'efs_container' ) ) {
 			try {
-				$container = b2e_container();
+				$container = efs_container();
 
 				if ( ! $this->rate_limiter && $container->has( 'rate_limiter' ) ) {
 					$this->rate_limiter = $container->get( 'rate_limiter' );
@@ -408,10 +408,6 @@ abstract class EFS_Base_Ajax_Handler {
 	 * @param string $message
 	 */
 	protected function log( $message ) {
-		error_log( 'B2E AJAX: ' . $message );
+		error_log( 'EFS AJAX: ' . $message );
 	}
 }
-
-// Legacy alias for backward compatibility
-\class_alias( __NAMESPACE__ . '\\EFS_Base_Ajax_Handler', 'B2E_Base_Ajax_Handler' );
-\class_alias( __NAMESPACE__ . '\EFS_Base_Ajax_Handler', __NAMESPACE__ . '\B2E_Base_Ajax_Handler' );

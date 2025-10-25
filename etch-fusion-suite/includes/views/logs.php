@@ -14,17 +14,17 @@ $b2e_filter_search = isset( $_GET['message'] ) ? sanitize_text_field( wp_unslash
 ?>
 <section class="b2e-card b2e-card--logs">
 	<header class="b2e-card__header">
-		<h2><?php esc_html_e( 'Recent Logs', 'bricks-etch-migration' ); ?></h2>
+		<h2><?php esc_html_e( 'Recent Logs', 'etch-fusion-suite' ); ?></h2>
 		<div class="b2e-card__actions">
 			<button type="button" class="button" data-b2e-clear-logs>
-				<?php esc_html_e( 'Clear Logs', 'bricks-etch-migration' ); ?>
+				<?php esc_html_e( 'Clear Logs', 'etch-fusion-suite' ); ?>
 			</button>
 		</div>
 	</header>
 
 	<div class="b2e-logs" data-b2e-logs>
 		<?php if ( empty( $b2e_logs ) ) : ?>
-			<p class="b2e-log-empty"><?php esc_html_e( 'No logs yet. Migration activity will appear here.', 'bricks-etch-migration' ); ?></p>
+			<p class="b2e-log-empty"><?php esc_html_e( 'No logs yet. Migration activity will appear here.', 'etch-fusion-suite' ); ?></p>
 		<?php else : ?>
 			<?php
 			foreach ( $b2e_logs as $b2e_log_entry ) :

@@ -4,7 +4,7 @@
  *
  * Handles CSS migration AJAX requests
  *
- * @package Bricks_Etch_Migration
+ * @package Etch_Fusion_Suite
  * @since 0.5.1
  */
 
@@ -45,27 +45,27 @@ class EFS_CSS_Ajax_Handler extends EFS_Base_Ajax_Handler {
 	 * Register WordPress hooks
 	 */
 	protected function register_hooks() {
-		add_action( 'wp_ajax_b2e_migrate_css', array( $this, 'migrate_css' ) );
+		add_action( 'wp_ajax_b2e_convert_css', array( $this, 'convert_css' ) );
+		add_action( 'wp_ajax_b2e_get_global_styles', array( $this, 'get_global_styles' ) );
 	}
 
 	/**
 	 * AJAX handler to migrate CSS
 	 */
-	public function migrate_css() {
+	public function convert_css() {
 		$this->log( '========================================' );
 		$this->log( '🎨 CSS Migration: AJAX handler called - START' );
 		$this->log( '🎨 CSS Migration: POST data: ' . wp_json_encode( $_POST ) );
 		$this->log( '========================================' );
 
 		// Check rate limit (30 requests per minute)
-		if ( ! $this->check_rate_limit( 'migrate_css', 30, 60 ) ) {
+		if ( ! $this->check_rate_limit( 'convert_css', 30, 60 ) ) {
 			return;
 		}
 
 		// Verify nonce
 		if ( ! $this->verify_nonce() ) {
-			$this->log( '❌ CSS Migration: Invalid nonce' );
-			wp_send_json_error( 'Invalid nonce' );
+			wp_send_json_error( __( 'Invalid request.', 'etch-fusion-suite' ) );
 			return;
 		}
 
@@ -155,7 +155,7 @@ class EFS_CSS_Ajax_Handler extends EFS_Base_Ajax_Handler {
 
 			// Step 3: Save style map from API response
 			if ( isset( $api_result['style_map'] ) && is_array( $api_result['style_map'] ) ) {
-				update_option( 'b2e_style_map', $api_result['style_map'] );
+				update_option( 'efs_style_map', $api_result['style_map'] );
 				$this->log( '✅ CSS Migration: Saved style map with ' . count( $api_result['style_map'] ) . ' entries' );
 			} else {
 				$this->log( '⚠️ CSS Migration: No style map in API response!' );
@@ -188,6 +188,16 @@ class EFS_CSS_Ajax_Handler extends EFS_Base_Ajax_Handler {
 		}
 	}
 
+	public function get_global_styles() {
+		$styles = $this->css_service->get_global_styles();
+
+		if ( is_wp_error( $styles ) ) {
+			wp_send_json_error( $styles->get_error_message() );
+		} else {
+			wp_send_json_success( $styles );
+		}
+	}
+
 	/**
 	 * Convert localhost URL to internal Docker URL
 	 *
@@ -196,12 +206,8 @@ class EFS_CSS_Ajax_Handler extends EFS_Base_Ajax_Handler {
 	 */
 	private function convert_to_internal_url( $url ) {
 		if ( strpos( $url, 'localhost:8081' ) !== false ) {
-			return str_replace( 'localhost:8081', 'b2e-etch', $url );
+			return str_replace( 'localhost:8081', 'efs-etch', $url );
 		}
 		return $url;
 	}
 }
-
-// Legacy alias for backward compatibility
-\class_alias( __NAMESPACE__ . '\\EFS_CSS_Ajax_Handler', 'B2E_CSS_Ajax_Handler' );
-class_alias( __NAMESPACE__ . '\EFS_CSS_Ajax_Handler', __NAMESPACE__ . '\B2E_CSS_Ajax_Handler' );

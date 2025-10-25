@@ -1,6 +1,6 @@
 <?php
 /**
- * Migration Manager for Bricks to Etch Migration Plugin
+ * Migration Manager for Etch Fusion Suite
  *
  * Orchestrates the entire migration process
  */
@@ -27,9 +27,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * @deprecated Use `Bricks2Etch\Services\EFS_Migration_Service` instead.
- */
 class EFS_Migration_Manager {
 
 	/**
@@ -52,7 +49,7 @@ class EFS_Migration_Manager {
 
 		// Instantiate migration repository if not provided
 		if ( ! $migration_repository ) {
-			$migration_repository = new \Bricks2Etch\Repositories\B2E_WordPress_Migration_Repository();
+			$migration_repository = new \Bricks2Etch\Repositories\EFS_WordPress_Migration_Repository();
 		}
 
 		$error_handler          = new EFS_Error_Handler();
@@ -63,7 +60,7 @@ class EFS_Migration_Manager {
 		$gutenberg_generator    = new EFS_Gutenberg_Generator( $error_handler, $dynamic_data_converter, $content_parser );
 
 		// Instantiate style repository for CSS converter
-		$style_repository = new \Bricks2Etch\Repositories\B2E_WordPress_Style_Repository();
+		$style_repository = new \Bricks2Etch\Repositories\EFS_WordPress_Style_Repository();
 		$css_converter    = new EFS_CSS_Converter( $error_handler, $style_repository );
 
 		$media_migrator   = new EFS_Media_Migrator( $error_handler, $api_client );
@@ -163,7 +160,3 @@ class EFS_Migration_Manager {
 		return $this->migration_service->migrate_gutenberg_post( $post, $target_url, $api_key );
 	}
 }
-
-// Legacy alias for backward compatibility
-\class_alias( __NAMESPACE__ . '\\EFS_Migration_Manager', 'B2E_Migration_Manager' );
-class_alias( __NAMESPACE__ . '\EFS_Migration_Manager', __NAMESPACE__ . '\B2E_Migration_Manager' );

@@ -4,7 +4,7 @@
  *
  * WordPress-backed implementation of Style Repository using Options API.
  *
- * @package Bricks2Etch\Repositories
+ * @package EtchFusion\Repositories
  * @since 1.0.0
  */
 
@@ -13,7 +13,7 @@ namespace Bricks2Etch\Repositories;
 use Bricks2Etch\Repositories\Interfaces\Style_Repository_Interface;
 
 /**
- * Class B2E_WordPress_Style_Repository
+ * Class EFS_WordPress_Style_Repository
  *
  * Manages CSS styles, style maps, and Etch-specific options with transient caching.
  */
@@ -35,7 +35,7 @@ class EFS_WordPress_Style_Repository implements Style_Repository_Interface {
 	 * @return array Etch styles array.
 	 */
 	public function get_etch_styles(): array {
-		$cache_key = 'b2e_cache_etch_styles';
+		$cache_key = 'efs_cache_etch_styles';
 		$cached    = get_transient( $cache_key );
 
 		if ( false !== $cached ) {
@@ -55,7 +55,7 @@ class EFS_WordPress_Style_Repository implements Style_Repository_Interface {
 	 * @return bool True on success, false on failure.
 	 */
 	public function save_etch_styles( array $styles ): bool {
-		$this->invalidate_cache( 'b2e_cache_etch_styles' );
+		$this->invalidate_cache( 'efs_cache_etch_styles' );
 		return update_option( 'etch_styles', $styles );
 	}
 
@@ -65,14 +65,14 @@ class EFS_WordPress_Style_Repository implements Style_Repository_Interface {
 	 * @return array Style map array.
 	 */
 	public function get_style_map(): array {
-		$cache_key = 'b2e_cache_style_map';
+		$cache_key = 'efs_cache_style_map';
 		$cached    = get_transient( $cache_key );
 
 		if ( false !== $cached ) {
 			return $cached;
 		}
 
-		$map = get_option( 'b2e_style_map', array() );
+		$map = get_option( 'efs_style_map', array() );
 		set_transient( $cache_key, $map, self::CACHE_EXPIRATION_STYLES );
 
 		return $map;
@@ -85,8 +85,8 @@ class EFS_WordPress_Style_Repository implements Style_Repository_Interface {
 	 * @return bool True on success, false on failure.
 	 */
 	public function save_style_map( array $map ): bool {
-		$this->invalidate_cache( 'b2e_cache_style_map' );
-		return update_option( 'b2e_style_map', $map );
+		$this->invalidate_cache( 'efs_cache_style_map' );
+		return update_option( 'efs_style_map', $map );
 	}
 
 	/**
@@ -95,7 +95,7 @@ class EFS_WordPress_Style_Repository implements Style_Repository_Interface {
 	 * @return int SVG version number.
 	 */
 	public function get_svg_version(): int {
-		$cache_key = 'b2e_cache_svg_version';
+		$cache_key = 'efs_cache_svg_version';
 		$cached    = get_transient( $cache_key );
 
 		if ( false !== $cached ) {
@@ -117,7 +117,7 @@ class EFS_WordPress_Style_Repository implements Style_Repository_Interface {
 		$current_version = $this->get_svg_version();
 		$new_version     = $current_version + 1;
 
-		$this->invalidate_cache( 'b2e_cache_svg_version' );
+		$this->invalidate_cache( 'efs_cache_svg_version' );
 		update_option( 'etch_svg_version', $new_version );
 
 		return $new_version;
@@ -129,7 +129,7 @@ class EFS_WordPress_Style_Repository implements Style_Repository_Interface {
 	 * @return array Global stylesheets array.
 	 */
 	public function get_global_stylesheets(): array {
-		$cache_key = 'b2e_cache_global_stylesheets';
+		$cache_key = 'efs_cache_global_stylesheets';
 		$cached    = get_transient( $cache_key );
 
 		if ( false !== $cached ) {
@@ -149,7 +149,7 @@ class EFS_WordPress_Style_Repository implements Style_Repository_Interface {
 	 * @return bool True on success, false on failure.
 	 */
 	public function save_global_stylesheets( array $stylesheets ): bool {
-		$this->invalidate_cache( 'b2e_cache_global_stylesheets' );
+		$this->invalidate_cache( 'efs_cache_global_stylesheets' );
 		return update_option( 'etch_global_stylesheets', $stylesheets );
 	}
 
@@ -159,7 +159,7 @@ class EFS_WordPress_Style_Repository implements Style_Repository_Interface {
 	 * @return array Bricks global classes array.
 	 */
 	public function get_bricks_global_classes(): array {
-		$cache_key = 'b2e_cache_bricks_global_classes';
+		$cache_key = 'efs_cache_bricks_global_classes';
 		$cached    = get_transient( $cache_key );
 
 		if ( false !== $cached ) {
@@ -178,11 +178,11 @@ class EFS_WordPress_Style_Repository implements Style_Repository_Interface {
 	 * @return bool True on success.
 	 */
 	public function invalidate_style_cache(): bool {
-		$this->invalidate_cache( 'b2e_cache_etch_styles' );
-		$this->invalidate_cache( 'b2e_cache_style_map' );
-		$this->invalidate_cache( 'b2e_cache_svg_version' );
-		$this->invalidate_cache( 'b2e_cache_global_stylesheets' );
-		$this->invalidate_cache( 'b2e_cache_bricks_global_classes' );
+		$this->invalidate_cache( 'efs_cache_etch_styles' );
+		$this->invalidate_cache( 'efs_cache_style_map' );
+		$this->invalidate_cache( 'efs_cache_svg_version' );
+		$this->invalidate_cache( 'efs_cache_global_stylesheets' );
+		$this->invalidate_cache( 'efs_cache_bricks_global_classes' );
 
 		wp_cache_delete( 'etch_styles', 'options' );
 

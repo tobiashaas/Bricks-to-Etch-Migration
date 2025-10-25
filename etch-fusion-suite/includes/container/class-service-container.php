@@ -210,8 +210,3 @@ class EFS_Service_Not_Found_Exception extends Exception implements NotFoundExcep
 class EFS_Service_Container_Exception extends Exception implements ContainerExceptionInterface {
 
 }
-
-// Legacy aliases
-class_alias( __NAMESPACE__ . '\\EFS_Service_Container', __NAMESPACE__ . '\\B2E_Service_Container' );
-class_alias( __NAMESPACE__ . '\\EFS_Service_Not_Found_Exception', __NAMESPACE__ . '\\B2E_Service_Not_Found_Exception' );
-class_alias( __NAMESPACE__ . '\\EFS_Service_Container_Exception', __NAMESPACE__ . '\\B2E_Service_Container_Exception' );
