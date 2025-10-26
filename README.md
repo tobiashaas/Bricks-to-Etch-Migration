@@ -332,11 +332,11 @@ composer test:coverage
 
 **CI/CD:**
 All pull requests automatically run:
-- WordPress Coding Standards (WPCS)
-- PHP Compatibility checks (PHP 7.4-8.4)
-- PHPUnit tests across all PHP versions
-- CodeQL security scanning
-- Dependency vulnerability checks
+1. **Lint** – WordPress Coding Standards via `vendor/bin/phpcs`
+2. **Test** – PHPUnit suite across PHP 7.4, 8.1, 8.2, 8.3, 8.4 with WordPress test library installed in `/tmp`
+3. **Node** – Validates npm scripts with Node 18 using `npm ci`
+4. **CodeQL** – Security scanning for PHP and JavaScript
+5. **Dependency Review** – Blocks insecure dependency changes
 
 See [`.github/workflows/README.md`](.github/workflows/README.md) for detailed CI/CD documentation.
 

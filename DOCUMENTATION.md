@@ -1,7 +1,9 @@
 # Technical Documentation - Etch Fusion Suite
 
-**Last Updated:** 2025-10-25 23:25  
-**Version:** 0.11.3
+<!-- markdownlint-disable MD013 MD024 -->
+
+**Last Updated:** 2025-10-26 16:30  
+**Version:** 0.11.7
 
 ---
 
@@ -14,8 +16,8 @@
 5. [Media Migration](#media-migration)
 6. [API Communication](#api-communication)
 7. [Frontend Rendering](#frontend-rendering)
-8. [CI & Test Automation](#ci--test-automation)
-9. [Test Environment](#test-environment)
+8. [Continuous Integration](#continuous-integration)
+9. [Testing Coverage](#testing-coverage)
 10. [Framer Template Extraction](#framer-template-extraction)
 
 ---
@@ -26,7 +28,7 @@
 
 ### Plugin Structure
 
-```
+```text
 etch-fusion-suite/
 ├── includes/
 │   ├── container/               # Dependency injection
@@ -56,6 +58,7 @@ etch-fusion-suite/
 The plugin uses a dependency injection container for service management:
 
 **Key Services:**
+
 - `css_converter` → `\Bricks2Etch\Parsers\EFS_CSS_Converter`
 - `api_client` → `\Bricks2Etch\Api\EFS_API_Client`
 - `style_repository` → `\Bricks2Etch\Repositories\EFS_WordPress_Style_Repository`
@@ -83,6 +86,7 @@ The plugin uses a dependency injection container for service management:
 All data access goes through repository interfaces:
 
 **Style Repository Methods:**
+
 - `get_etch_styles()` - Retrieve Etch styles with caching
 - `save_etch_styles($styles)` - Save Etch styles
 - `get_style_map()` - Get Bricks→Etch style ID mapping
@@ -90,13 +94,14 @@ All data access goes through repository interfaces:
 - `invalidate_style_cache()` - Clear style-related caches (targeted, not global)
 
 **Cache Strategy:**
+
 - Uses WordPress transients for 5-minute cache
 - Targeted cache invalidation (no `wp_cache_flush()`)
 - Prevents site-wide performance impact
 
 ### Data Flow
 
-```
+```text
 Bricks Site                    Etch Site
     ↓                              ↓
 1. CSS Converter          →   Etch Styles
@@ -130,6 +135,7 @@ wp option patch insert b2e_cors_allowed_origins end "https://newdomain.com"
 #### Default Origins
 
 If no origins are configured, the following development defaults are used:
+
 - `http://localhost:8888`
 - `http://localhost:8889`
 - `http://127.0.0.1:8888`
@@ -152,6 +158,7 @@ The plugin enforces CORS validation at multiple levels:
 3. **Header injection**: The `B2E_CORS_Manager::add_cors_headers()` method sets appropriate headers via `rest_pre_serve_request`
 
 **Public endpoints** (e.g., `/b2e/v1/migrate`, `/b2e/v1/validate`) now enforce CORS validation despite using `permission_callback => '__return_true'`. This ensures:
+
 - Server actively rejects disallowed origins with 403 JSON error (not just browser-level blocking)
 - All CORS violations are logged with route, method, and origin information
 - Future endpoints cannot bypass origin validation
@@ -165,7 +172,8 @@ The plugin applies relaxed CSP headers to accommodate WordPress behavior.
 #### Current Policy
 
 **Admin Pages:**
-```
+
+```text
 default-src 'self';
 script-src 'self' 'unsafe-inline' 'unsafe-eval';
 style-src 'self' 'unsafe-inline';
@@ -175,7 +183,8 @@ connect-src 'self'
 ```
 
 **Frontend:**
-```
+
+```text
 default-src 'self';
 script-src 'self' 'unsafe-inline' 'unsafe-eval';
 style-src 'self' 'unsafe-inline';
@@ -203,12 +212,14 @@ Rate limiting is applied to all AJAX and REST API endpoints.
 #### Default Limits
 
 **AJAX Endpoints:**
+
 - Authentication: 10 requests/minute
 - Read operations: 30-60 requests/minute
 - Write operations: 20-30 requests/minute
 - Sensitive operations (cleanup, logs): 5-10 requests/minute
 
 **REST API Endpoints:**
+
 - Authentication: 10 requests/minute
 - Export (read): 30 requests/minute
 - Import (write): 10-20 requests/minute
@@ -232,6 +243,7 @@ $settings_repo->save_security_settings($security_settings);
 ### API Key Validation
 
 API keys must meet the following requirements:
+
 - **Minimum length**: 20 characters
 - **Allowed characters**: Letters (a-z, A-Z), numbers (0-9), underscore (_), hyphen (-), dot (.)
 - **Format**: Alphanumeric with common safe characters
@@ -239,6 +251,7 @@ API keys must meet the following requirements:
 ### Audit Logging
 
 All security events are logged with severity levels:
+
 - **Low**: Routine operations
 - **Medium**: Authentication failures, rate limit exceeded
 - **High**: Authorization failures, suspicious activity
@@ -272,6 +285,7 @@ Converts Bricks Global Classes to Etch Styles with CSS class names in `etchData.
 **Function:** `convert_bricks_classes_to_etch()`
 
 **Process:**
+
 1. Fetch Bricks Global Classes
 2. Convert CSS properties to logical properties
 3. Collect custom CSS from `_cssCustom`
@@ -280,6 +294,7 @@ Converts Bricks Global Classes to Etch Styles with CSS class names in `etchData.
 6. Merge custom CSS with normal styles
 
 **Style Map Format:**
+
 ```php
 [
   'bricks_id' => [
@@ -296,6 +311,7 @@ Converts Bricks Global Classes to Etch Styles with CSS class names in `etchData.
 **Function:** `parse_custom_css_stylesheet()`
 
 **Process:**
+
 1. Extract class name from custom CSS
 2. Find existing style ID from style map
 3. Use existing ID (not generate new one)
@@ -303,6 +319,7 @@ Converts Bricks Global Classes to Etch Styles with CSS class names in `etchData.
 5. Merge with existing styles
 
 **Example:**
+
 ```css
 /* Custom CSS from Bricks */
 .my-class {
@@ -322,6 +339,7 @@ Converts Bricks Global Classes to Etch Styles with CSS class names in `etchData.
 **Function:** `get_css_classes_from_style_ids()`
 
 **Process:**
+
 1. Get style IDs for element
 2. Skip Etch-internal styles (`etch-section-style`, etc.)
 3. Look up selectors in style map
@@ -329,6 +347,7 @@ Converts Bricks Global Classes to Etch Styles with CSS class names in `etchData.
 5. Return space-separated string
 
 **Example:**
+
 ```php
 Input:  ['abc123', 'def456']
 Output: "my-class another-class"
@@ -353,12 +372,14 @@ Converts Bricks elements to Gutenberg blocks with Etch metadata.
 **Block Type:** `core/group` (Container mit custom tag)
 
 **Bricks:**
+
 ```php
 'name' => 'container',
 'settings' => ['tag' => 'ul']
 ```
 
 **Etch Data:**
+
 ```json
 {
   "tagName": "ul",
@@ -377,6 +398,7 @@ Converts Bricks elements to Gutenberg blocks with Etch metadata.
 ```
 
 **Frontend:**
+
 ```html
 <ul data-etch-element="container" class="my-list-class">
   <li>Item 1</li>
@@ -385,6 +407,7 @@ Converts Bricks elements to Gutenberg blocks with Etch metadata.
 ```
 
 **Unterstützte Tags:**
+
 - `ul` - Unordered List
 - `ol` - Ordered List
 - `li` - List Item (via Div element)
@@ -394,6 +417,7 @@ Converts Bricks elements to Gutenberg blocks with Etch metadata.
 **Block Type:** `core/heading`
 
 **Etch Data:**
+
 ```json
 {
   "etchData": {
@@ -414,6 +438,7 @@ Converts Bricks elements to Gutenberg blocks with Etch metadata.
 **Block Type:** `core/paragraph`
 
 **Etch Data:**
+
 ```json
 {
   "etchData": {
@@ -438,6 +463,7 @@ Converts Bricks elements to Gutenberg blocks with Etch metadata.
 **Important:** Use `block.tag = 'figure'`, not `'img'`!
 
 **Etch Data:**
+
 ```json
 {
   "etchData": {
@@ -454,6 +480,7 @@ Converts Bricks elements to Gutenberg blocks with Etch metadata.
 ```
 
 **HTML:**
+
 ```html
 <figure class="wp-block-image my-image-class">
   <img src="..." alt="...">
@@ -465,6 +492,7 @@ Converts Bricks elements to Gutenberg blocks with Etch metadata.
 **Block Type:** `core/group`
 
 **Etch Data:**
+
 ```json
 {
   "etchData": {
@@ -486,6 +514,7 @@ Converts Bricks elements to Gutenberg blocks with Etch metadata.
 **Block Type:** `core/group`
 
 **Etch Data:**
+
 ```json
 {
   "etchData": {
@@ -533,22 +562,26 @@ Uses WordPress Application Passwords for secure API access.
 ### Endpoints
 
 #### 1. Validate Token
-```
+
+```http
 POST /wp-json/efs/v1/validate-token
 ```
 
 #### 2. Receive Post
-```
+
+```http
 POST /wp-json/efs/v1/receive-post
 ```
 
 #### 3. Receive Media
-```
+
+```http
 POST /wp-json/efs/v1/receive-media
 ```
 
 #### 4. Import Styles
-```
+
+```http
 POST /wp-json/efs/v1/import-styles
 ```
 
@@ -597,280 +630,48 @@ POST /wp-json/efs/v1/import-styles
 
 ## Continuous Integration
 
-**Updated:** 2025-10-24 13:30
+**Updated:** 2025-10-26 16:30
 
-### Automated Checks
+GitHub Actions provides automated linting, testing, and static analysis:
 
-All code changes are automatically validated through GitHub Actions:
+- `CI` workflow handles PHP linting (PHPCS), multi-version PHPUnit, and JS tooling checks
+- `CodeQL` workflow performs security scanning
+- `dependency-review` workflow blocks insecure dependency updates on PRs
 
-**Code Quality:**
-- WordPress Coding Standards (WPCS) via PHP_CodeSniffer
-- PHP Compatibility checks (PHPCompatibilityWP) for PHP 7.4-8.4
-- Security scanning via CodeQL
-- Dependency vulnerability checks
+### CI Workflow Breakdown (2025-10-26 refresh)
 
-**Testing:**
-- PHPUnit unit and integration tests
-- Multi-PHP version matrix (7.4, 8.1, 8.2, 8.3, 8.4)
-- WordPress Test Suite integration
+- **Lint job:** Installs Composer dev dependencies inside `etch-fusion-suite` and runs `vendor/bin/phpcs --standard=phpcs.xml.dist` via `shivammathur/setup-php`
+- **Test job:** Matrix across PHP 7.4, 8.1, 8.2, 8.3, 8.4; provisions WordPress test suite in `/tmp` using `install-wp-tests.sh`; executes `vendor/bin/phpunit -c etch-fusion-suite/phpunit.xml.dist`
+- **Node job:** Sets up Node 18 with npm cache and runs `npm ci`
 
-**Automation:**
-- Dependabot for automated dependency updates
-- Automated plugin packaging on Git tags
-- GitHub Release creation with changelog extraction
+### Running checks locally
 
-### PHP Version Matrix
+```bash
+cd etch-fusion-suite
+composer lint
+composer test
+npm ci
+```
 
-The plugin is tested against 5 PHP versions:
-- **PHP 7.4** (legacy, EOL but still widely used)
-- **PHP 8.1** (current stable)
-- **PHP 8.2** (current stable)
-- **PHP 8.3** (current stable)
-- **PHP 8.4** (latest)
+### Security & Dependency Automation
 
-### Security Scanning
-
-CodeQL runs automatically on:
-- Every push to `main` branch
-- All pull requests
-- Weekly schedule (Monday 6:00 UTC)
-
-**Configuration:** `.github/codeql/codeql-config.yml`
-- Uses `security-extended` query suite
-- Scans only plugin code (excludes vendor/tests)
-- Results appear in GitHub Security tab
+- **CodeQL** now scans both PHP and JavaScript with full history checkout (`fetch-depth: 0`)
+- **Dependabot** monitors Composer, npm, and GitHub Actions within `etch-fusion-suite/`
 
 ### Dependency Management
 
-Dependabot automatically creates PRs for:
-- Composer dependencies (weekly)
-- npm dependencies (weekly)
-- GitHub Actions (weekly)
-
-**Configuration:** `.github/dependabot.yml`
-- Groups minor/patch updates
-- Ignores PHP major version updates
-- Labels PRs appropriately
-
-### Release Automation
-
-Creating a release is automated:
-
-```bash
-# 1. Update version in bricks-etch-migration.php
-# 2. Add CHANGELOG.md entry
-# 3. Commit and tag
-git tag v1.0.0
-git push origin v1.0.0
-
-# 4. GitHub Actions automatically:
-#    - Validates plugin headers
-#    - Creates plugin ZIP
-#    - Extracts changelog
-#    - Creates GitHub Release
-```
-
-### Badge Status
-
-CI/CD status is visible via badges in README.md:
-- CI workflow status
-- CodeQL security status
-- PHP version compatibility
-
-See [`.github/workflows/README.md`](.github/workflows/README.md) for detailed workflow documentation.
-
----
-
-## Testing
-
-**Updated:** 2025-10-21 23:20
-
-### Test Scripts Location
-
-All active, non-redundant test scripts are in `/tests` folder.
-
-### Key Test Files
-
-- `test-cors-enforcement.sh` - CORS validation
-- `test-element-converters.php` - Element conversion testing
-- `test-css-converter.php` - CSS conversion testing
-- `test-content-conversion.php` - Content migration testing
-- `test-api-comprehensive.sh` - API endpoint testing
-- `test-ajax-handlers.php` - AJAX handler testing
-- `test-etch-api.php` - Etch API integration
-- `test-integration.php` - Integration tests
-- `test-complete-migration.sh` - Complete migration flow
-- `test-production-migration.sh` - Production migration testing
-- `test-token-validation.sh` - Token validation testing
-
-### Running Tests
-
-```bash
-# CSS Migration
-php tests/test-css-converter.php
-
-# Content Migration
-php tests/test-content-conversion.php
-
-# API
-./tests/test-api-comprehensive.sh
-```
-
----
-
-## Troubleshooting
-
-**Updated:** 2025-10-21 23:20
-
-### CSS Classes Missing
-
-1. Check `etch_styles` exists
-2. Check `b2e_style_map` exists
-3. Verify `get_css_classes_from_style_ids()` is called
-4. Check logs for "B2E CSS Classes:"
-
-### Custom CSS Not Merged
-
-1. Check `parse_custom_css_stylesheet()` receives style_map
-2. Verify existing style ID is found
-3. Check logs for "B2E CSS: Found existing style ID"
-4. Verify custom CSS is in final style
-
-### Migration Fails
-
-1. Check logs:
-   - `npm run logs:bricks`
-   - `npm run logs:etch`
-2. Need direct shell access? Use `npm run shell:bricks` or `npm run shell:etch`, then run `tail -n 100 /var/www/html/wp-content/debug.log` inside the shell.
-3. Run WP-CLI diagnostics:
-   - `npm run wp:bricks -- b2e migration status`
-   - `npm run wp:etch -- b2e migration status`
-4. Verify API connection and credentials
-5. Test individual migration steps if issues persist
-
----
-
-## Migrator Plugin System
-
-**Updated:** 2025-10-24 09:05
-
-### Architecture
-
-- **Migrator Interface (`includes/migrators/interfaces/interface-migrator.php`)** — Defines the contract for all migrators (`supports()`, `validate()`, `export()`, `import()`, `migrate()`, `get_stats()`, etc.).
-- **Abstract Base (`includes/migrators/abstract-class-migrator.php`)** — Provides shared helpers for logging, plugin checks, and property storage.
-- **Registry (`includes/migrators/class-migrator-registry.php`)** — Singleton responsible for registering migrators, sorting by priority, and returning supported instances.
-- **Discovery (`includes/migrators/class-migrator-discovery.php`)** — Populates the registry with built-in migrators, runs hooks for third-party registration, and supports directory scanning.
-- **Execution Flow:** `B2E_Migration_Service::start_migration()` resolves supported migrators via the registry and executes them sequentially with dynamic progress reporting.
-
-### Built-in Migrators (Default Priority Order)
-
-| Name               | Type            | Priority |
-|--------------------|-----------------|----------|
-| Custom Post Types  | `cpt`           | 10       |
-| ACF Field Groups   | `acf`           | 20       |
-| MetaBox            | `metabox`       | 30       |
-| Custom Fields      | `custom_fields` | 40       |
-
-### Extending with Custom Migrators
-
-1. Extend `Abstract_Migrator` or implement `Migrator_Interface` directly.
-2. Set `$name`, `$type`, and `$priority` within the constructor.
-3. Implement interface methods (`supports`, `validate`, `export`, `import`, `migrate`, `get_stats`).
-4. Register the migrator via the `b2e_register_migrators` action hook or via custom discovery logic.
-5. Thoroughly test using unit/integration tests and REST inspection.
-
-Detailed developer guidance is available in **[docs/MIGRATOR-API.md](bricks-etch-migration/docs/MIGRATOR-API.md)**.
-
-### Hooks
-
-```php
-add_action('b2e_register_migrators', function(\Bricks2Etch\Migrators\B2E_Migrator_Registry $registry) {
-    $registry->register(new My_Custom_Migrator(
-        b2e_container()->get('error_handler'),
-        b2e_container()->get('api_client')
-    ));
-});
-
-add_filter('b2e_migrators_discovered', function(array $migrators) {
-    // Modify registry entries (reorder/remove) if necessary
-    return $migrators;
-}, 10, 2);
-```
-
-### Registry Access
-
-```php
-$registry = b2e_container()->get('migrator_registry');
-$supported = $registry->get_supported();
-```
-
-- `get_all()` — Returns all registered migrators sorted by priority.
-- `get_supported()` — Filters migrators whose `supports()` returns `true`.
-- `get($type)` — Retrieve a specific migrator instance.
-- `count()` / `get_types()` — Introspection utilities.
-
-### Migration Workflow
-
-1. **Discovery (`plugins_loaded` priority 20):** Built-in migrators are registered and hooks fire for third parties.
-2. **Validation:** Each migrator’s `validate()` runs before migration to gather errors or skip unsupported integrations.
-3. **Execution:** Registry-driven loop in `B2E_Migration_Service` triggers `migrate()` per migrator and updates progress dynamically.
-4. **Stats:** `get_stats()` results can be exposed via REST or UI for reporting.
-
-### REST API
-
-- `GET /b2e/v1/export/migrators` — List all registered migrators with support status.
-- `GET /b2e/v1/export/migrator/{type}` — Retrieve export payload and stats for a specific migrator.
-
----
-
-   - `etch.test` – Etch Theme (Ziel)
-2. **Plugin symlinken** (jeweils in der LocalWP „Site Shell“)
-   ```bash
-   cd wp-content/plugins
-   ln -s /c/Github/Bricks2Etch/etch-fusion-suite etch-fusion-suite
-   ```
-3. **Plugin aktivieren** in beiden WordPress-Dashboards
-4. **Tests ausführen** (immer in der LocalWP-Shell, damit mysqli verfügbar ist)
-   ```cmd
-   php C:\Github\Bricks2Etch\tests\test-simple-debug.php
-   php C:\Github\Bricks2Etch\tests\run-local-tests.php
-   ```
-   - `test-simple-debug.php` prüft Autoloading, Service-Container und registrierte `wp_ajax_efs_*` Hooks
-   - `run-local-tests.php` führt 25 AJAX/CSS Regressionstests durch (Element-Converter + Handler)
-5. **Erwartete Ausgabe**: 25 ✓, inklusive `wp_ajax_efs_migrate_css`, `wp_ajax_efs_validate_api_key`, etc.
-
-### Docker (Legacy)
-
-- `test-environment/docker-compose.yml` verbleibt als Referenz, wird aber nicht mehr aktiv gepflegt
-- Nutzung nur für historische Vergleiche – neue Entwicklung bitte über LocalWP
-
-### `@wordpress/env`
-
-- Geplante Alternative, aktuell durch fehlenden Online-Zugriff (WordPress-Download) blockiert
-
----
-
-## Framer Template Extraction
-
-**Updated:** 2025-10-25 14:55
-
-- For the full extractor specification, refer to [docs/FRAMER-EXTRACTION.md](etch-fusion-suite/docs/FRAMER-EXTRACTION.md).
-- Core services: `EFS_HTML_Parser`, `EFS_Framer_HTML_Sanitizer`, `EFS_Framer_Template_Analyzer`, and `EFS_Etch_Template_Generator`, orchestrated by `EFS_Template_Extractor_Service` and exposed through `EFS_Template_Controller`.
-- Admin experience: **Dashboard → Template Extractor** supports URL/HTML imports with live progress, preview, and saved-template management.
-- REST API: `/wp-json/b2e/v1/template/*` endpoints handle extraction (`POST /template/extract`), listing, preview, deletion, and import operations with rate limits between 10–30 requests per minute.
-- AJAX parity: Administrator-only AJAX actions mirror REST workflows, sharing nonce verification, capability checks, and audit logging.
+- Composer updates target `etch-fusion-suite/composer.json`
+- npm updates target `etch-fusion-suite/package.json`
+- GitHub Actions updates cover `.github/workflows/*.yml`
 
 ### Testing Coverage
 
-**Updated:** 2025-10-25 14:55
-
-- Fixture: `tests/fixtures/framer-sample.html` provides a representative Framer export with header, hero, feature cards, footer, Framer script tags, hashed classes, and `--framer-*` CSS variables.
 - Unit tests:
   - `tests/unit/TemplateExtractorServiceTest.php` validates payload shape and template validation edge cases via the service container.
   - `tests/unit/FramerHtmlSanitizerTest.php` ensures Framer scripts are removed and semantic conversions (sections, headings) apply as expected.
   - `tests/unit/FramerTemplateAnalyzerTest.php` checks section detection heuristics (`hero`, `features`, `footer`) and media source annotations for Framer CDN assets.
 - Integration test: `tests/integration/FramerExtractionIntegrationTest.php` exercises the full DI-driven pipeline and asserts that Etch blocks, metadata, and CSS variable styles are generated end-to-end.
-- Run with `composer test` (requires WordPress test suite installed via `bin/install-wp-tests.sh`).
+- Run with `composer test` (requires WordPress test suite installed via `etch-fusion-suite/install-wp-tests.sh`).
 
 ### Configuration Files
 
@@ -884,7 +685,7 @@ $supported = $registry->get_supported();
 
 Place vendor ZIPs in the test-environment folders before running `npm run dev`:
 
-```
+```text
 test-environment/
   plugins/
     bricks.2.1.2.zip
@@ -942,6 +743,7 @@ The plugin enforces code quality through CI workflows. All checks run automatica
 While CI enforces all checks, you can optionally set up local Git hooks for faster feedback:
 
 **Pre-commit hook** (`.git/hooks/pre-commit`):
+
 ```bash
 #!/bin/bash
 # Run PHPCS on staged PHP files

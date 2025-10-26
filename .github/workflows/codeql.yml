@@ -19,11 +19,13 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+        with:
+          fetch-depth: 0
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@42213152a85ae7569bdb6bec7bcd74cd691bfe41
         with:
-          languages: php
+          languages: php, javascript
           queries: security-extended
           config-file: .github/codeql/codeql-config.yml
 
@@ -32,5 +34,3 @@ jobs:
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@42213152a85ae7569bdb6bec7bcd74cd691bfe41
-        with:
-          category: '/language:php'

@@ -1,11 +1,30 @@
-- **AJAX Hooks**: All admin and handler actions now use `wp_ajax_efs_*` (with compatibility alias for CSS `migrate_css`).
-- **Autoloader**: Extended namespace mapping to load `EFS_Element_*` converters after rebrand.
-- **Local Testing**: Added LocalWP-specific regression scripts (`tests/run-local-tests.php`, `tests/test-ajax-handlers-local.php`) and documentation.
-# Changelog - Etch Fusion Suite
+# Etch Fusion Suite Changelog
 
-## [0.11.4] - 2025-10-26 (09:25)
+<!-- markdownlint-disable MD013 MD024 -->
+
+## [0.11.7] - 2025-10-26 (16:30)
+
+### 🧰 Tooling
+- Replaced legacy multi-job CI workflow with focused lint, multi-version PHPUnit, and Node verification jobs using pinned actions and full-history checkout.
+- Updated CodeQL workflow to analyze both PHP and JavaScript sources with fetch-depth `0` for accurate scanning.
+- Corrected Dependabot directories to monitor Composer, npm, and GitHub Actions updates under `etch-fusion-suite/`.
+
+### 📚 Documentation
+- Documented refreshed CI pipeline, dependency automation, and testing coverage in `DOCUMENTATION.md` with updated timestamps.
+
+## [0.11.6] - 2025-10-26 (15:58)
+
+### 🧪 Testing
+- GitHub Actions now installs the WordPress test suite automatically by provisioning Subversion, running the bundled `install-wp-tests.sh`, and executing PHPUnit with the shared `phpunit.xml.dist` configuration.
+
+### 🧰 Tooling
+- `.wp-env.json` references the registry-hosted `WordPress/6.8` build for portable development setups, with `.wp-env.override.json.example` highlighting how to point to local archives when needed.
+- Updated README and test environment documentation to clarify the new wp-env core source and local override workflow.
+
+## [0.11.5] - 2025-10-26 (13:20)
 
 ### 🔒 Validation & AJAX Hardening
+
 - Routed CSS and media AJAX handlers through container-managed services, avoiding direct instantiation while reusing shared error handling and response summaries.
 - Updated content batch migration to reuse `EFS_Content_Service::convert_bricks_to_gutenberg()` and the cached `EFS_API_Client`, improving nonce alignment and target URL handling.
 - Added helper in `EFS_CSS_Service` for dispatching style payloads to the Etch REST API, ensuring consistent request formatting.
@@ -15,44 +34,52 @@
 ## [0.11.3] - 2025-10-25 (23:25)
 
 ### 🧪 Testing & CI
+
 - Added comprehensive `CI` workflow covering WPCS linting, PHPCompatibility across 7.4–8.4, multi-version PHPUnit with coverage artifacts, and Composer security scans.
 - Introduced CodeQL analysis, dependency review gate, and tag-triggered release automation for stable builds.
 
 ### 🔧 Technical Changes
+
 - Release workflow now validates plugin metadata via `scripts/validate-plugin-headers.sh`, packages production ZIPs, and publishes GitHub releases.
 - PHPUnit configuration and Composer scripts now store Clover reports under `build/logs/` to align with new CI artifact paths.
 
 ## [0.11.2] - 2025-10-25 (21:55)
 
 ### 🎨 UI
+
 - Tokenized the admin loading spinner borders to use `--e-*` design tokens, keeping visual alignment with the dark theme.
 
-### 🧪 Testing
+### 🧪 Testabdeckung
+
 - Updated the PHPUnit bootstrap to favour `WP_PHPUNIT__DIR`, ensure the Etch Fusion Suite plugin loads, and retain strict error handling during tests.
 - Strengthened `ServiceContainerTest` and `MigrationIntegrationTest` assertions to cover container wiring, registry discovery, and CSS converter behaviour through `efs_container()`.
 
 ### 🔧 Technical Changes
+
 - Hardened `scripts/validate-plugin-headers.sh` with `set -euo pipefail` to surface release validation failures consistently.
 
 ## [0.11.1] - 2025-10-25 (21:26)
 
 ### ✨ Features
+
 - Composer scripts now expose dedicated `test:*` targets and aggregate `composer test` runs unit, integration, E2E, and performance suites.
 
 ### 🧪 Testing
+
 - Added PHPUnit E2E (`tests/e2e/AdminUITest.php`) and performance (`tests/performance/MigrationPerformanceTest.php`) coverage for admin workflows, template extraction, audit logging, and synthetic migration benchmarking.
 - Updated CI workflow to run linting, PHPCompatibility, multi-version PHPUnit, LocalWP regression, and Composer security audit jobs with latest pinned actions.
 - Confirmed LocalWP regression suite completes successfully (`tests/run-local-tests.php`).
 
 ### 🔧 Technical Changes
+
 - PHPUnit bootstrap, integration, and unit tests now rely on `efs_container()` and `EFS_*` naming, removing residual `b2e_*` references.
 - Release validation script resolves paths relative to the script directory and enforces the `etch-fusion-suite` text domain.
 - Plugin bootstrap loads only the new text domain, dropping legacy `bricks-etch-migration` fallback.
 
-
 ## [0.11.0] - 2025-10-25 (16:37) - Complete EFS Rebrand Implementation
 
 ### 🎨 Rebranding (Phase 2 - Code Implementation)
+
 - **REST API**: Migrated namespace from `/b2e/v1/` to `/efs/v1/` across all endpoints
 - **Options & Transients**: Updated all WordPress options from `b2e_*` to `efs_*` prefix
   - Settings: `efs_settings`, `efs_api_key`, `efs_api_username`
@@ -67,6 +94,7 @@
 - **Container Functions**: Updated from `b2e_container()` to `efs_container()`
 
 ### 🔧 Technical Changes
+
 - **Services**: Migration, CSS, Media, Content services fully rebranded
 - **Repositories**: WordPress Migration, Settings, Style repositories updated
 - **Core Components**: Error Handler, Plugin Detector, Content Parser, CSS Converter
@@ -78,6 +106,7 @@
 - **Local Testing**: Added LocalWP regression scripts (`tests/run-local-tests.php`, `tests/test-ajax-handlers-local.php`) and documentation for running 25 AJAX/CSS checks.
 
 ### 🗑️ Cleanup
+
 - **Legacy Aliases Removed**: All `class_alias()` backward compatibility removed
   - Services: `B2E_Migration_Service`, `B2E_CSS_Service`, etc.
   - Repositories: `B2E_WordPress_Migration_Repository`, etc.
@@ -86,12 +115,14 @@
 - **Debug Logging**: Removed verbose B2E debug statements from API client
 
 ### ⚠️ Breaking Changes
+
 - **REST API Namespace**: Clients must update from `/b2e/v1/` to `/efs/v1/`
 - **Option Keys**: All `b2e_*` options renamed to `efs_*` (migration required)
 - **Class Names**: All `B2E_*` classes renamed to `EFS_*` (no backward compatibility)
 - **Container Function**: `b2e_container()` renamed to `efs_container()`
 
 ### 📝 Notes
+
 - This completes the core rebrand implementation
 - Remaining: Migrator classes, Converter classes, JS/CSS assets, Tests, Workflows
 - Migration script needed for existing installations to rename options
@@ -99,28 +130,34 @@
 ## [0.10.2] - 2025-10-25 (14:55) - Framer Extractor Test Coverage
 
 ### 🧪 Testing
+
 - Added Framer extractor fixtures and PHPUnit suites covering sanitizer semantics, template analyzer heuristics, and full pipeline validation (`tests/fixtures/framer-sample.html`, `tests/unit/*`, `tests/integration/FramerExtractionIntegrationTest.php`).
 - Updated `TemplateExtractorServiceTest` to assert payload structure and validation results using the DI container.
 
 ### 📚 Documentation
+
 - Documented new fixture and test coverage in `DOCUMENTATION.md`, including instructions for running the suites via `composer test`.
 
 ## [0.10.1] - 2025-10-25 (14:41) - Template Extractor Public API
 
 ### ✨ New Features
+
 - Added REST API endpoints under `/b2e/v1/template/*` for extracting, listing, previewing, importing, and deleting Etch templates generated from Framer sources, complete with rate limiting, CORS enforcement, and input validation.
 - Embedded the Template Extractor interface directly into the Etch dashboard with saved-template context, providing a single entry point for Framer imports.
 
 ### 🧪 Testing
+
 - Introduced `TemplateExtractorServiceTest` to cover `EFS_Template_Extractor_Service` validation helpers and supported-source metadata using PHPUnit mocks.
 
 ### 📚 Documentation
+
 - Authored `docs/FRAMER-EXTRACTION.md` with architecture, pipeline steps, REST usage, troubleshooting, and testing guidance.
 - Updated `README.md` and `DOCUMENTATION.md` to reference the new extractor documentation and summarize REST/AJAX capabilities.
 
 ## [0.10.0] - 2025-10-25 (11:05) - Framer Template Extraction
 
 ### ✨ New Features
+
 - **Framer Template Extraction Framework**: Complete pipeline for importing Framer website templates into Etch
   - HTML Parser: DOMDocument-based robust HTML parsing with error handling
   - HTML Sanitizer: Removes Framer-specific markup, semanticizes DOM structure
@@ -129,6 +166,7 @@
   - Template Extractor Service: Orchestrates complete extraction pipeline
 
 ### 🎨 UI
+
 - **New 'Template Extractor' Tab**: Admin dashboard integration for template import
 - **Dual Input Methods**: Support for URL-based extraction and HTML string paste
 - **Live Progress Updates**: Real-time extraction progress with step-by-step status
@@ -136,6 +174,7 @@
 - **Saved Templates Management**: Save, delete, and import extracted templates
 
 ### 🔌 API
+
 - **AJAX Handlers**: Complete AJAX integration for template extraction workflow
   - `b2e_extract_template`: Initiates extraction from URL or HTML
   - `b2e_get_extraction_progress`: Polls extraction progress
@@ -146,6 +185,7 @@
 - **Security**: Capability checks, nonce validation, audit logging for all operations
 
 ### 🏗️ Architecture
+
 - **Four Core Interfaces**: `Template_Extractor`, `HTML_Sanitizer`, `Template_Analyzer`, `Etch_Template_Generator`
 - **Two Framer Implementations**: `Framer_HTML_Sanitizer`, `Framer_Template_Analyzer`
 - **Service Layer Integration**: Registered in DI container with autowiring
@@ -153,8 +193,9 @@
 - **Reusable Components**: Leverages existing `Element_Factory` and `Gutenberg_Generator` patterns
 
 ### 🔧 Technical Details
+
 - **HTML Parsing**: DOMDocument + DOMXPath for robust invalid HTML handling
-- **Framer-Specific Sanitization**: 
+- **Framer-Specific Sanitization**:
   - Removes `data-framer-*` attributes and hash classes (`framer-xxxxx`)
   - Unwraps unnecessary single-child div wrappers
   - Semanticizes generic divs to `<header>`, `<nav>`, `<section>`, `<footer>`
@@ -167,20 +208,24 @@
 ## [0.9.0-beta] - 2025-10-25 (08:55) - Legacy Alias Cleanup
 
 ### 🐛 Bug Fixes
+
 - Resolved remaining `B2E_*` class alias warnings across admin interface, security services, and migrator components to restore backward compatibility.
 
 ### 🔧 Technical Changes
+
 - Standardized `class_alias()` calls so each legacy alias points to its corresponding `EFS_*` class, covering admin bootstrap, validator/logger services, and all core migrators.
 
 ## [0.9.0-beta] - 2025-10-24 (16:25) - Etch Fusion Suite Rebrand
 
 ### 🎨 Rebranding
+
 - **Plugin Name**: Renamed from "Bricks to Etch Migration" to "Etch Fusion Suite"
-- **Repository**: Moved to https://github.com/tobiashaas/EtchFusion-Suite
+- **Repository**: Moved to <https://github.com/tobiashaas/EtchFusion-Suite>
 - **Description**: Updated to reflect expanded capabilities as end-to-end migration and orchestration toolkit
 - **Text Domain**: Changed from `bricks-etch-migration` to `etch-fusion-suite` (with backward compatibility)
 
 ### 🔧 Technical Changes
+
 - **Class Prefix**: All 55+ classes renamed from `B2E_*` to `EFS_*` (Etch Fusion Suite)
 - **Constants**: Updated to `EFS_PLUGIN_*` prefix
 - **Helper Functions**: Renamed to `efs_container()`, `efs_debug_log()`
@@ -189,11 +234,13 @@
 - **Container**: `EFS_Service_Container`, `EFS_Service_Provider`
 
 ### 📚 Documentation
+
 - **README**: Updated with new branding and repository links
 - **CHANGELOG**: Rebranded header and added rebrand entry
 - **Plugin Header**: Updated metadata for WordPress.org compatibility
 
 ### 📁 File Structure
+
 - **Plugin Folder**: Renamed from `bricks-etch-migration/` to `etch-fusion-suite/`
 - **Main File**: Renamed from `bricks-etch-migration.php` to `etch-fusion-suite.php`
 - **All References**: Updated across scripts, workflows, and documentation
@@ -203,6 +250,7 @@
 ## [0.8.0-beta] - 2025-10-24 (14:07) - CI/CD Integration & Beta Release
 
 ### 🐛 CI/CD Fixes
+
 - **Fixed PHPCS jobs**: Include dev dependencies in lint and compatibility jobs (vendor/bin/phpcs now available)
 - **Fixed PHPUnit tests**: Added MySQL 8 service and WordPress test suite installation to test job
 - **Fixed cache paths**: Updated Composer cache paths from `vendor` to `bricks-etch-migration/vendor`
@@ -213,13 +261,16 @@
 - **Updated plugin version**: Bumped to 0.8.0-beta for beta release
 
 ### 🧹 Cleanup
+
 - **Removed Husky references**: Cleaned up `.husky/` from `.gitattributes` and `release.yml` (Husky not used, CI enforces all checks)
 
 ### 📚 Documentation
+
 - **Git Hooks**: Documented manual Git hooks approach (Husky not used, CI enforces all checks)
 - **Development Workflow**: Added section in DOCUMENTATION.md with code quality checks and optional pre-commit hook
 
 ### 🚀 CI/CD
+
 - **GitHub Actions Workflows**: Automated code quality checks and testing
   - `ci.yml`: WordPress Coding Standards (WPCS), PHPCompatibilityWP across PHP 7.4-8.4, PHPUnit tests
   - `codeql.yml`: Security scanning with CodeQL for PHP (weekly schedule + PR/push triggers)
@@ -229,6 +280,7 @@
 - **Multi-PHP Testing**: Test matrix across PHP 7.4, 8.1, 8.2, 8.3, 8.4 for compatibility
 
 ### 🔧 Development
+
 - **PHPUnit Setup**: WordPress Test Suite integration with unit and integration test suites
   - `phpunit.xml.dist`: Configuration for unit/integration tests with coverage reporting
   - `tests/bootstrap.php`: WordPress test environment bootstrap
@@ -244,12 +296,14 @@
   - `composer test:coverage`: Generate coverage report
 
 ### 📊 Code Quality
+
 - **WordPress Coding Standards**: Enforced via PHPCS with WordPress-Extra ruleset
 - **PHP Compatibility**: Validated across PHP 7.4-8.4 using PHPCompatibilityWP
 - **Security Scanning**: CodeQL analysis for vulnerability detection
 - **Dependency Security**: Automated checks for vulnerable dependencies and license issues
 
 ### 🤖 Automation
+
 - **Dependabot**: Automated dependency updates for Composer, npm, and GitHub Actions
   - Weekly schedule (Mondays)
   - Grouped minor/patch updates to reduce PR noise
@@ -260,6 +314,7 @@
   - Excludes dev files from release ZIP
 
 ### 📚 Documentation
+
 - **Workflow Documentation**: `.github/workflows/README.md` with complete CI/CD guide
   - Local reproduction commands
   - Troubleshooting common issues
@@ -269,6 +324,7 @@
 - **Updated README.md**: CI/CD badges and development workflow
 
 ### 🔒 Security
+
 - **Action Pinning**: All GitHub Actions pinned to specific commit SHAs
   - `actions/checkout@08eba0b` (v4.3.0)
   - `shivammathur/setup-php@bf6b4fb` (2.35.5)
@@ -279,11 +335,13 @@
 - **CodeQL Configuration**: Custom config excludes vendor/test files, uses security-extended queries
 
 ### 📦 Release Process
+
 - **Automated Packaging**: Creates clean plugin ZIP excluding dev files
 - **Version Validation**: Script validates plugin headers match Git tag
 - **Changelog Integration**: Automatically extracts relevant changelog section for release notes
 
 ### 🛠️ Technical Details
+
 - **Composer Dev Dependencies**: Added WPCS, PHPCompatibilityWP, PHPUnit, Mockery, Yoast PHPUnit Polyfills
 - **Git Attributes**: Configured for clean releases (export-ignore patterns, line endings, linguist settings)
 - **CodeQL Config**: Custom configuration for PHP security scanning with path filtering
@@ -291,6 +349,7 @@
 ## [0.7.0] - 2025-10-24 (09:05) - Extensible Migrator Framework
 
 ### 🐛 Bug Fixes - **Updated:** 2025-10-24 12:00
+
 - Ensured manual autoloader remains registered even when Composer's autoloader is present so security classes (e.g. `B2E_CORS_Manager`) load correctly in WordPress wp-admin ohne CLI-Kontext.
 - Ergänzte Namespace-Zuordnung für `Bricks2Etch\Security\...`, `Bricks2Etch\Repositories\Interfaces\...` sowie `Bricks2Etch\Migrators\Interfaces\...`, damit entsprechende Klassen im Admin zuverlässig geladen werden.
 - Erweiterte Dateinamens-Erkennung (z.B. `interface-settings-repository.php`, `abstract-class-*.php`), sodass Interface- und Abstract-Dateien ebenfalls automatisch eingebunden werden.
@@ -298,6 +357,7 @@
 - Fixed `gutenberg_generator` und `dynamic_data_converter` Service-Bindings sowie zugehörige `use`-Imports auf den korrekten Namespace `Bricks2Etch\Parsers`.
 
 ### ✨ New Features
+
 - Introduced unified migrator contract (`Migrator_Interface`) and `Abstract_Migrator` base class for shared helpers.
 - Added migrator registry (`B2E_Migrator_Registry`) with discovery workflow, priority management, and WordPress hook integration (`b2e_register_migrators`, `b2e_migrators_discovered`).
 - Implemented discovery bootstrap on `plugins_loaded` to load built-in migrators and prepare registry before migrations start.
@@ -306,16 +366,19 @@
   - `GET /b2e/v1/export/migrator/{type}` exports data payload and stats for specific migrators.
 
 ### 🔧 Refactoring
+
 - Refactored core migrators (CPT, ACF Field Groups, MetaBox, Custom Fields) to extend `Abstract_Migrator` and implement the interface while retaining existing helper methods and class aliases.
 - Updated service container bindings to inject the API client into migrators and register registry/discovery singletons.
 - Reworked `B2E_Migration_Service` to pull migrators dynamically from the registry, execute them in priority order, and generate progress steps based on registered types.
 
 ### 📚 Documentation
+
 - Added `docs/MIGRATOR-API.md` with complete developer guidance, interface reference, hooks, REST usage, and sample implementation.
 - Updated `DOCUMENTATION.md` with a dedicated "Migrator Plugin System" section covering architecture, hooks, registry utilities, and workflow.
 - Enhanced root `README.md` to advertise migrator extensibility and link to the developer documentation.
 
 ### 🔄 Backward Compatibility
+
 - Preserved existing migrator class names via `class_alias` for legacy code paths.
 - Legacy REST endpoints (`/export/cpts`, `/export/acf-field-groups`, `/export/metabox-configs`) continue to operate using registry-backed migrators.
 - Migration workflow maintains previous behaviour while supporting new extensibility hooks.
@@ -323,6 +386,7 @@
 ## [0.6.2] - 2025-10-24 - Repository Cleanup
 
 ### 🧹 Cleanup
+
 - ✅ **Deleted entire archive/ directory**
   - Removed 40+ outdated documentation files (status reports, test guides, analysis documents)
   - Removed complete plugin backup in `bricks-etch-migration-backup/` subdirectory
@@ -358,6 +422,7 @@
   - Deleted CORS-ENFORCEMENT-SUMMARY.md (implementation detail, integrated into CHANGELOG and DOCUMENTATION)
 
 ### 📝 Documentation
+
 - ✅ **Updated README.md**
   - Removed reference to deleted archive/ folder
   - Updated Docker section with deprecation notice pointing to wp-env workflow
@@ -381,6 +446,7 @@
   - Both files retained for reference only
 
 ### 🎯 Impact
+
 - Repository size reduced significantly
 - Clearer project structure with only active files
 - Improved maintainability by removing obsolete code and documentation
@@ -388,19 +454,23 @@
 - Reduced confusion for new developers
 
 ### 📊 Statistics
+
 - **Deleted:** 40+ markdown files, 18+ test scripts, 20+ shell/PowerShell scripts, 4 PHP scripts, 1 config file
 - **Retained:** 11 active test scripts, essential documentation (README, DOCUMENTATION, CHANGELOG)
 - **Updated:** 4 documentation files with cleanup references
 
 -
+
 ## [0.6.3] - 2025-10-24 (08:25) - wp-env Troubleshooting Alignment
 
 ### 📝 Documentation
+
 - Updated root `README.md` troubleshooting commands to use npm wp-env scripts (`logs:*`, `shell:*`, `wp:*`) instead of legacy Docker `docker exec` commands for Bricks/Etch instances.
 - Refreshed troubleshooting guidance to recommend `npm run wp:bricks -- <command>` / `npm run wp:etch -- <command>` for WP-CLI usage.
 - Added deprecation banner to `test-environment/docker-compose.override.yml.example` directing developers to the npm-based workflow and plugin README.
 
 ### 🔄 Consistency
+
 - Ensured all troubleshooting references align with the standardized wp-env workflow and removed legacy container names.
 
 ---
@@ -408,6 +478,7 @@
 ## [0.6.1] - 2025-10-24 (07:56) - CORS Enforcement Hardening
 
 ### 🔒 Security
+
 - ✅ **Enforced CORS validation on all REST endpoints**
   - Added CORS origin check to `handle_key_migration()` (GET /b2e/v1/migrate)
   - Added CORS origin check to `validate_migration_token()` (POST /b2e/v1/validate)
@@ -417,6 +488,7 @@
   - Prevents future endpoints from bypassing origin validation
 
 ### 🐛 Bug Fixes
+
 - ✅ **Fixed CORS bypass vulnerability** in public endpoints
   - Two public endpoints previously processed requests from unauthorized origins
   - Server now returns 403 JSON error (not just browser-level blocking)
@@ -425,18 +497,21 @@
 ## [0.6.0] - 2025-10-24 (00:45) - wp-env Development Workflow
 
 ### 🚀 Features
+
 - ✅ **Introduced npm-based wp-env tooling** (`bricks-etch-migration/package.json`, `scripts/`)  
   - `npm run dev` provisions Bricks (8888) and Etch (8889) environments via `@wordpress/env`  
   - Automated readiness polling, Composer installation, plugin/theme activation, and credential setup  
   - Added rich command set (logs, shell access, database exports, migration smoke tests, debug collection)
 
 ### 📦 Configuration
+
 - ✅ **Created `.wp-env.json` and override template**  
   - Defines core/PHP versions, plugin & theme ZIP mappings, debug constants  
   - Example override file supports port changes, PHP upgrades, Xdebug, extra plugins
 - ✅ **Added helper scripts** (`scripts/wait-for-wordpress.js`, `activate-plugins.js`, `create-test-content.js`, `test-connection.js`, `test-migration.js`, `debug-info.js`) for environment automation
 
 ### 📝 Documentation
+
 - ✅ **Updated plugin README** with wp-env quick start, script catalog, and archive placement instructions  
 - ✅ **Rewrote `test-environment/README.md`** to describe the new workflow and troubleshooting steps  
 - ✅ **Added `test-environment/PLUGIN-SETUP.md`** for proprietary asset handling  
@@ -444,11 +519,13 @@
 - ✅ **Refreshed `DOCUMENTATION.md` Test Environment section** for wp-env details and legacy notes
 
 ### 🧹 Legacy
+
 - ✅ Marked Docker Compose (`test-environment/docker-compose.yml`) and Makefile as deprecated references while retaining them for archival purposes
 
 ## [0.5.8] - 2025-10-24 (00:01) - Docker Environment Fixes & Portability Improvements
 
 ### 🐛 Bug Fixes
+
 - ✅ **Fixed WP-CLI container plugin access** (`docker-compose.yml`)
   - Added plugin bind mounts to `wpcli` service for both Bricks and Etch paths
   - Enables Composer installation and plugin activation to work correctly
@@ -473,12 +550,14 @@
   - Prevents false negatives during setup validation
 
 ### 📝 Documentation
+
 - ✅ **Updated README mount mode documentation** (`test-environment/README.md`)
   - Corrected plugin mount description from "read-only" to "read-write"
   - Clarified that Composer can install dependencies directly in container
   - Aligns documentation with actual docker-compose.yml configuration
 
 ### ✅ Technical Verification
+
 - ✅ **Verified autoloader bootstrap** (`bricks-etch-migration.php`)
   - Confirmed autoloader is required early (line 34) before any namespaced classes
   - Verified namespace-to-directory mapping matches actual file layout
@@ -492,6 +571,7 @@
 ## [0.5.7] - 2025-10-23 (23:50) - Docker Test Environment Validation & Debugging
 
 ### 🚀 Features
+
 - ✅ **Added comprehensive setup validation script** (`validate-setup.sh`)
   - 9 automated validation checks covering all critical components
   - Color-coded output (✓ green, ✗ red, ⚠ yellow)
@@ -518,6 +598,7 @@
   - Provides test summary template for documentation
 
 ### 🐛 Bug Fixes
+
 - ✅ **Fixed WP-CLI volume mounting in docker-compose.yml**
   - Removed duplicate plugin mounts from WP-CLI service
   - Plugins are already mounted in WordPress containers
@@ -547,6 +628,7 @@
   - Better support for all plugin class structures
 
 ### 🔧 Technical Changes
+
 - ✅ **Updated Makefile with new targets**
   - Added `validate`, `debug`, `quick-test` targets
   - Improved `setup` target with validation steps and error handling
@@ -558,6 +640,7 @@
   - Better error handling with container status checks
 
 ### 📝 Documentation
+
 - ✅ **Completely rewrote README.md Troubleshooting section**
   - Added Quick-Start-Checkliste for common issues
   - Added 6 detailed troubleshooting scenarios:
@@ -577,6 +660,7 @@
   - Success criteria
 
 ### 🎯 Impact
+
 - Docker test environment is now fully validated and debuggable
 - Comprehensive troubleshooting guides for all common issues
 - Automated validation catches setup problems early
@@ -586,6 +670,7 @@
 ## [0.5.6] - 2025-10-23 (23:40) - Container & Repository Fixes
 
 ### 🐛 Bug Fixes
+
 - ✅ **Fixed CSS Converter FQCN in service container**
   - Changed from `\Bricks2Etch\Converters\B2E_CSS_Converter` to `\Bricks2Etch\Parsers\B2E_CSS_Converter`
   - Resolves class not found error at runtime
@@ -605,6 +690,7 @@
   - Keeps targeted cache invalidation for style-related keys only
 
 ### 🔧 Technical Changes
+
 - Updated service provider container bindings for correct class resolution
 - Improved repository pattern consistency across codebase
 - Reduced cache invalidation scope to prevent performance issues
@@ -612,6 +698,7 @@
 ## [0.5.5] - 2025-10-23 (23:00) - Migration Test Script Automation
 
 ### 🚀 Features
+
 - ✅ **Automated migration triggering via REST API**
   - `test-migration.sh` now generates migration token via Etch REST endpoint
   - Triggers migration via AJAX endpoint on Bricks site
@@ -619,12 +706,14 @@
   - Script continues to poll and summarize even if trigger fails
 
 ### 🐛 Bug Fixes
+
 - ✅ **Fixed `start_migration()` return code**
   - Now returns `0` instead of `1` to prevent script exit under `set -e`
   - Script no longer aborts before `poll_progress()` and `compare_counts()`
   - Implements proper error handling with fallback to manual migration
 
 ### 📝 Documentation
+
 - ✅ **Updated test-environment/README.md**
   - Documented new automated migration trigger flow
   - Added clear explanation of fallback behavior
@@ -635,6 +724,7 @@
 ### 🐛 Docker & WP-CLI Fixes
 
 #### Docker Compose Configuration
+
 - ✅ **Plugin mounts added to wpcli service**
   - Plugin now mounted at `/var/www/html/bricks/wp-content/plugins/bricks-etch-migration`
   - Plugin now mounted at `/var/www/html/etch/wp-content/plugins/bricks-etch-migration`
@@ -642,6 +732,7 @@
   - Enables Composer to run in wpcli container
 
 #### Read-Write Plugin Mounts
+
 - ✅ **Removed `:ro` flags from all plugin mounts**
   - `bricks-wp` plugin mount now read-write
   - `etch-wp` plugin mount now read-write
@@ -649,6 +740,7 @@
   - Allows Composer to write `vendor/` directory
 
 #### WP-CLI Standardization
+
 - ✅ **All scripts now use wpcli service consistently**
   - `create-test-content.sh` uses wpcli with correct paths
   - `test-migration.sh` uses wpcli for all WP commands
@@ -656,6 +748,7 @@
   - Removed direct `wp` calls from WordPress containers
 
 #### Makefile WP Targets
+
 - ✅ **Updated to use wpcli service**
   - `make wp-bricks` → `docker-compose exec wpcli wp --path=/var/www/html/bricks`
   - `make wp-etch` → `docker-compose exec wpcli wp --path=/var/www/html/etch`
@@ -663,30 +756,35 @@
 ### 🔧 Script Improvements
 
 #### Plugin Activation Error Handling
+
 - ✅ **Removed `|| true` from activation commands**
   - Proper error messages when activation fails
   - Script exits with error code on failure
   - Clear instructions for troubleshooting
 
 #### MySQL Wait Script
+
 - ✅ **Simplified and improved reliability**
   - Removed host `mysqladmin` dependency
   - Only uses `docker-compose exec` method
   - More reliable in containerized environments
 
 #### Composer Installation
+
 - ✅ **Fixed installation without curl**
   - Uses PHP's `copy()` function instead of curl
   - More reliable across different environments
   - Added error checking for installation success
 
 #### Migration Test Script
+
 - ✅ **Updated to reflect current capabilities**
   - Documented that `wp b2e migrate` is not yet implemented
   - Script notes migration must be triggered via admin UI
   - README updated with current limitations
 
 ### 📚 Documentation Updates
+
 - ✅ **README.md updated**
   - Documented WP-CLI command limitation
   - Added notes about manual migration trigger
@@ -697,18 +795,21 @@
 ### 🎯 Media Query Fixes
 
 #### Breakpoint-spezifisches CSS
+
 - ✅ **Breakpoint CSS wird jetzt korrekt migriert**
   - Bricks Breakpoints (`_cssCustom:mobile_portrait`, etc.) werden zu Media Queries konvertiert
   - CSS Properties werden direkt in Media Query eingefügt (ohne zusätzliche Wrapper)
   - Breakpoint CSS wird nach Custom CSS Merge hinzugefügt
 
 #### Media Query Extraktion
+
 - ✅ **Verschachtelte Media Queries funktionieren jetzt**
   - Neue Funktion: `extract_media_queries()` mit manuellem Klammern-Zählen
   - Regex konnte verschachtelte Regeln nicht handhaben
   - Alle Regeln innerhalb von Media Queries werden jetzt korrekt extrahiert
 
 #### Etch's moderne Media Query Syntax
+
 - ✅ **Bricks Breakpoints → Etch Range Syntax**
   - `mobile_portrait`: `@media (width <= to-rem(478px))`
   - `mobile_landscape`: `@media (width >= to-rem(479px))`
@@ -719,6 +820,7 @@
   - `to-rem()` Funktion wird von Etch automatisch verarbeitet
 
 #### Logical Properties in Media Queries
+
 - ✅ **Media Queries werden NICHT zu Logical Properties konvertiert**
   - `@media (min-width: 768px)` bleibt `min-width` (nicht `min-inline-size`)
   - Logical Properties nur für CSS Properties, nicht für Media Queries
@@ -727,6 +829,7 @@
 ### 🔧 Fehlende CSS Properties
 
 #### Neue Properties hinzugefügt
+
 - ✅ `_direction` → `flex-direction` (Alias für `_flexDirection`)
 - ✅ `_cursor` → `cursor`
 - ✅ `_mixBlendMode` → `mix-blend-mode`
@@ -738,6 +841,7 @@
 ### 🆕 Element Converters
 
 #### Button Element Converter
+
 - ✅ **Bricks Button → Etch Link (Paragraph mit nested Link)**
   - Text aus `settings.text` extrahiert
   - Link aus `settings.link` extrahiert (Array und String Format)
@@ -746,6 +850,7 @@
   - CSS Klassen werden korrekt kombiniert
 
 #### Image Element Converter
+
 - ✅ **Bricks Image → Gutenberg Image mit Etch metadata**
   - Styles und Klassen auf `nestedData.img` (nicht auf `figure`)
   - `figure` ist nur Wrapper
@@ -754,10 +859,12 @@
   - Space vor `/>` für Gutenberg Validierung
 
 #### Icon Element Converter
+
 - ✅ **Placeholder erstellt** (zeigt `[Icon: library:name]`)
 - ⏸️ **TODO:** Richtige Icon Konvertierung implementieren
 
 #### Skip-Liste für nicht unterstützte Elemente
+
 - ✅ **Elemente werden still übersprungen** (keine Logs)
   - `fr-notes` - Bricks Builder Notizen (nicht frontend)
   - `code` - Code Blocks (TODO)
@@ -765,6 +872,7 @@
   - `map` - Maps (TODO - Etch hat keine)
 
 ### 📝 Technical Changes
+
 - **Neue Dateien:**
   - `includes/converters/elements/class-button.php` - Button Converter
   - `includes/converters/elements/class-icon.php` - Icon Converter (Placeholder)
@@ -788,15 +896,17 @@
 ### 🎨 Custom CSS Migration - FIXED
 
 #### Problem gelöst
+
 - **Custom CSS wurde nicht migriert** - Nur normale CSS Properties kamen in Etch an
 - **Ursache 1:** Custom CSS wurde für ALLE Klassen gesammelt (auch Blacklist), aber Blacklist-Klassen wurden beim Konvertieren übersprungen → keine Zuordnung im `$style_map`
 - **Ursache 2:** `parse_custom_css_stylesheet()` verarbeitete nur die ERSTE Klasse im Stylesheet, alle anderen wurden ignoriert
 
 #### Lösung
+
 1. ✅ **Custom CSS nur für erlaubte Klassen sammeln**
    - Blacklist-Check VOR dem Sammeln von Custom CSS
    - Nur Klassen die konvertiert werden, bekommen Custom CSS
-   
+
 2. ✅ **Alle Klassen im Stylesheet verarbeiten**
    - Neue Funktion: `extract_css_for_class()` - Extrahiert CSS für jede Klasse separat
    - `parse_custom_css_stylesheet()` findet ALLE Klassen und verarbeitet jede einzeln
@@ -804,6 +914,7 @@
 ### 🎯 Nested CSS mit & (Ampersand)
 
 #### Feature: Automatisches CSS Nesting
+
 - **Konvertiert mehrere Regeln** für die gleiche Klasse zu Nested CSS
 - **Intelligente & Syntax:**
   - `& > *` - Leerzeichen bei Combinators (>, +, ~)
@@ -812,7 +923,9 @@
   - `&::before` - Kein Leerzeichen bei Pseudo-Elements
 
 #### Beispiel
+
 **Input (Bricks):**
+
 ```css
 .my-class {
     padding: 1rem;
@@ -823,6 +936,7 @@
 ```
 
 **Output (Etch):**
+
 ```css
 padding: 1rem;
 
@@ -834,21 +948,25 @@ padding: 1rem;
 ### 🚫 CSS Class Blacklist
 
 #### Ausgeschlossene Klassen
+
 - **Bricks:** `brxe-*`, `bricks-*`, `brx-*`
 - **WordPress/Gutenberg:** `wp-*`, `wp-block-*`, `has-*`, `is-*`
 - **WooCommerce:** `woocommerce-*`, `wc-*`, `product-*`, `cart-*`, `checkout-*`
 
 #### Logging
+
 - Zeigt Anzahl konvertierter Klassen
 - Zeigt Anzahl ausgeschlossener Klassen
 
 ### 📊 Statistik
+
 - ✅ **1134 Klassen** erfolgreich migriert
 - ✅ **1 Klasse** ausgeschlossen (Blacklist)
 - ✅ **Custom CSS** mit Nested Syntax funktioniert
 - ✅ **Alle Tests** bestanden
 
 ### 🧪 Tests
+
 - ✅ `tests/test-nested-css-conversion.php` - 5/5 Tests bestanden
 - ✅ Live Migration Test erfolgreich
 - ✅ Custom CSS im Frontend verifiziert
@@ -860,11 +978,13 @@ padding: 1rem;
 ### 🔧 Refactoring
 
 #### Modulare AJAX-Handler Struktur
+
 - **Neue Ordnerstruktur:**
   - `includes/ajax/` - AJAX Handler
   - `includes/ajax/handlers/` - Individual AJAX Handlers
   
 #### AJAX-Handler (NEU)
+
 - ✅ `class-base-ajax-handler.php` - Abstract base class
 - ✅ `class-ajax-handler.php` - Main AJAX handler (initialisiert alle)
 - ✅ `handlers/class-css-ajax.php` - CSS migration handler
@@ -873,6 +993,7 @@ padding: 1rem;
 - ✅ `handlers/class-validation-ajax.php` - API key & token validation
 
 ### 📝 Features
+
 - **Base Handler:** Gemeinsame Logik für alle AJAX-Handler
   - Nonce verification
   - Capability checks
@@ -882,11 +1003,13 @@ padding: 1rem;
 - **Docker URL Conversion:** Automatische localhost → b2e-etch Konvertierung
 
 ### 🔄 Integration
+
 - Plugin-Hauptdatei lädt AJAX-Handler automatisch
 - Alle Handler werden bei Plugin-Initialisierung registriert
 - Alte AJAX-Handler in admin_interface.php bleiben vorerst (Kompatibilität)
 
 ### ⚠️ Status
+
 - Phase 2: AJAX-Handler ✅ COMPLETE (19:20)
 - Phase 3: Admin-Interface - PENDING
 - Phase 4: Utilities - PENDING
@@ -899,6 +1022,7 @@ padding: 1rem;
 ### 🔧 Refactoring
 
 #### Modulare Element-Converter Struktur
+
 - **Neue Ordnerstruktur:**
   - `includes/converters/` - Conversion Logic
   - `includes/converters/elements/` - Individual Element Converters
@@ -909,6 +1033,7 @@ padding: 1rem;
   - `includes/utils/` - Utilities
 
 #### Element-Converter (NEU)
+
 - ✅ `class-base-element.php` - Abstract base class for all converters
 - ✅ `class-container.php` - Container element (supports ul, ol, etc.)
 - ✅ `class-section.php` - Section element
@@ -919,12 +1044,14 @@ padding: 1rem;
 - ✅ `class-element-factory.php` - Factory for creating converters
 
 ### 📝 Vorteile
+
 - **Ein Element = Eine Datei** - Einfacher zu warten
 - **Änderungen nur an einer Stelle** - z.B. Container-Tag-Support
 - **Wiederverwendbarer Code** - Base class mit gemeinsamer Logik
 - **Bessere Testbarkeit** - Jedes Element einzeln testbar
 
 ### ⚠️ Status
+
 - Phase 1: Element-Converter ✅ COMPLETE (00:38)
 - Phase 2: AJAX-Handler - PENDING
 - Phase 3: Admin-Interface - PENDING
@@ -932,6 +1059,7 @@ padding: 1rem;
 - Phase 5: Integration & Testing - PENDING
 
 ### 📄 Dokumentation
+
 - ✅ `REFACTORING-STATUS.md` erstellt - Umfassender Refactoring-Bericht
 - ✅ `includes/converters/README.md` erstellt - Converter-Dokumentation (00:44)
 - ✅ `PROJECT-RULES.md` aktualisiert - Converter-Dokumentations-Regel hinzugefügt
@@ -945,8 +1073,9 @@ padding: 1rem;
 ### 🐛 Bug Fixes
 
 #### Listen-Elemente (ul, ol, li) Support
+
 - **Problem:** Container und Div mit custom tags (ul, ol, li) wurden als `<div>` gerendert
-- **Lösung:** 
+- **Lösung:**
   - `process_container_element()` berücksichtigt jetzt `tag` Setting aus Bricks
   - `convert_etch_container()` verwendet custom tag in `etchData.block.tag`
   - Gutenberg `tagName` Attribut wird gesetzt für non-div tags
@@ -956,6 +1085,7 @@ padding: 1rem;
 ### 🔧 Technische Details
 
 **Container mit custom tags:**
+
 ```php
 // Bricks
 'settings' => ['tag' => 'ul']
@@ -968,6 +1098,7 @@ padding: 1rem;
 ```
 
 **Frontend Output:**
+
 ```html
 <ul data-etch-element="container" class="my-class">
   <li>...</li>
@@ -985,21 +1116,25 @@ padding: 1rem;
 ### ✨ Neue Features
 
 #### CSS-Klassen in etchData.attributes.class
+
 - **Kern-Erkenntnis:** Etch rendert CSS-Klassen aus `etchData.attributes.class`, nicht aus Style-IDs
 - Alle Element-Typen unterstützt: Headings, Paragraphs, Images, Sections, Containers, Flex-Divs
 - Neue Funktion: `get_css_classes_from_style_ids()` konvertiert Style-IDs → CSS-Klassen
 
 #### Erweiterte Style-Map
+
 - Style-Map enthält jetzt: `['bricks_id' => ['id' => 'etch_id', 'selector' => '.css-class']]`
 - Ermöglicht CSS-Klassen-Generierung auf Bricks-Seite
 - Backward-kompatibel mit altem Format
 
 #### Custom CSS Migration Fix
+
 - Custom CSS (`_cssCustom`) wird jetzt korrekt mit normalen Styles zusammengeführt
 - `parse_custom_css_stylesheet()` verwendet existierende Style-IDs
 - Unterstützt komplexe Selektoren (`.class > *`, Media Queries, etc.)
 
 #### Image-Rendering Fix
+
 - Images verwenden jetzt `block.tag = 'figure'` statt `'img'`
 - CSS-Klassen auf `<figure>`, nicht auf `<img>`
 - Verhindert doppelte `<img>`-Tags im Frontend
@@ -1007,17 +1142,20 @@ padding: 1rem;
 ### 🐛 Bug Fixes
 
 #### Kritischer Fix: unset($attributes['class'])
+
 - Entfernt `unset()` das CSS-Klassen gelöscht hat
 - Betraf alle Container/Section-Elemente
 - Klassen werden jetzt korrekt in `etchData.attributes` behalten
 
 #### Etch-interne Styles überspringen
+
 - `etch-section-style`, `etch-container-style` werden bei Klassen-Suche übersprungen
 - Verhindert leere Klassen-Strings
 
-### 📚 Dokumentation
+### 📚 Dokumentation & Hinweise
 
 Neue Dokumentations-Dateien:
+
 - `CSS-CLASSES-FINAL-SOLUTION.md` - Vollständige technische Dokumentation
 - `CSS-CLASSES-QUICK-REFERENCE.md` - Schnell-Referenz
 - `MIGRATION-SUCCESS-SUMMARY.md` - Projekt-Zusammenfassung
@@ -1026,6 +1164,7 @@ Neue Dokumentations-Dateien:
 ### 🔧 Technische Änderungen
 
 **Geänderte Dateien:**
+
 - `includes/gutenberg_generator.php`
   - Neue Funktion: `get_css_classes_from_style_ids()`
   - Headings, Paragraphs, Images: CSS-Klassen in `etchData.attributes.class`
@@ -1059,12 +1198,14 @@ Neue Dokumentations-Dateien:
 
 **Problem:** Obwohl die Token-Validierung funktionierte und den API-Key zurückgab, wurde dieser nicht bei der tatsächlichen Migration verwendet. Stattdessen wurde der Token fälschlicherweise als API-Key gesendet, was zu 401-Fehlern bei allen `/receive-post` und `/receive-media` Requests führte.
 
-**Lösung:** 
+**Lösung:**
+
 - API-Key wird jetzt aus `sessionStorage` gelesen (wurde dort bei Token-Validierung gespeichert)
 - `startMigrationProcess()` verwendet den echten API-Key statt des Tokens
 - Validierung vor Migration-Start: Fehler wenn kein API-Key in sessionStorage
 
 **Geänderte Dateien:**
+
 - `includes/admin_interface.php` - Zeilen 542-577
 
 ---
@@ -1078,11 +1219,13 @@ Neue Dokumentations-Dateien:
 ### ✨ Neue Features
 
 #### Token-Validierung statt API-Key in URL
+
 - Migration Keys enthalten jetzt nur noch `domain`, `token` und `expires`
 - API-Key wird **nicht mehr** in der URL übertragen
 - Sicherer und sauberer Ansatz
 
 #### Automatische API-Key-Generierung
+
 - API-Key wird automatisch auf der Etch-Seite generiert
 - Bei Token-Validierung wird der API-Key in der Response zurückgegeben
 - Bricks-Seite speichert den API-Key automatisch in sessionStorage
@@ -1090,6 +1233,7 @@ Neue Dokumentations-Dateien:
 ### 🔧 Technische Änderungen
 
 #### Frontend (`includes/admin_interface.php`)
+
 - **Neue AJAX-Action:** `b2e_validate_migration_token`
   - Ersetzt die fehlerhafte `b2e_validate_api_key` für Migration-Keys
   - Sendet `token`, `domain` und `expires` statt `api_key`
@@ -1101,12 +1245,14 @@ Neue Dokumentations-Dateien:
   - Klarere Fehlermeldungen
 
 #### Backend (`includes/api_client.php`)
+
 - **Neue Methode:** `validate_migration_token()`
   - Sendet POST-Request an `/wp-json/b2e/v1/validate`
   - Überträgt Token-Daten als JSON
   - Gibt vollständige Response mit API-Key zurück
 
 #### API Endpoints (`includes/api_endpoints.php`)
+
 - **Erweitert:** `validate_migration_token()`
   - Generiert automatisch API-Key falls nicht vorhanden
   - Verwendet `B2E_API_Client::create_api_key()`
@@ -1115,7 +1261,7 @@ Neue Dokumentations-Dateien:
 
 ### 📊 Validierungs-Flow
 
-```
+```text
 1. Etch-Seite: Migration Key generieren
    ↓
    URL: http://localhost:8081?domain=...&token=...&expires=...
@@ -1180,6 +1326,7 @@ Neue Dokumentations-Dateien:
 ### 📝 Migrations-Hinweise
 
 **Für bestehende Installationen:**
+
 1. Plugin auf Version 0.3.8 aktualisieren
 2. Alte Migration Keys sind ungültig
 3. Neue Migration Keys auf Etch-Seite generieren
@@ -1211,6 +1358,7 @@ Neue Dokumentations-Dateien:
 ## [0.3.7] - 2025-10-16
 
 ### Vorherige Version
+
 - Basis-Implementierung der Migration
 - AJAX-Handler für verschiedene Aktionen
 - REST API Endpoints
