@@ -19,14 +19,29 @@ NC='\033[0m'
 ETCH_URL="http://localhost:8081"
 BRICKS_URL="http://localhost:8080"
 
+lookup_container() {
+    for candidate in "$@"; do
+        if docker ps -a --format '{{.Names}}' | grep -Fxq "$candidate"; then
+            echo "$candidate"
+            return 0
+        fi
+    done
+    echo "$1"
+}
+
+BRICKS_WP=$(lookup_container efs-bricks-wp b2e-bricks-wp)
+ETCH_WP=$(lookup_container efs-etch-wp b2e-etch-wp)
+BRICKS_DB=$(lookup_container efs-bricks-db b2e-bricks-db)
+ETCH_DB=$(lookup_container efs-etch-db b2e-etch-db)
+
 echo -e "${CYAN}Phase 1: Pre-Migration Status${NC}"
 echo "========================================"
 echo ""
 
 # Get source counts
-BRICKS_POSTS=$(docker exec b2e-bricks wp post list --post_type=post --post_status=publish --format=count --allow-root 2>/dev/null)
-BRICKS_PAGES=$(docker exec b2e-bricks wp post list --post_type=page --post_status=publish --format=count --allow-root 2>/dev/null)
-BRICKS_MEDIA=$(docker exec b2e-bricks wp post list --post_type=attachment --format=count --allow-root 2>/dev/null)
+BRICKS_POSTS=$(docker exec "$BRICKS_WP" wp post list --post_type=post --post_status=publish --format=count --allow-root 2>/dev/null)
+BRICKS_PAGES=$(docker exec "$BRICKS_WP" wp post list --post_type=page --post_status=publish --format=count --allow-root 2>/dev/null)
+BRICKS_MEDIA=$(docker exec "$BRICKS_WP" wp post list --post_type=attachment --format=count --allow-root 2>/dev/null)
 
 echo -e "${BLUE}Bricks Site (Source):${NC}"
 echo "  Posts: $BRICKS_POSTS"
@@ -35,9 +50,9 @@ echo "  Media: $BRICKS_MEDIA"
 echo ""
 
 # Get target counts (should be 0)
-ETCH_POSTS_BEFORE=$(docker exec b2e-etch wp post list --post_type=post --post_status=publish --format=count --allow-root 2>/dev/null)
-ETCH_PAGES_BEFORE=$(docker exec b2e-etch wp post list --post_type=page --post_status=publish --format=count --allow-root 2>/dev/null)
-ETCH_MEDIA_BEFORE=$(docker exec b2e-etch wp post list --post_type=attachment --format=count --allow-root 2>/dev/null)
+ETCH_POSTS_BEFORE=$(docker exec "$ETCH_WP" wp post list --post_type=post --post_status=publish --format=count --allow-root 2>/dev/null)
+ETCH_PAGES_BEFORE=$(docker exec "$ETCH_WP" wp post list --post_type=page --post_status=publish --format=count --allow-root 2>/dev/null)
+ETCH_MEDIA_BEFORE=$(docker exec "$ETCH_WP" wp post list --post_type=attachment --format=count --allow-root 2>/dev/null)
 
 echo -e "${BLUE}Etch Site (Target - Before):${NC}"
 echo "  Posts: $ETCH_POSTS_BEFORE"
@@ -56,7 +71,7 @@ echo "========================================"
 echo ""
 
 # Generate migration key
-KEY_RESPONSE=$(curl -s -X POST "$ETCH_URL/wp-json/b2e/v1/generate-key" \
+KEY_RESPONSE=$(curl -s -X POST "$ETCH_URL/wp-json/efs/v1/generate-key" \
     -H "Content-Type: application/json" \
     -d '{}')
 
@@ -82,7 +97,7 @@ echo "========================================"
 echo ""
 
 # Validate token
-VALIDATE_RESPONSE=$(curl -s -X POST "$ETCH_URL/wp-json/b2e/v1/validate" \
+VALIDATE_RESPONSE=$(curl -s -X POST "$ETCH_URL/wp-json/efs/v1/validate" \
     -H "Content-Type: application/json" \
     -d "{\"token\":\"$TOKEN\",\"domain\":\"$DOMAIN\",\"expires\":$EXPIRES}")
 
@@ -105,13 +120,13 @@ echo ""
 # Convert domain for Docker internal communication
 API_DOMAIN="$DOMAIN"
 if echo "$DOMAIN" | grep -q "localhost:8081"; then
-    API_DOMAIN=$(echo "$DOMAIN" | sed 's/localhost:8081/b2e-etch/')
+    API_DOMAIN=$(echo "$DOMAIN" | sed 's/localhost:8081/efs-etch/')
 fi
 
 # Start migration
 START_RESPONSE=$(curl -s -X POST "$BRICKS_URL/wp-admin/admin-ajax.php" \
-    -F "action=b2e_start_migration" \
-    -F "nonce=$(curl -s "$BRICKS_URL/wp-admin/admin.php?page=etch-fusion-suite" | grep -o 'b2e_ajax":{"ajax_url":"[^"]*","nonce":"[^"]*"' | grep -o 'nonce":"[^"]*"' | sed 's/nonce":"//;s/"//' || echo 'test_nonce')" \
+    -F "action=efs_start_migration" \
+    -F "nonce=$(docker exec "$BRICKS_WP" wp nonce create efs_nonce --allow-root 2>/dev/null)" \
     -F "target_url=$API_DOMAIN" \
     -F "api_key=$API_KEY")
 
@@ -135,7 +150,7 @@ MIGRATION_COMPLETE=false
 while [ $POLL_COUNT -lt $MAX_POLLS ]; do
     POLL_COUNT=$((POLL_COUNT + 1))
     
-    PROGRESS_JSON=$(docker exec b2e-bricks wp option get b2e_migration_progress --format=json --allow-root 2>/dev/null)
+    PROGRESS_JSON=$(docker exec "$BRICKS_WP" wp option get efs_migration_progress --format=json --allow-root 2>/dev/null)
     
     if [ -z "$PROGRESS_JSON" ] || [ "$PROGRESS_JSON" = "false" ]; then
         echo -e "${YELLOW}⏳ Waiting for migration to start... ($POLL_COUNT/$MAX_POLLS)${NC}"
@@ -175,9 +190,9 @@ echo "========================================"
 echo ""
 
 # Get post-migration counts
-ETCH_POSTS_AFTER=$(docker exec b2e-etch wp post list --post_type=post --post_status=publish --format=count --allow-root 2>/dev/null)
-ETCH_PAGES_AFTER=$(docker exec b2e-etch wp post list --post_type=page --post_status=publish --format=count --allow-root 2>/dev/null)
-ETCH_MEDIA_AFTER=$(docker exec b2e-etch wp post list --post_type=attachment --format=count --allow-root 2>/dev/null)
+ETCH_POSTS_AFTER=$(docker exec "$ETCH_WP" wp post list --post_type=post --post_status=publish --format=count --allow-root 2>/dev/null)
+ETCH_PAGES_AFTER=$(docker exec "$ETCH_WP" wp post list --post_type=page --post_status=publish --format=count --allow-root 2>/dev/null)
+ETCH_MEDIA_AFTER=$(docker exec "$ETCH_WP" wp post list --post_type=attachment --format=count --allow-root 2>/dev/null)
 
 echo -e "${BLUE}Etch Site (Target - After):${NC}"
 echo "  Posts: $ETCH_POSTS_AFTER"
@@ -186,7 +201,7 @@ echo "  Media: $ETCH_MEDIA_AFTER"
 echo ""
 
 # Get migration stats
-STATS_JSON=$(docker exec b2e-bricks wp option get b2e_migration_stats --format=json --allow-root 2>/dev/null)
+STATS_JSON=$(docker exec "$BRICKS_WP" wp option get efs_migration_stats --format=json --allow-root 2>/dev/null)
 
 if [ -n "$STATS_JSON" ] && [ "$STATS_JSON" != "false" ]; then
     echo -e "${BLUE}Migration Statistics:${NC}"

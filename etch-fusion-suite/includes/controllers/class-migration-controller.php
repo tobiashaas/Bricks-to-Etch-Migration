@@ -35,7 +35,7 @@ class EFS_Migration_Controller {
 		}
 		return array(
 			'message'     => __( 'Migration started.', 'etch-fusion-suite' ),
-			'migrationId' => isset( $result['id'] ) ? $result['id'] : '',
+			'migrationId' => isset( $result['migrationId'] ) ? $result['migrationId'] : '',
 			'progress'    => isset( $result['progress'] ) ? $result['progress'] : array(),
 			'steps'       => isset( $result['steps'] ) ? $result['steps'] : array(),
 		);
@@ -48,9 +48,10 @@ class EFS_Migration_Controller {
 			return $result;
 		}
 		return array(
-			'progress'  => isset( $result['progress'] ) ? $result['progress'] : array(),
-			'steps'     => isset( $result['steps'] ) ? $result['steps'] : array(),
-			'completed' => ! empty( $result['completed'] ),
+			'progress'    => isset( $result['progress'] ) ? $result['progress'] : array(),
+			'steps'       => isset( $result['steps'] ) ? $result['steps'] : array(),
+			'migrationId' => isset( $result['migrationId'] ) ? $result['migrationId'] : '',
+			'completed'   => ! empty( $result['completed'] ),
 		);
 	}
 
@@ -62,9 +63,10 @@ class EFS_Migration_Controller {
 			return $result;
 		}
 		return array(
-			'progress'  => isset( $result['progress'] ) ? $result['progress'] : array(),
-			'steps'     => isset( $result['steps'] ) ? $result['steps'] : array(),
-			'completed' => ! empty( $result['completed'] ),
+			'progress'    => isset( $result['progress'] ) ? $result['progress'] : array(),
+			'steps'       => isset( $result['steps'] ) ? $result['steps'] : array(),
+			'migrationId' => isset( $result['migrationId'] ) ? $result['migrationId'] : '',
+			'completed'   => ! empty( $result['completed'] ),
 		);
 	}
 
@@ -75,10 +77,11 @@ class EFS_Migration_Controller {
 			return $result;
 		}
 		return array(
-			'message'   => isset( $result['message'] ) ? $result['message'] : __( 'Migration cancelled.', 'etch-fusion-suite' ),
-			'progress'  => isset( $result['progress'] ) ? $result['progress'] : array(),
-			'steps'     => isset( $result['steps'] ) ? $result['steps'] : array(),
-			'completed' => ! empty( $result['completed'] ),
+			'message'     => isset( $result['message'] ) ? $result['message'] : __( 'Migration cancelled.', 'etch-fusion-suite' ),
+			'progress'    => isset( $result['progress'] ) ? $result['progress'] : array(),
+			'steps'       => isset( $result['steps'] ) ? $result['steps'] : array(),
+			'migrationId' => isset( $result['migrationId'] ) ? $result['migrationId'] : '',
+			'completed'   => ! empty( $result['completed'] ),
 		);
 	}
 

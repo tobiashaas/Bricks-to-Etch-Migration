@@ -23,7 +23,7 @@ function ensureApplicationPassword() {
   console.log('▶ Creating application password on Etch instance...');
   
   // Create a unique label with timestamp to avoid conflicts
-  const label = `b2e-migration-${Date.now()}`;
+  const label = `efs-migration-${Date.now()}`;
   
   try {
     const password = runWpEnv([
@@ -78,7 +78,7 @@ async function main() {
   const statusResponse = await request({
     host: 'localhost',
     port: 8889,
-    path: '/wp-json/b2e/v1/status',
+    path: '/wp-json/efs/v1/status',
     method: 'GET',
     headers: {
       Authorization: authHeader
@@ -108,7 +108,7 @@ async function main() {
   const generateResponse = await request({
     host: 'localhost',
     port: 8889,
-    path: '/wp-json/b2e/v1/generate-key',
+    path: '/wp-json/efs/v1/generate-key',
     method: 'POST',
     headers: {
       Authorization: authHeader,

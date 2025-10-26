@@ -23,6 +23,9 @@ class EFS_WordPress_Migration_Repository implements Migration_Repository_Interfa
 	 * Cache expiration for progress/steps (2 minutes for real-time updates).
 	 */
 	const CACHE_EXPIRATION_SHORT = 120;
+	const OPTION_PROGRESS        = 'efs_migration_progress';
+	const OPTION_LAST_MIGRATION  = 'efs_last_migration';
+	const OPTION_CURRENT_ID      = 'efs_current_migration_id';
 
 	/**
 	 * Cache expiration for stats/tokens (10 minutes).
@@ -42,7 +45,10 @@ class EFS_WordPress_Migration_Repository implements Migration_Repository_Interfa
 			return $cached;
 		}
 
-		$progress = get_option( 'efs_migration_progress', array() );
+		$progress = get_option( self::OPTION_PROGRESS, array() );
+		if ( is_array( $progress ) ) {
+			$progress['migrationId'] = get_option( self::OPTION_CURRENT_ID, '' );
+		}
 		set_transient( $cache_key, $progress, self::CACHE_EXPIRATION_SHORT );
 
 		return $progress;
@@ -56,7 +62,17 @@ class EFS_WordPress_Migration_Repository implements Migration_Repository_Interfa
 	 */
 	public function save_progress( array $progress ): bool {
 		$this->invalidate_cache( 'efs_cache_migration_progress' );
-		return update_option( 'efs_migration_progress', $progress );
+		$migration_id = isset( $progress['migrationId'] ) ? $progress['migrationId'] : '';
+		if ( $migration_id ) {
+			update_option( self::OPTION_CURRENT_ID, $migration_id );
+			$progress['migrationId'] = $migration_id;
+		}
+
+		if ( isset( $progress['last_migration'] ) ) {
+			update_option( self::OPTION_LAST_MIGRATION, $progress['last_migration'] );
+		}
+
+		return update_option( self::OPTION_PROGRESS, $progress );
 	}
 
 	/**
@@ -66,7 +82,8 @@ class EFS_WordPress_Migration_Repository implements Migration_Repository_Interfa
 	 */
 	public function delete_progress(): bool {
 		$this->invalidate_cache( 'efs_cache_migration_progress' );
-		return delete_option( 'efs_migration_progress' );
+		delete_option( self::OPTION_CURRENT_ID );
+		return delete_option( self::OPTION_PROGRESS );
 	}
 
 	/**

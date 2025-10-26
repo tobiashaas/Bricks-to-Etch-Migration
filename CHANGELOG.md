@@ -3,6 +3,15 @@
 - **Local Testing**: Added LocalWP-specific regression scripts (`tests/run-local-tests.php`, `tests/test-ajax-handlers-local.php`) and documentation.
 # Changelog - Etch Fusion Suite
 
+## [0.11.4] - 2025-10-26 (09:25)
+
+### 🔒 Validation & AJAX Hardening
+- Routed CSS and media AJAX handlers through container-managed services, avoiding direct instantiation while reusing shared error handling and response summaries.
+- Updated content batch migration to reuse `EFS_Content_Service::convert_bricks_to_gutenberg()` and the cached `EFS_API_Client`, improving nonce alignment and target URL handling.
+- Added helper in `EFS_CSS_Service` for dispatching style payloads to the Etch REST API, ensuring consistent request formatting.
+- Adjusted helper scripts (`scripts/test-connection.js`, `scripts/test-migration.js`, `tests/test-production-migration.sh`) to use `efs_*` endpoints, containers, and CLI hooks.
+- Modernised `cleanup-etch.sh` to detect `efs-*` containers automatically, delete both legacy (`b2e_*`) and current (`efs_*`) migration options, and reference the updated admin URL.
+
 ## [0.11.3] - 2025-10-25 (23:25)
 
 ### 🧪 Testing & CI

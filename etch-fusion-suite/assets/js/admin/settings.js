@@ -1,9 +1,9 @@
 import { post, serializeForm, getInitialData } from './api.js';
 import { showToast, setLoading } from './ui.js';
 
-const ACTION_SAVE_SETTINGS = 'b2e_save_settings';
-const ACTION_TEST_CONNECTION = 'b2e_test_connection';
-const ACTION_GENERATE_KEY = 'b2e_generate_migration_key';
+const ACTION_SAVE_SETTINGS = 'efs_save_settings';
+const ACTION_TEST_CONNECTION = 'efs_test_connection';
+const ACTION_GENERATE_KEY = 'efs_generate_migration_key';
 
 const populateSettingsForm = () => {
     const form = document.querySelector('[data-efs-settings-form]');

@@ -11,8 +11,7 @@
 namespace Bricks2Etch\Ajax\Handlers;
 
 use Bricks2Etch\Ajax\EFS_Base_Ajax_Handler;
-use Bricks2Etch\Parsers\EFS_CSS_Converter;
-use Bricks2Etch\Api\EFS_API_Client;
+use Bricks2Etch\Services\EFS_CSS_Service;
 
 // Prevent direct access
 if ( ! defined( 'ABSPATH' ) ) {
@@ -37,7 +36,16 @@ class EFS_CSS_Ajax_Handler extends EFS_Base_Ajax_Handler {
 	 * @param \Bricks2Etch\Security\B2E_Audit_Logger|null $audit_logger Audit logger instance (optional).
 	 */
 	public function __construct( $css_service = null, $rate_limiter = null, $input_validator = null, $audit_logger = null ) {
-		$this->css_service = $css_service;
+		if ( $css_service ) {
+			$this->css_service = $css_service;
+		} elseif ( function_exists( 'efs_container' ) ) {
+			try {
+				$this->css_service = efs_container()->get( 'css_service' );
+			} catch ( \Exception $exception ) {
+				$this->css_service = null;
+			}
+		}
+
 		parent::__construct( $rate_limiter, $input_validator, $audit_logger );
 	}
 
@@ -98,12 +106,12 @@ class EFS_CSS_Ajax_Handler extends EFS_Base_Ajax_Handler {
 
 		$this->log( '🎨 CSS Migration: target_url=' . $target_url . ', api_key=' . substr( $api_key, 0, 20 ) . '...' );
 
-		// Convert localhost:8081 to b2e-etch for Docker internal communication
+		// Convert localhost:8081 to efs-etch for Docker internal communication
 		$internal_url = $this->convert_to_internal_url( $target_url );
 
 		// Save settings temporarily with internal URL
 		update_option(
-			'b2e_settings',
+			'efs_settings',
 			array(
 				'target_url' => $internal_url,
 				'api_key'    => $api_key,
@@ -113,58 +121,28 @@ class EFS_CSS_Ajax_Handler extends EFS_Base_Ajax_Handler {
 
 		// Migrate CSS
 		try {
-			// Step 1: Convert Bricks classes to Etch styles
-			$this->log( '🎨 CSS Migration: Step 1 - Converting Bricks classes to Etch styles...' );
-			$css_converter = new EFS_CSS_Converter();
-			$result        = $css_converter->convert_bricks_classes_to_etch();
+			if ( ! $this->css_service || ! $this->css_service instanceof EFS_CSS_Service ) {
+				wp_send_json_error( __( 'CSS service unavailable. Please ensure the service container is initialised.', 'etch-fusion-suite' ) );
+				return;
+			}
+
+			$this->log( '🎨 CSS Migration: Starting service-driven conversion...' );
+			$result = $this->css_service->migrate_css_classes( $internal_url, $api_key );
 
 			if ( is_wp_error( $result ) ) {
-				$this->log( '❌ CSS Migration: Converter returned error: ' . $result->get_error_message() );
+				$this->log( '❌ CSS Migration: Service returned error: ' . $result->get_error_message() );
 				wp_send_json_error( $result->get_error_message() );
 				return;
 			}
 
-			// Extract styles and style_map from result
-			$etch_styles = $result['styles'] ?? array();
-			$style_map   = $result['style_map'] ?? array();
+			$api_response = isset( $result['response'] ) && is_array( $result['response'] ) ? $result['response'] : array();
+			$styles_count = $result['migrated'] ?? ( isset( $api_response['style_map'] ) ? count( (array) $api_response['style_map'] ) : 0 );
 
-			$styles_count = count( $etch_styles );
-			$this->log( '✅ CSS Migration: Converted ' . $styles_count . ' styles' );
-			$this->log( '✅ CSS Migration: Created style map with ' . count( $style_map ) . ' entries' );
-
-			if ( $styles_count === 0 ) {
-				$this->log( '⚠️ CSS Migration: No styles to migrate (empty array)' );
-				wp_send_json_success(
-					array(
-						'message'      => 'No CSS styles found to migrate',
-						'styles_count' => 0,
-					)
-				);
-				return;
+			if ( isset( $api_response['style_map'] ) && is_array( $api_response['style_map'] ) ) {
+				update_option( 'efs_style_map', $api_response['style_map'] );
+				$this->log( '✅ CSS Migration: Saved style map with ' . count( $api_response['style_map'] ) . ' entries' );
 			}
 
-			// Step 2: Send styles AND style_map to Etch via API
-			$this->log( '🎨 CSS Migration: Step 2 - Sending ' . $styles_count . ' styles to Etch API...' );
-			$api_client = new EFS_API_Client();
-			$api_result = $api_client->send_css_styles( $internal_url, $api_key, $result );
-
-			if ( is_wp_error( $api_result ) ) {
-				$this->log( '❌ CSS Migration: API error: ' . $api_result->get_error_message() );
-				wp_send_json_error( 'Failed to send styles to Etch: ' . $api_result->get_error_message() );
-				return;
-			}
-
-			// Step 3: Save style map from API response
-			if ( isset( $api_result['style_map'] ) && is_array( $api_result['style_map'] ) ) {
-				update_option( 'efs_style_map', $api_result['style_map'] );
-				$this->log( '✅ CSS Migration: Saved style map with ' . count( $api_result['style_map'] ) . ' entries' );
-			} else {
-				$this->log( '⚠️ CSS Migration: No style map in API response!' );
-			}
-
-			$this->log( '✅ CSS Migration: SUCCESS - ' . $styles_count . ' styles migrated' );
-
-			// Log successful CSS migration
 			$this->log_security_event(
 				'ajax_action',
 				'CSS migrated successfully',
@@ -173,10 +151,12 @@ class EFS_CSS_Ajax_Handler extends EFS_Base_Ajax_Handler {
 				)
 			);
 
+			$message = $result['message'] ?? __( 'CSS migrated successfully.', 'etch-fusion-suite' );
 			wp_send_json_success(
 				array(
-					'message'      => 'CSS migrated successfully',
+					'message'      => $message,
 					'styles_count' => $styles_count,
+					'api_response' => $api_response,
 				)
 			);
 		} catch ( \Exception $e ) {

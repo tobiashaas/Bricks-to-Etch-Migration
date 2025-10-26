@@ -102,6 +102,19 @@ class EFS_CSS_Service {
 	}
 
 	/**
+	 * Send converted CSS styles to the target Etch instance.
+	 *
+	 * @param string $target_url Target Etch URL.
+	 * @param string $api_key Application password / API key.
+	 * @param array  $etch_styles Styles payload containing `styles` and `style_map`.
+	 *
+	 * @return array|\\WP_Error API response or error.
+	 */
+	public function send_css_styles_to_target( $target_url, $api_key, array $etch_styles ) {
+		return $this->api_client->send_css_styles( $target_url, $api_key, $etch_styles );
+	}
+
+	/**
 	 * @param string $target_url
 	 * @param string $api_key
 	 * @param array  $etch_styles

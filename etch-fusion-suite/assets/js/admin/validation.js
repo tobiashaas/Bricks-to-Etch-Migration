@@ -1,8 +1,8 @@
 import { post } from './api.js';
 import { showToast, setLoading } from './ui.js';
 
-const ACTION_VALIDATE_API_KEY = 'b2e_validate_api_key';
-const ACTION_VALIDATE_TOKEN = 'b2e_validate_migration_token';
+const ACTION_VALIDATE_API_KEY = 'efs_validate_api_key';
+const ACTION_VALIDATE_TOKEN = 'efs_validate_migration_token';
 
 const extractMigrationKeyParts = (rawKey) => {
     try {
@@ -22,7 +22,8 @@ const extractMigrationKeyParts = (rawKey) => {
 const handleValidateApiKey = async (event) => {
     event.preventDefault();
     const button = event.currentTarget;
-    const form = button.closest('form');
+    const container = button.closest('[data-efs-field]');
+    const form = container.querySelector('form');
     if (!form) {
         return;
     }

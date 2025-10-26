@@ -16,7 +16,7 @@ const bindMigrationForm = () => {
         const payload = serializeForm(form);
         try {
             await startMigration(payload);
-            startProgressPolling({ migrationId: payload.migrationId });
+            startProgressPolling();
             startAutoRefreshLogs();
         } catch (error) {
             console.error('Start migration failed', error);
@@ -47,11 +47,12 @@ const bootstrap = () => {
     initTemplateExtractor();
 
     const progress = window.efsData?.progress_data;
+    const localizedMigrationId = window.efsData?.migrationId || progress?.migrationId;
     if (progress && !progress.completed) {
-        const { migrationId, percentage = 0, status } = progress;
-        const isRunning = Boolean(migrationId) || (percentage > 0 && (!status || status !== 'completed'));
+        const { percentage = 0, status } = progress;
+        const isRunning = Boolean(localizedMigrationId) || (percentage > 0 && (!status || status !== 'completed'));
         if (isRunning) {
-            startProgressPolling({ migrationId });
+            startProgressPolling({ migrationId: localizedMigrationId });
             startAutoRefreshLogs();
         }
     }

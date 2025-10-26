@@ -996,7 +996,7 @@ class EFS_Gutenberg_Generator {
 		$gutenberg_blocks = parse_blocks( $gutenberg_html );
 
 		// Get target site URL from settings
-		$settings   = get_option( 'b2e_settings', array() );
+		$settings   = get_option( 'efs_settings', array() );
 		$target_url = $settings['target_url'] ?? '';
 
 		if ( empty( $target_url ) ) {
@@ -1666,7 +1666,7 @@ class EFS_Gutenberg_Generator {
 		}
 
 		// Regular div handling
-		$settings            = get_option( 'b2e_settings', array() );
+		$settings            = get_option( 'efs_settings', array() );
 		$convert_div_to_flex = $settings['convert_div_to_flex'] ?? true;
 
 		if ( $convert_div_to_flex ) {

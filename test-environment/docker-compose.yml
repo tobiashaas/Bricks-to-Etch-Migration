@@ -53,7 +53,7 @@ services:
       WORDPRESS_DEBUG_LOG: 1
     volumes:
       - bricks-wp-data:/var/www/html
-      - ../bricks-etch-migration:/var/www/html/wp-content/plugins/bricks-etch-migration
+      - ../etch-fusion-suite:/var/www/html/wp-content/plugins/etch-fusion-suite
     depends_on:
       - bricks-db
     networks:
@@ -73,7 +73,7 @@ services:
       WORDPRESS_DEBUG_LOG: 1
     volumes:
       - etch-wp-data:/var/www/html
-      - ../bricks-etch-migration:/var/www/html/wp-content/plugins/bricks-etch-migration
+      - ../etch-fusion-suite:/var/www/html/wp-content/plugins/etch-fusion-suite
     depends_on:
       - etch-db
     networks:
@@ -86,8 +86,8 @@ services:
     volumes:
       - bricks-wp-data:/var/www/html/bricks
       - etch-wp-data:/var/www/html/etch
-      - ../bricks-etch-migration:/var/www/html/bricks/wp-content/plugins/bricks-etch-migration
-      - ../bricks-etch-migration:/var/www/html/etch/wp-content/plugins/bricks-etch-migration
+      - ../etch-fusion-suite:/var/www/html/bricks/wp-content/plugins/etch-fusion-suite
+      - ../etch-fusion-suite:/var/www/html/etch/wp-content/plugins/etch-fusion-suite
       - ./scripts:/scripts:ro
     depends_on:
       - bricks-wp

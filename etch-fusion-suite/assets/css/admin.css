@@ -2,18 +2,16 @@
  * Admin CSS for Etch Fusion Suite
  */
 
- @font-face {
+@font-face {
 	font-family: 'MonoLisa';
-	src: url('/wp-content/plugins/etch-fusion-suite/assets/fonts/MonoLisa-Regular.woff')
-		format('woff');
+	src: url('../fonts/MonoLisa-Regular.woff') format('woff');
 	font-weight: normal;
 	font-style: normal;
 }
 
 @font-face {
 	font-family: 'MonoLisa';
-	src: url('/wp-content/plugins/etch-fusion-suite/assets/fonts/MonoLisa-Variable-Italic.woff')
-		format('woff');
+	src: url('../fonts/MonoLisa-Variable-Italic.woff2') format('woff2-variations');
 	font-weight: 100 900;
 	font-style: italic;
 	font-display: swap;
@@ -21,8 +19,7 @@
 
 @font-face {
 	font-family: 'Inter';
-	src: url('/wp-content/plugins/etch-fusion-suite/assets/fonts/Inter-Variable.woff2')
-		format('woff2-variations');
+	src: url('../fonts/Inter-Variable.woff2') format('woff2-variations');
 	font-weight: 100 900;
 	font-style: normal;
 	font-display: swap;
@@ -30,8 +27,7 @@
 
 @font-face {
 	font-family: 'Inter';
-	src: url('/wp-content/plugins/etch-fusion-suite/assets/fonts/Inter-Variable-Italic.woff2')
-		format('woff2-variations');
+	src: url('../fonts/Inter-Variable-Italic.woff2') format('woff2-variations');
 	font-weight: 100 900;
 	font-style: italic;
 	font-display: swap;
@@ -592,7 +588,7 @@ h1 {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-.b2e-header {
+.efs-header {
     background: var(--e-base);
     padding: var(--e-space-l);
     border-radius: var(--e-border-radius);
@@ -601,7 +597,7 @@ h1 {
     color: var(--e-light);
 }
 
-.b2e-header h1 {
+.efs-header h1 {
     font-family: 'Inter', sans-serif;
     font-weight: 300;
     color: var(--e-light);
@@ -609,7 +605,7 @@ h1 {
     font-size: 28px;
 }
 
-.b2e-header p {
+.efs-header p {
     color: var(--e-light);
     opacity: 0.7;
     margin: 0;
@@ -617,21 +613,21 @@ h1 {
 }
 
 /* Form Groups */
-.b2e-form-group {
+.efs-form-group {
     margin-bottom: 20px;
 }
 
-.b2e-form-group label {
+.efs-form-group label {
     display: block;
     margin-bottom: 8px;
     font-weight: 500;
     color: var(--e-light);
 }
 
-.b2e-form-group input[type="text"],
-.b2e-form-group input[type="url"],
-.b2e-form-group input[type="password"],
-.b2e-form-group textarea,
+.efs-form-group input[type="text"],
+.efs-form-group input[type="url"],
+.efs-form-group input[type="password"],
+.efs-form-group textarea,
 input[type="text"],
 input[type="url"],
 input[type="password"],
@@ -646,58 +642,58 @@ textarea {
     transition: border-color 0.2s ease;
 }
 
-.b2e-form-group input:focus,
-.b2e-form-group textarea:focus,
-.b2e-form-group select:focus {
+.efs-form-group input:focus,
+.efs-form-group textarea:focus,
+.efs-form-group select:focus {
     outline: none;
     border-color: var(--e-primary);
 }
 
 /* Secondary Button */
-.b2e-button-secondary {
+.efs-button-secondary {
     background: transparent;
     color: var(--e-light);
     border: 1px solid var(--e-border-color);
 }
 
-.b2e-button-secondary:hover {
+.efs-button-secondary:hover {
     background: var(--e-base-light);
     border-color: var(--e-border-color);
 }
 
 /* Steps */
-.b2e-steps {
+.efs-steps {
     list-style: none;
     padding: 0;
     margin: 0;
 }
 
-.b2e-steps li {
+.efs-steps li {
     padding: var(--e-space-s) 0;
     border-bottom: 1px solid var(--e-border-color-ultra-light);
     font-family: 'Inter', sans-serif;
     font-weight: 300;
 }
 
-.b2e-steps li:last-child {
+.efs-steps li:last-child {
     border-bottom: none;
 }
 
-.b2e-step-completed {
+.efs-step-completed {
     color: var(--e-success);
 }
 
-.b2e-step-current {
+.efs-step-current {
     color: var(--e-primary);
     font-weight: 500;
 }
 
-.b2e-step-pending {
+.efs-step-pending {
     color: var(--e-base-light);
 }
 
 /* Toast Notifications */
-.b2e-toast {
+.efs-toast {
     position: fixed;
     bottom: var(--e-space-l);
     right: var(--e-space-l);
@@ -714,27 +710,27 @@ textarea {
     border: 1px solid var(--e-border-color);
 }
 
-.b2e-toast.show {
+.efs-toast.show {
     transform: translateX(0);
 }
 
-.b2e-toast.success {
+.efs-toast.success {
     background: var(--e-success);
     color: white;
 }
 
-.b2e-toast.error {
+.efs-toast.error {
     background: var(--e-danger);
     color: white;
 }
 
-.b2e-toast.info {
+.efs-toast.info {
     background: var(--e-primary);
     color: var(--e-base-dark);
 }
 
 /* Key Display */
-.b2e-key-display {
+.efs-key-display {
     background: var(--e-base-dark);
     border: 1px solid var(--e-border-color-ultra-light);
     border-radius: var(--e-border-radius);
@@ -747,28 +743,28 @@ textarea {
 }
 
 /* Status Badges */
-.b2e-status {
-	padding: var(--e-space-s) var(--e-space-m);
-	border-radius: var(--e-border-radius);
-	font-size: 12px;
-	font-weight: 500;
-	display: inline-block;
-	margin-top: var(--e-space-s);
+.efs-status {
+    padding: var(--e-space-s) var(--e-space-m);
+    border-radius: var(--e-border-radius);
+    font-size: 12px;
+    font-weight: 500;
+    display: inline-block;
+    margin-top: var(--e-space-s);
 }
 
-.b2e-status.success {
-	background: var(--e-success-pill);
-	color: var(--e-success);
+.efs-status.success {
+    background: var(--e-success-pill);
+    color: var(--e-success);
 }
 
-.b2e-status.error {
-	background: color-mix(in srgb, var(--e-danger) 35%, transparent);
-	color: var(--e-danger);
+.efs-status.error {
+    background: color-mix(in srgb, var(--e-danger) 35%, transparent);
+    color: var(--e-danger);
 }
 
-.b2e-status.warning {
-	background: color-mix(in srgb, var(--e-warning) 35%, transparent);
-	color: var(--e-warning);
+.efs-status.warning {
+    background: color-mix(in srgb, var(--e-warning) 35%, transparent);
+    color: var(--e-warning);
 }
 
 .wrap {
@@ -787,43 +783,42 @@ textarea {
 }
 
 /* Ensure all text is white */
-.b2e-card *,
-.b2e-migration-container *,
+.efs-card *,
+.efs-migration-container *,
 .wrap * {
     color: var(--e-light);
 }
 
 /* Override any remaining white backgrounds */
-.b2e-form-group input,
-.b2e-form-group textarea,
-.b2e-key-display,
-.b2e-log-entry,
-.b2e-migration-container,
-.b2e-migration-container * {
+.efs-form-group input,
+.efs-form-group textarea,
+.efs-key-display,
+.efs-log-entry,
+.efs-migration-container,
+.efs-migration-container * {
     background: transparent;
     color: var(--e-light);
     border-color: var(--e-border-color-ultra-light);
 }
 
 /* Specific overrides for form elements */
-.b2e-form-group input:focus,
-.b2e-form-group textarea:focus {
+.efs-form-group input:focus,
+.efs-form-group textarea:focus {
     border-color: var(--e-primary);
     background: var(--e-base-dark);
 }
 
 /* Key display should have subtle background */
-.b2e-key-display {
+.efs-key-display {
     background: var(--e-base-dark);
     border: 1px solid var(--e-border-color-ultra-light);
 }
 
 /* Log entries should have subtle background */
-.b2e-log-entry {
+.efs-log-entry {
     background: var(--e-base-dark);
     border: 1px solid var(--e-border-color-ultra-light);
 }
-
 
 /* Override WordPress default styles */
 .wrap,

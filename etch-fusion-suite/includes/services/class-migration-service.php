@@ -81,7 +81,8 @@ class EFS_Migration_Service {
 	 */
 	public function start_migration( $target_url, $api_key ) {
 		try {
-			$this->init_progress();
+			$migration_id = $this->generate_migration_id();
+			$this->init_progress( $migration_id );
 
 			$this->update_progress( 'validation', 10, __( 'Validating migration requirements...', 'etch-fusion-suite' ) );
 			$validation_result = $this->validate_target_site_requirements();
@@ -151,11 +152,12 @@ class EFS_Migration_Service {
 			$this->migration_repository->save_stats( $migration_stats );
 
 			return array(
-				'progress'  => $this->get_progress_data(),
-				'steps'     => $this->get_steps_state(),
-				'completed' => true,
-				'message'   => __( 'Migration completed successfully!', 'etch-fusion-suite' ),
-				'details'   => array(
+				'progress'    => $this->get_progress_data(),
+				'steps'       => $this->get_steps_state(),
+				'migrationId' => $migration_id,
+				'completed'   => true,
+				'message'     => __( 'Migration completed successfully!', 'etch-fusion-suite' ),
+				'details'     => array(
 					'media' => $media_result,
 					'css'   => $css_result,
 					'posts' => $posts_result,
@@ -194,10 +196,15 @@ class EFS_Migration_Service {
 	 * @return array
 	 */
 	public function get_progress( $migration_id = '' ) {
+		$progress_data = $this->get_progress_data();
+		$steps         = $this->get_steps_state();
+		$migration_id  = isset( $progress_data['migrationId'] ) ? $progress_data['migrationId'] : '';
+
 		return array(
-			'progress'  => $this->get_progress_data(),
-			'steps'     => $this->get_steps_state(),
-			'completed' => $this->is_migration_complete(),
+			'progress'    => $progress_data,
+			'steps'       => $steps,
+			'migrationId' => $migration_id,
+			'completed'   => $this->is_migration_complete(),
 		);
 	}
 
@@ -223,6 +230,7 @@ class EFS_Migration_Service {
 	public function cancel_migration( $migration_id = '' ) {
 		$this->migration_repository->delete_progress();
 		$this->migration_repository->delete_steps();
+		$this->migration_repository->delete_token_data();
 
 		$this->error_handler->log_warning(
 			'W900',
@@ -232,10 +240,11 @@ class EFS_Migration_Service {
 		);
 
 		return array(
-			'message'   => __( 'Migration cancelled.', 'etch-fusion-suite' ),
-			'progress'  => $this->get_progress_data(),
-			'steps'     => $this->get_steps_state(),
-			'completed' => false,
+			'message'     => __( 'Migration cancelled.', 'etch-fusion-suite' ),
+			'progress'    => $this->get_progress_data(),
+			'steps'       => $this->get_steps_state(),
+			'migrationId' => '',
+			'completed'   => false,
 		);
 	}
 
@@ -304,8 +313,9 @@ class EFS_Migration_Service {
 	/**
 	 * Initialize progress state.
 	 */
-	public function init_progress() {
+	public function init_progress( $migration_id ) {
 		$progress = array(
+			'migrationId'  => sanitize_text_field( $migration_id ),
 			'status'       => 'running',
 			'current_step' => 'validation',
 			'percentage'   => 0,
@@ -315,6 +325,19 @@ class EFS_Migration_Service {
 
 		$this->migration_repository->save_progress( $progress );
 		$this->set_steps_state( $this->initialize_steps() );
+	}
+
+	/**
+	 * Generate a migration identifier.
+	 *
+	 * @return string
+	 */
+	private function generate_migration_id() {
+		if ( function_exists( 'wp_generate_uuid4' ) ) {
+			return wp_generate_uuid4();
+		}
+
+		return uniqid( 'efs_migration_', true );
 	}
 
 	/**

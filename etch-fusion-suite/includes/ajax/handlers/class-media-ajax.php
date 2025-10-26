@@ -11,7 +11,7 @@
 namespace Bricks2Etch\Ajax\Handlers;
 
 use Bricks2Etch\Ajax\EFS_Base_Ajax_Handler;
-use Bricks2Etch\Migrators\EFS_Media_Migrator;
+use Bricks2Etch\Services\EFS_Media_Service;
 
 // Prevent direct access
 if ( ! defined( 'ABSPATH' ) ) {
@@ -36,7 +36,16 @@ class EFS_Media_Ajax_Handler extends EFS_Base_Ajax_Handler {
 	 * @param \Bricks2Etch\Security\EFS_Audit_Logger|null $audit_logger Audit logger instance (optional).
 	 */
 	public function __construct( $media_service = null, $rate_limiter = null, $input_validator = null, $audit_logger = null ) {
-		$this->media_service = $media_service;
+		if ( $media_service ) {
+			$this->media_service = $media_service;
+		} elseif ( function_exists( 'efs_container' ) ) {
+			try {
+				$this->media_service = efs_container()->get( 'media_service' );
+			} catch ( \Exception $exception ) {
+				$this->media_service = null;
+			}
+		}
+
 		parent::__construct( $rate_limiter, $input_validator, $audit_logger );
 	}
 
@@ -98,7 +107,7 @@ class EFS_Media_Ajax_Handler extends EFS_Base_Ajax_Handler {
 
 		// Save settings temporarily
 		update_option(
-			'b2e_settings',
+			'efs_settings',
 			array(
 				'target_url' => $internal_url,
 				'api_key'    => $api_key,
@@ -108,40 +117,37 @@ class EFS_Media_Ajax_Handler extends EFS_Base_Ajax_Handler {
 
 		// Migrate media
 		try {
-			$this->log( '🎬 Media Migration: Creating EFS_Media_Migrator' );
-			$media_migrator = new EFS_Media_Migrator();
+			if ( ! $this->media_service || ! $this->media_service instanceof EFS_Media_Service ) {
+				wp_send_json_error( __( 'Media service unavailable. Please ensure the service container is initialised.', 'etch-fusion-suite' ) );
+				return;
+			}
 
-			$this->log( '🎬 Media Migration: Calling migrate_media with URL: ' . $internal_url );
-			$result = $media_migrator->migrate_media( $internal_url, $api_key );
-
-			$this->log( '🎬 Media Migration: Result: ' . wp_json_encode( $result ) );
+			$result = $this->media_service->migrate_media( $internal_url, $api_key );
 
 			if ( is_wp_error( $result ) ) {
-				$this->log( '❌ Media Migration: Result is WP_Error' );
 				$this->log_security_event( 'ajax_action', 'Media migration failed: ' . $result->get_error_message() );
 				wp_send_json_error( $result->get_error_message() );
-			} else {
-				$this->log( '✅ Media Migration: Success' );
-				$this->log_security_event(
-					'ajax_action',
-					'Media migrated successfully',
-					array(
-						'migrated' => $result['migrated'] ?? 0,
-						'failed'   => $result['failed'] ?? 0,
-					)
-				);
-				wp_send_json_success(
-					array(
-						'message'   => 'Media migrated successfully',
-						'migrated'  => $result['migrated'] ?? 0,
-						'failed'    => $result['failed'] ?? 0,
-						'skipped'   => $result['skipped'] ?? 0,
-						'total'     => $result['total'] ?? 0,
-						'timestamp' => current_time( 'mysql' ),
-						'debug'     => 'AJAX called at ' . current_time( 'mysql' ),
-					)
-				);
+				return;
 			}
+
+			$summary = $result['summary'] ?? array();
+
+			$this->log_security_event(
+				'ajax_action',
+				'Media migrated successfully',
+				array(
+					'migrated' => $summary['migrated_media'] ?? 0,
+					'failed'   => $summary['failed_media'] ?? 0,
+				)
+			);
+
+			wp_send_json_success(
+				array(
+					'message'   => $result['message'] ?? __( 'Media migrated successfully.', 'etch-fusion-suite' ),
+					'summary'   => $summary,
+					'timestamp' => current_time( 'mysql' ),
+				)
+			);
 		} catch ( \Exception $e ) {
 			$this->log( '❌ Media Migration: Exception: ' . $e->getMessage() );
 			$this->log_security_event( 'ajax_action', 'Media migration exception: ' . $e->getMessage() );

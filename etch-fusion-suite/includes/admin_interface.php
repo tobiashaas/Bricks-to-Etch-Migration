@@ -87,6 +87,7 @@ class EFS_Admin_Interface {
 
 		$context            = $this->dashboard_controller->get_dashboard_context();
 		$context['ajaxUrl'] = admin_url( 'admin-ajax.php' );
+		$context['nonce']   = wp_create_nonce( 'efs_nonce' );
 
 		wp_localize_script( 'efs-admin-main', 'efsData', $context );
 	}

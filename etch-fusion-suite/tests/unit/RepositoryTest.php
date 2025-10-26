@@ -43,6 +43,8 @@ class RepositoryTest extends WP_UnitTestCase {
 			'efs_cors_allowed_origins',
 			'efs_security_settings',
 			'efs_migration_progress',
+			'efs_current_migration_id',
+			'efs_last_migration',
 			'efs_migration_steps',
 			'efs_migration_stats',
 			'efs_migration_token',
@@ -107,6 +109,12 @@ class RepositoryTest extends WP_UnitTestCase {
 		$this->migration_repository->save_progress( array( 'status' => 'running' ) );
 		$storedProgress = $this->migration_repository->get_progress();
 		$this->assertSame( 'running', $storedProgress['status'] );
+		$this->assertArrayHasKey( 'migrationId', $storedProgress );
+		$this->assertSame( '', $storedProgress['migrationId'] );
+
+		$this->migration_repository->save_progress( array( 'status' => 'running', 'migrationId' => 'efs-test-id' ) );
+		$progressWithId = $this->migration_repository->get_progress();
+		$this->assertSame( 'efs-test-id', $progressWithId['migrationId'] );
 
 		$this->migration_repository->save_steps( array( 'validate' => array( 'status' => 'pending' ) ) );
 		$steps = $this->migration_repository->get_steps();

@@ -11,8 +11,9 @@
 namespace Bricks2Etch\Ajax\Handlers;
 
 use Bricks2Etch\Ajax\EFS_Base_Ajax_Handler;
-use Bricks2Etch\Core\EFS_Migration_Manager;
-use Bricks2Etch\Parsers\EFS_Content_Parser;
+use Bricks2Etch\Services\EFS_Migration_Service;
+use Bricks2Etch\Services\EFS_Content_Service;
+use Bricks2Etch\Api\EFS_API_Client;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -27,6 +28,20 @@ class EFS_Content_Ajax_Handler extends EFS_Base_Ajax_Handler {
 	 */
 	private $migration_service;
 
+    /**
+     * Content service instance
+     *
+     * @var EFS_Content_Service|null
+     */
+    private $content_service;
+
+    /**
+     * API client instance
+     *
+     * @var EFS_API_Client|null
+     */
+    private $api_client;
+
 	/**
 	 * Constructor
 	 *
@@ -36,9 +51,33 @@ class EFS_Content_Ajax_Handler extends EFS_Base_Ajax_Handler {
 	 * @param \Bricks2Etch\Security\EFS_Audit_Logger|null $audit_logger Audit logger instance (optional).
 	 */
 	public function __construct( $migration_service = null, $rate_limiter = null, $input_validator = null, $audit_logger = null ) {
-		$this->migration_service = $migration_service;
-		parent::__construct( $rate_limiter, $input_validator, $audit_logger );
-	}
+        if ( $migration_service ) {
+            $this->migration_service = $migration_service;
+        } elseif ( function_exists( 'efs_container' ) ) {
+            try {
+                $this->migration_service = efs_container()->get( 'migration_service' );
+            } catch ( \Exception $exception ) {
+                $this->migration_service = null;
+            }
+        }
+
+        if ( function_exists( 'efs_container' ) ) {
+            try {
+                $container = efs_container();
+                if ( ! $this->content_service && $container->has( 'content_service' ) ) {
+                    $this->content_service = $container->get( 'content_service' );
+                }
+                if ( $container->has( 'api_client' ) ) {
+                    $this->api_client = $container->get( 'api_client' );
+                }
+            } catch ( \Exception $exception ) {
+                $this->content_service = $this->content_service ?? null;
+                $this->api_client      = $this->api_client ?? null;
+            }
+        }
+
+        parent::__construct( $rate_limiter, $input_validator, $audit_logger );
+    }
 
 	/**
 	 * Register WordPress hooks
@@ -116,59 +155,70 @@ class EFS_Content_Ajax_Handler extends EFS_Base_Ajax_Handler {
 
 		// Migrate this single post
 		try {
-			// Convert to internal URL
-			$internal_url = $this->convert_to_internal_url( $target_url );
+            // Convert to internal URL
+            $internal_url = $this->convert_to_internal_url( $target_url );
 
-			// Save settings temporarily
-			update_option(
-				'b2e_settings',
-				array(
-					'target_url' => $internal_url,
-					'api_key'    => $api_key,
-				),
-				false
-			);
+            // Save settings temporarily
+            update_option(
+                'efs_settings',
+                array(
+                    'target_url' => $internal_url,
+                    'api_key'    => $api_key,
+                ),
+                false
+            );
 
-			$migration_manager = new EFS_Migration_Manager();
-			$result            = $migration_manager->migrate_single_post( $post );
+            if ( ! $this->content_service || ! $this->migration_service instanceof EFS_Migration_Service ) {
+                wp_send_json_error( __( 'Migration services unavailable. Please ensure the service container is initialised.', 'etch-fusion-suite' ) );
+                return;
+            }
 
-			if ( is_wp_error( $result ) ) {
-				// Log migration failure
-				$this->log_security_event(
-					'ajax_action',
-					'Batch migration failed: ' . $result->get_error_message(),
-					array(
-						'post_id' => $post_id,
-					)
-				);
-				wp_send_json_error( $result->get_error_message() );
-			} else {
-				// Log successful migration
-				$this->log_security_event(
-					'ajax_action',
-					'Post migrated successfully',
-					array(
-						'post_id'    => $post_id,
-						'post_title' => $post->post_title,
-					)
-				);
-				wp_send_json_success(
-					array(
-						'message'    => 'Post migrated successfully',
-						'post_title' => $post->post_title,
-					)
-				);
-			}
-		} catch ( \Exception $e ) {
-			$this->log_security_event(
-				'ajax_action',
-				'Batch migration exception: ' . $e->getMessage(),
-				array(
-					'post_id' => $post_id,
-				)
-			);
-			wp_send_json_error( 'Exception: ' . $e->getMessage() );
-		}
+            $api_client = $this->api_client;
+            if ( ! $api_client || ! $api_client instanceof EFS_API_Client ) {
+                wp_send_json_error( __( 'API client unavailable. Please ensure the service container is initialised.', 'etch-fusion-suite' ) );
+                return;
+            }
+
+            $result = $this->content_service->convert_bricks_to_gutenberg( $post_id, $api_client, $internal_url, $api_key );
+
+            if ( is_wp_error( $result ) ) {
+                $this->log_security_event(
+                    'ajax_action',
+                    'Batch migration failed: ' . $result->get_error_message(),
+                    array(
+                        'post_id' => $post_id,
+                    )
+                );
+                wp_send_json_error( $result->get_error_message() );
+                return;
+            }
+
+            $this->log_security_event(
+                'ajax_action',
+                'Post migrated successfully',
+                array(
+                    'post_id'    => $post_id,
+                    'post_title' => $post->post_title,
+                )
+            );
+
+            wp_send_json_success(
+                array(
+                    'message'    => __( 'Post migrated successfully.', 'etch-fusion-suite' ),
+                    'post_title' => $post->post_title,
+                    'target_id'  => $result['target_id'] ?? null,
+                )
+            );
+        } catch ( \Exception $e ) {
+            $this->log_security_event(
+                'ajax_action',
+                'Batch migration exception: ' . $e->getMessage(),
+                array(
+                    'post_id' => $post_id,
+                )
+            );
+            wp_send_json_error( 'Exception: ' . $e->getMessage() );
+        }
 	}
 
 	/**
@@ -186,12 +236,16 @@ class EFS_Content_Ajax_Handler extends EFS_Base_Ajax_Handler {
 			return;
 		}
 
-		// Use content_parser to get all content types
-		$content_parser = new EFS_Content_Parser();
+        $content_service = $this->content_service;
+        if ( ! $content_service || ! $content_service instanceof EFS_Content_Service ) {
+            wp_send_json_error( __( 'Content service unavailable.', 'etch-fusion-suite' ) );
+            return;
+        }
 
-		$bricks_posts    = $content_parser->get_bricks_posts();
-		$gutenberg_posts = $content_parser->get_gutenberg_posts();
-		$media           = $content_parser->get_media();
+        $all_content     = $content_service->get_all_content();
+        $bricks_posts    = $all_content['bricks_posts'] ?? array();
+        $gutenberg_posts = $all_content['gutenberg_posts'] ?? array();
+        $media           = $all_content['media'] ?? array();
 
 		$posts_data = array();
 

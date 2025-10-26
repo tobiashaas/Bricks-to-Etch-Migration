@@ -29,7 +29,7 @@ function ensureApplicationPassword() {
   console.log('▶ Creating application password on Etch instance...');
   
   // Create a unique label with timestamp to avoid conflicts
-  const label = `b2e-migration-${Date.now()}`;
+  const label = `efs-migration-${Date.now()}`;
   
   try {
     const password = runWpCli(['tests-cli'], [
@@ -59,17 +59,17 @@ function configurePlugin(targetUrl, apiKey) {
     api_username: 'admin'
   };
 
-  runWpCli(['cli'], ['option', 'update', 'b2e_migration_settings', JSON.stringify(settings)]);
+  runWpCli(['cli'], ['option', 'update', 'efs_migration_settings', JSON.stringify(settings)]);
 }
 
 function triggerMigration() {
   console.log('▶ Triggering migration via WP-CLI...');
-  runWpCli(['cli'], ['eval', "do_action('b2e_start_migration_cli');"]);
+  runWpCli(['cli'], ['eval', "do_action('efs_start_migration_cli');"]);
 }
 
 function getProgress() {
   try {
-    const progressJson = runWpCli(['cli'], ['option', 'get', 'b2e_migration_progress', '--format=json']);
+    const progressJson = runWpCli(['cli'], ['option', 'get', 'efs_migration_progress', '--format=json']);
     
     // Handle empty output
     if (!progressJson || progressJson.trim() === '') {
