@@ -101,6 +101,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Prepare Node modules directory
+        run: mkdir -p etch-fusion-suite/node_modules
+
       - name: Setup Node.js
         uses: actions/setup-node@5e21ff4d9bc1a8cf6de233a3057d20ec6b3fb69d
         with:
