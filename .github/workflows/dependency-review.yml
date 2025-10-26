@@ -19,6 +19,4 @@ jobs:
         with:
           fail-on-severity: moderate
           allow-licenses: GPL-2.0-or-later,MIT,BSD-3-Clause
-          deny-licenses: AGPL-3.0
           comment-summary-in-pr: true
-          bypass-label: dependencies-reviewed
