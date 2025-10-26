@@ -18,7 +18,7 @@
     <!-- What to scan -->
     <file>./includes</file>
     <file>./assets</file>
-    <file>./bricks-etch-migration.php</file>
+    <file>./etch-fusion-suite.php</file>
 
     <!-- Exclude patterns -->
     <exclude-pattern>vendor/*</exclude-pattern>
