@@ -2,11 +2,11 @@ name: "CodeQL Config"
 queries:
   - uses: security-extended
 paths:
-  - bricks-etch-migration/includes
-  - bricks-etch-migration/bricks-etch-migration.php
+  - etch-fusion-suite/includes
+  - etch-fusion-suite/etch-fusion-suite.php
 paths-ignore:
   - vendor/**
-  - bricks-etch-migration/vendor/**
-  - tests/**
+  - etch-fusion-suite/vendor/**
+  - etch-fusion-suite/tests/**
   - node_modules/**
-  - bricks-etch-migration/node_modules/**
+  - etch-fusion-suite/node_modules/**

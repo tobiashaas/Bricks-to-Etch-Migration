@@ -25,7 +25,7 @@ jobs:
       - name: Initialize CodeQL
         uses: github/codeql-action/init@42213152a85ae7569bdb6bec7bcd74cd691bfe41
         with:
-          languages: php, javascript
+          languages: javascript
           queries: security-extended
           config-file: .github/codeql/codeql-config.yml
 

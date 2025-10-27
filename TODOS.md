@@ -91,6 +91,8 @@
 
 ## Pending
 
+- [ ] Fix CodeQL config paths for Etch Fusion Suite
+  - **Added:** 2025-10-28 00:24
 - [✅] Oct 27 review – Implement CI/test/doc updates from comments
   - **Added:** 2025-10-27 23:48
   - **Completed:** 2025-10-27 23:58
