@@ -4,9 +4,12 @@ queries:
 paths:
   - etch-fusion-suite/includes
   - etch-fusion-suite/etch-fusion-suite.php
+  - etch-fusion-suite/assets/js
 paths-ignore:
   - vendor/**
   - etch-fusion-suite/vendor/**
   - etch-fusion-suite/tests/**
   - node_modules/**
   - etch-fusion-suite/node_modules/**
+  - etch-fusion-suite/playwright-report/**
+  - etch-fusion-suite/build/**
