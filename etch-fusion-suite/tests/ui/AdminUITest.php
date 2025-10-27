@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Bricks2Etch\Tests\E2E;
+namespace Bricks2Etch\Tests\UI;
 
 use Bricks2Etch\Admin\EFS_Admin_Interface;
 use Bricks2Etch\Controllers\EFS_Dashboard_Controller;
@@ -102,10 +102,10 @@ class AdminUITest extends WP_UnitTestCase {
 	public function test_audit_logger_records_events_for_dashboard(): void {
 		/** @var EFS_Audit_Logger $logger */
 		$logger = $this->container->get( 'audit_logger' );
-		$logger->log_security_event( 'unit_e2e', 'low', 'E2E log entry.' );
+		$logger->log_security_event( 'ui_test', 'low', 'UI test log entry.' );
 
 		$logs = $logger->get_security_logs( 10 );
 		$this->assertNotEmpty( $logs );
-		$this->assertSame( 'unit_e2e', $logs[0]['event_type'] );
+		$this->assertSame( 'ui_test', $logs[0]['event_type'] );
 	}
 }

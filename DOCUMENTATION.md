@@ -2,8 +2,8 @@
 
 <!-- markdownlint-disable MD013 MD024 -->
 
-**Last Updated:** 2025-10-26 16:30  
-**Version:** 0.11.7
+**Last Updated:** 2025-10-27 23:48  
+**Version:** 0.11.17
 
 ---
 
@@ -17,8 +17,8 @@
 6. [API Communication](#api-communication)
 7. [Frontend Rendering](#frontend-rendering)
 8. [Continuous Integration](#continuous-integration)
-9. [Testing Coverage](#testing-coverage)
-10. [Framer Template Extraction](#framer-template-extraction)
+9. [Development Workflow](#development-workflow)
+10. [References](#references)
 
 ---
 
@@ -113,7 +113,7 @@ Bricks Site                    Etch Site
 
 ## Security Configuration
 
-**Updated:** 2025-10-25 21:55
+**Updated:** 2025-10-27 20:52
 
 ### CORS (Cross-Origin Resource Sharing)
 
@@ -138,8 +138,8 @@ If no origins are configured, the following development defaults are used:
 
 - `http://localhost:8888`
 - `http://localhost:8889`
-- `http://127.0.0.1:8888`
-- `http://127.0.0.1:8889`
+- Bricks (Source): `http://127.0.0.1:8888`
+- Etch (Target): `http://127.0.0.1:8889`
 
 #### CORS Behavior
 
@@ -149,13 +149,20 @@ If no origins are configured, the following development defaults are used:
 
 #### CORS Enforcement
 
-**Updated:** 2025-10-24 07:56
+**Updated:** 2025-10-27 20:52
 
 The plugin enforces CORS validation at multiple levels:
 
 1. **Per-endpoint checks**: Each endpoint handler calls `check_cors_origin()` early
 2. **Global enforcement filter**: A `rest_request_before_callbacks` filter provides a safety net for all `/b2e/v1/*` routes
 3. **Header injection**: The `B2E_CORS_Manager::add_cors_headers()` method sets appropriate headers via `rest_pre_serve_request`
+4. **Preflight handling**: OPTIONS requests now short-circuit with HTTP 204, inherit the same header set, and respect a configurable `Access-Control-Max-Age`
+
+Additional filters are available to customise behaviour without patching core services:
+
+- `efs_cors_allowed_methods`
+- `efs_cors_allowed_headers`
+- `efs_cors_max_age`
 
 **Public endpoints** (e.g., `/b2e/v1/migrate`, `/b2e/v1/validate`) now enforce CORS validation despite using `permission_callback => '__return_true'`. This ensures:
 
@@ -165,33 +172,65 @@ The plugin enforces CORS validation at multiple levels:
 
 **Authenticated endpoints** continue to use CORS checks within their `permission_callback` for defense-in-depth.
 
+#### Automated Coverage
+
+**Updated:** 2025-10-26 23:20
+
+The WordPress security test suite now asserts:
+
+- `EFS_CORS_Manager` behaviour for trusted vs. untrusted origins.
+- `EFS_Rate_Limiter` request accounting, reset, and integration within AJAX handlers.
+- `EFS_Security_Headers` conditional header emission (OPTIONS bypass, admin CSP composition).
+- `EFS_Input_Validator` structured error context surfaced via AJAX JSON payloads.
+
+See `tests/unit/WordPress/SecurityTest.php` for the consolidated scenarios.
+
 ### Content Security Policy (CSP)
 
 The plugin applies relaxed CSP headers to accommodate WordPress behavior.
 
 #### Current Policy
 
-**Admin Pages:**
+The CSP header is now generated from directive maps for both contexts and can be extended via filters:
+
+- `efs_security_headers_csp_directives`
+- `efs_security_headers_admin_script_sources`
+- `efs_security_headers_admin_style_sources`
+- `efs_security_headers_frontend_script_sources`
+- `efs_security_headers_frontend_style_sources`
+- `efs_security_headers_csp_connect_src`
+
+**Admin Pages (defaults):**
 
 ```text
 default-src 'self';
-script-src 'self' 'unsafe-inline' 'unsafe-eval';
+script-src 'self' 'unsafe-inline';
 style-src 'self' 'unsafe-inline';
 img-src 'self' data: https:;
 font-src 'self' data:;
-connect-src 'self'
+connect-src 'self';
+frame-ancestors 'self';
+form-action 'self';
+base-uri 'self';
+object-src 'none'
 ```
 
-**Frontend:**
+**Frontend (defaults):**
 
 ```text
 default-src 'self';
-script-src 'self' 'unsafe-inline' 'unsafe-eval';
+script-src 'self' 'unsafe-inline';
 style-src 'self' 'unsafe-inline';
 img-src 'self' data: https:;
 font-src 'self' data:;
-connect-src 'self'
+connect-src 'self';
+frame-ancestors 'self';
+form-action 'self';
+base-uri 'self';
+object-src 'none'
 ```
+
+> **Note:** Additional hosts or CDNs can be appended via the filters above without editing core code.
 
 #### Configuration via Settings Repository
 
@@ -240,6 +279,23 @@ $security_settings['rate_limit_window'] = 60; // seconds
 $settings_repo->save_security_settings($security_settings);
 ```
 
+### Validation & Input Handling
+
+**Updated:** 2025-10-26 22:57
+
+The central `EFS_Input_Validator` now records machine-readable error codes together with sanitized context for every validation failure. This enables:
+
+- Generic, PHPCS-compliant exception messages (e.g. "Value is required.")
+- Richer feedback in the admin UI by looking up `get_user_error_message()` with the stored code/context
+- AJAX responses that carry `code` and `details` keys so JavaScript can surface actionable toasts
+
+**Key Behaviours:**
+
+- `validate_request_data()` resets the error state before each field and stores the failing field name in the context when exceptions occur.
+- `EFS_Base_Ajax_Handler::validate_input()` now reads the last error details, logs them, and exposes the structured payload in the JSON error response.
+- Admin JavaScript (`assets/js/admin/api.js`) enriches thrown errors with `code` and `details` so callers can inspect root causes if needed.
+- `validate_array()` sanitizes allowed keys before applying strict comparisons, ensuring only normalized keys pass validation.
+
 ### API Key Validation
 
 API keys must meet the following requirements:
@@ -249,6 +305,8 @@ API keys must meet the following requirements:
 - **Format**: Alphanumeric with common safe characters
 
 ### Audit Logging
+
+**Updated:** 2025-10-27 20:52
 
 All security events are logged with severity levels:
 
@@ -267,6 +325,8 @@ wp option get b2e_security_log --format=json
 $audit_logger = b2e_container()->get('audit_logger');
 $logs = $audit_logger->get_security_logs(100); // Last 100 events
 ```
+
+The logger now sanitizes event metadata, masks sensitive keys (API keys, tokens, secrets), enforces a configurable history limit via `efs_audit_logger_max_events`, and emits structured context for both success and failure cases to support richer UI feedback.
 
 ---
 
@@ -630,33 +690,53 @@ POST /wp-json/efs/v1/import-styles
 
 ## Continuous Integration
 
-**Updated:** 2025-10-26 16:30
+**Updated:** 2025-10-27 23:48
 
 GitHub Actions provides automated linting, testing, and static analysis:
 
-- `CI` workflow handles PHP linting (PHPCS), multi-version PHPUnit, and JS tooling checks
-- `CodeQL` workflow performs security scanning
-- `dependency-review` workflow blocks insecure dependency updates on PRs
+- **CI** workflow handles PHP linting (PHPCS), multi-version PHPUnit, and JS tooling checks
+- **CodeQL** workflow performs security scanning
+- **dependency-review** workflow blocks insecure dependency updates on PRs
 
 ### CI Workflow Breakdown (2025-10-26 refresh)
 
 - **Lint job:** Installs Composer dev dependencies inside `etch-fusion-suite` and runs `vendor/bin/phpcs --standard=phpcs.xml.dist` via `shivammathur/setup-php`
-- **Test job:** Matrix across PHP 7.4, 8.1, 8.2, 8.3, 8.4; provisions WordPress test suite in `/tmp` using `install-wp-tests.sh`; executes `vendor/bin/phpunit -c etch-fusion-suite/phpunit.xml.dist`
+- **Test** – PHPUnit suite across PHP 7.4, 8.1, 8.2, 8.3, 8.4 with WordPress test library installed in `/tmp` and environment variables exported in the workflow
 - **Node job:** Sets up Node 18 with npm cache and runs `npm ci`
+
+### CI Environment Variables
+
+- `WP_TESTS_DIR=/tmp/wordpress-tests-lib`
+- `WP_CORE_DIR=/tmp/wordpress`
+- `WP_ENV=testing`
+- `WP_MULTISITE=0`
 
 ### Running checks locally
 
 ```bash
 cd etch-fusion-suite
-composer lint
+# Run PHPUnit tests
 composer test
-npm ci
+
+# Run specific suites
+composer test:wordpress
+composer test:integration
+composer test:ui
+
+# Generate coverage report
+composer test:coverage
 ```
 
 ### Security & Dependency Automation
 
 - **CodeQL** now scans both PHP and JavaScript with full history checkout (`fetch-depth: 0`)
 - **Dependabot** monitors Composer, npm, and GitHub Actions within `etch-fusion-suite/`
+
+### Composer Tooling
+
+- GitHub Actions uses `shivammathur/setup-php` to install required PHP extensions, PHPStan, Composer, and the WPCS standard.
+- The local `npm run dev` script first tries `composer` inside the wp-env container and falls back to the host binary if unavailable. Install Composer locally when developing without container Composer support to avoid build failures.
+- In CI environments, provision Composer explicitly (e.g., `tools: composer` via `shivammathur/setup-php`) to make the fallback deterministic.
 
 ### Dependency Management
 
@@ -666,16 +746,68 @@ npm ci
 
 ### Testing Coverage
 
+**Updated:** 2025-10-27 23:48
+
 - Unit tests:
   - `tests/unit/TemplateExtractorServiceTest.php` validates payload shape and template validation edge cases via the service container.
   - `tests/unit/FramerHtmlSanitizerTest.php` ensures Framer scripts are removed and semantic conversions (sections, headings) apply as expected.
   - `tests/unit/FramerTemplateAnalyzerTest.php` checks section detection heuristics (`hero`, `features`, `footer`) and media source annotations for Framer CDN assets.
 - Integration test: `tests/integration/FramerExtractionIntegrationTest.php` exercises the full DI-driven pipeline and asserts that Etch blocks, metadata, and CSS variable styles are generated end-to-end.
-- Run with `composer test` (requires WordPress test suite installed via `etch-fusion-suite/install-wp-tests.sh`).
+- UI tests: PHP-powered admin assertions moved to `tests/ui/AdminUITest.php` and execute under the `ui` PHPUnit suite to avoid confusion with browser automation.
+- **Current workflow:** run unit tests inside the WordPress container
+
+```bash
+docker exec -w /var/www/html/wp-content/plugins/etch-fusion-suite \
+  db8ac3ea4e961d5c0f32acfe0dd1fa3f-wordpress-1 \
+  ./vendor/bin/phpunit --configuration=phpunit.xml.dist --testsuite=unit
+```
+
+#### WordPress Integration Tests
+
+The WordPress test suite provides full WordPress core integration testing with database access and WordPress hooks.
+
+**Setup (one-time)**:
+
+```bash
+# Install dependencies in wp-env container
+docker exec db8ac3ea4e961d5c0f32acfe0dd1fa3f-wordpress-1 apt-get update
+docker exec db8ac3ea4e961d5c0f32acfe0dd1fa3f-wordpress-1 apt-get install -y mariadb-client subversion
+
+# Provision WordPress test suite
+docker exec -w /var/www/html/wp-content/plugins/etch-fusion-suite \
+  db8ac3ea4e961d5c0f32acfe0dd1fa3f-wordpress-1 \
+  bash install-wp-tests.sh wordpress_test root password mysql latest true
+```
+
+**Run tests**:
+
+```bash
+docker exec -w /var/www/html/wp-content/plugins/etch-fusion-suite \
+  db8ac3ea4e961d5c0f32acfe0dd1fa3f-wordpress-1 \
+  ./vendor/bin/phpunit --configuration=phpunit.xml.dist --testsuite=wordpress
+```
+
+**Current coverage**: `tests/integration/PluginActivationTest.php` validates plugin loading, service container wiring, admin menu registration, and plugin detector functionality (6 tests, 13 assertions).
+
+#### Playwright E2E Tests
+
+**Status**: Partially functional with storage state authentication.
+
+**Setup**:
+Playwright uses storage state (saved browser sessions) to bypass login form issues. The `auth.setup.ts` project runs first and saves authenticated sessions to `.playwright-auth/`.
+
+**Run tests**:
+```bash
+EFS_ADMIN_USER=admin EFS_ADMIN_PASS=password npm run test:playwright
+```
+
+**Current status**: 4/10 tests passing. Tests using `createEtchAdminContext()` work reliably with storage state. Remaining failures require migration to storage state pattern.
+
+**Recommendation**: Prefer WordPress integration tests (PHPUnit) for backend functionality testing. Use Playwright only for critical UI/browser-specific scenarios.
 
 ### Configuration Files
 
-- `.wp-env.json` – Canonical configuration for both environments (core version, PHP 7.4, required plugin/theme ZIPs, debug constants).
+- `.wp-env.json` – Canonical configuration for both environments (core `WordPress/WordPress#6.8`, PHP 8.1, required plugin/theme ZIPs, debug constants). Local source directories are no longer mapped; wp-env installs archives directly for portable setups and downloads WordPress from the official ZIP when the registry slug is unavailable.
 - `.wp-env.override.json.example` – Template for local overrides (ports, PHP version, Xdebug, extra plugins). Copy to `.wp-env.override.json` to customize without affecting version control.
 - `package.json` – Defines all npm scripts used to operate the environment (`dev`, `stop`, `destroy`, `wp`, `wp:etch`, `create-test-content`, `test:connection`, `test:migration`, `debug`, etc.).
 - `scripts/` – Node-based automation utilities (WordPress readiness polling, plugin activation, test content creation, migration smoke tests, debug report generation).
@@ -688,23 +820,29 @@ Place vendor ZIPs in the test-environment folders before running `npm run dev`:
 ```text
 test-environment/
   plugins/
-    bricks.2.1.2.zip
     frames-1.5.11.zip
     automatic.css-3.3.5.zip
     etch-1.0.0-alpha-5.zip
     automatic.css-4.0.0-dev-27.zip
   themes/
+    bricks.2.1.2.zip
     bricks-child.zip
     etch-theme-0.0.2.zip
 ```
 
-wp-env extracts these archives into the appropriate instance and the activation script (`npm run activate`) ensures everything is enabled.
+wp-env extracts these archives into the appropriate instance, while the base plugin mounts from the repository checkout. The activation script (`npm run activate`) ensures everything is enabled without relying on local filesystem mappings.
+
+### Operational Considerations
+
+- Always run `npm install` before `npm run dev` to ensure the helper scripts are available.
+- Use `npm run stop` and `npm run destroy` to free ports and clean volumes when switching branches.
+- When running multiple wp-env instances in parallel (e.g., CI matrix jobs), copy `.wp-env.override.json.example` to `.wp-env.override.json` and set unique `port`/`testsPort` values to avoid Docker port collisions. Alternatively, serialize the jobs.
 
 ### Operational Commands
 
 | Command | Purpose |
 | --- | --- |
-| `npm run dev` | Start environments, wait for readiness, install Composer dependencies, activate plugins/themes, create Etch application password |
+| `npm run dev` | Start environments, wait for readiness, install Composer dependencies (container → host fallback), activate plugins/themes, create Etch application password |
 | `npm run stop` | Stop all wp-env containers |
 | `npm run destroy` | Remove environments and data (clean reset) |
 | `npm run wp [cmd]` | WP-CLI against the Bricks instance |
@@ -713,6 +851,7 @@ wp-env extracts these archives into the appropriate instance and the activation 
 | `npm run test:connection` | Validate REST connectivity and token handling |
 | `npm run test:migration` | End-to-end migration test with progress monitoring |
 | `npm run debug` | Collects diagnostics into a timestamped report |
+| `npm run test:playwright` | Executes Playwright scenarios against the admin UI. |
 
 ### Testing & Documentation
 
@@ -728,7 +867,7 @@ The previous Docker Compose setup remains in `test-environment/docker-compose.ym
 
 ## Development Workflow
 
-**Updated:** 2025-10-24 13:45
+**Updated:** 2025-10-26 23:20
 
 ### Code Quality Checks
 
@@ -779,5 +918,5 @@ Make it executable: `chmod +x .git/hooks/pre-commit`
 
 ---
 
-**Last Updated:** 2025-10-25 18:23  
-**Version:** 0.8.0
+**Last Updated:** 2025-10-26 20:20  
+**Version:** 0.11.8

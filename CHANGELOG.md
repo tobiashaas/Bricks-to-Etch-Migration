@@ -2,22 +2,130 @@
 
 <!-- markdownlint-disable MD013 MD024 -->
 
-## [0.11.7] - 2025-10-26 (16:30)
+## [0.11.15] - 2025-10-27 (23:48)
+
+### 🛠 Technical Changes
+
+- CI PHPUnit matrix now exports `WP_TESTS_DIR=/tmp/wordpress-tests-lib` and `WP_CORE_DIR=/tmp/wordpress` prior to running `install-wp-tests.sh`, avoiding path drift with cached runners and eliminating the need for `WP_PHPUNIT__DIR` fallbacks.
+- `etch-fusion-suite/phpunit.xml.dist` delegates WordPress UI coverage to the new `tests/ui` suite and no longer hardcodes WordPress test paths, keeping local overrides driven by environment variables.
+- Composer testing scripts add dedicated `test:wordpress` and `test:ui` targets while aggregating coverage across unit, wordpress, integration, ui, and performance suites.
+- `phpcs.xml.dist` explicitly scans `./etch-fusion-suite.php`, ensuring the main plugin bootstrap remains linted during WordPress Coding Standards runs.
+
+### 🧪 Testing
+
+- PHP-based admin UI tests relocated from `tests/e2e` to `tests/ui` to better reflect their WordPress-backed coverage. CI and local commands reference the updated suite names.
+- Confirmed Playwright browser specs remain the source of end-to-end coverage; README now differentiates PHP UI assertions from browser automation.
+
+### 📚 Documentation
+
+- Updated README and DOCUMENTATION to clarify the UI test directory rename, composer script additions, and Playwright usage.
+- Added `.github/workflows/README.md` to describe the lint/test/node pipelines alongside newly referenced workflow YAML files.
+
+---
+
+## [0.11.14] - 2025-10-27 (20:52)
+
+### 🛠 Technical Changes
+
+- Exposed `EFS_Framer_To_Etch_Converter::get_element_children()` and `build_block_metadata()` for reuse by the template generator, resolving fatal errors during template extraction.
+- Reordered sanitiser pipeline so semantic conversions occur before wrapper removal and section tagging, ensuring Framer headings receive the correct `<h1>`/`<h2>` semantics.
+- Hardened CSP configuration to use directive maps with filter hooks for script/style/connect sources and extended CORS manager with configurable methods, headers, and max-age handling.
+- Audit logger now sanitizes context, masks sensitive keys, and enforces a filterable retention cap while preserving structured metadata for success/failure events.
+
+### 🧪 Testing
+
+- Ran PHPUnit unit suite inside wp-env container: `docker exec -w /var/www/html/wp-content/plugins/etch-fusion-suite db8ac3ea4e961d5c0f32acfe0dd1fa3f-wordpress-1 ./vendor/bin/phpunit --configuration=phpunit.xml.dist --testsuite=unit` (4 tests, 19 assertions, passing).
+- Documented current WordPress integration suite limitations; requires `install-wp-tests.sh` provisioning before execution under wp-env.
+
+### 📚 Documentation
+
+- Updated `DOCUMENTATION.md` with refreshed timestamps, CSP/CORS filter references, audit logger behaviour, and container-based PHPUnit invocation instructions.
+
+## [0.11.13] - 2025-10-26 (23:20)
+
+### 🛠 Technical Changes
+
+- Added exponential backoff, timeout handling, and abortable requests to the migration progress polling UI to prevent runaway intervals.
+- Parameterised Playwright base URLs to respect granular environment variables (host/protocol/port) with wp-env fallbacks for parallel CI runs.
+
+### 🧪 Testing
+
+- Expanded `SecurityTest` coverage to assert validator error context, rate limiter behaviour, CORS enforcement, security headers, and AJAX handler integrations.
+
+### 📚 Documentation
+
+- Documented polling resiliency, Playwright port configuration strategy, and the new security regression coverage in `DOCUMENTATION.md`.
+
+## [0.11.12] - 2025-10-26 (22:57)
+
+### 🐛 Bug Fixes
+
+- Prevented `EFS_Framer_HTML_Sanitizer::convert_text_components()` from exiting early when encountering non-div nodes, ensuring all text components receive semantic tags.
+- Updated `EFS_Input_Validator::validate_array()` to compare sanitized keys against sanitized allow-lists, keeping validation strict without rejecting normalized inputs.
+
+### 📚 Documentation
+
+- Documented the sanitizer loop behaviour and allowed-key normalization adjustments with refreshed timestamps.
+
+## [0.11.11] - 2025-10-26 (22:41)
 
 ### 🧰 Tooling
+
+- Clarified Composer fallback behaviour for `npm run dev`, including local installation requirements and CI provisioning guidance.
+
+### 📚 Documentation
+
+- Updated README and DOCUMENTATION to describe the container → host Composer fallback and to outline options for avoiding wp-env port collisions in parallel CI jobs.
+
+## [0.11.9] - 2025-10-26 (21:42)
+
+### 🧰 Tooling
+
+- Updated `.wp-env.json` to remove local filesystem mappings and rely solely on ZIP archives for required plugins and themes, ensuring portable wp-env setups.
+
+### 📚 Documentation
+
+- Clarified archive placement workflow in `etch-fusion-suite/README.md` and highlighted the archive-based provisioning model.
+- Documented the wp-env portability change, PHP 8.1 baseline, and activation flow in `DOCUMENTATION.md` with refreshed metadata.
+
+## [0.11.8] - 2025-10-26 (20:20)
+
+### 🛡️ Validation & Error Handling
+
+- Refactored `EFS_Input_Validator` to capture machine-readable codes with sanitized context while emitting PHPCS-compliant generic messages.
+- Added `get_user_error_message()` mapping to provide layman-friendly guidance based on recorded validation codes.
+- Standardised AJAX failure responses to include codes and contextual details for client-side rendering.
+
+### 💻 Admin UX
+
+- Introduced richer toast feedback in admin JS by surfacing validator error codes/context so users receive actionable guidance during validation failures.
+- Added helper to display field names from validation context across settings, validation, and migration admin flows for clearer troubleshooting.
+
+## [0.11.7] - 2025-10-26 (16:30)
+
+### 🔧 Technical Changes
+
+- Hardened `EFS_Input_Validator` to apply Yoda conditions, sanitize array recursion helpers, and escape exception messages to satisfy WPCS security sniffs.
+- Introduced new `efs_suite_*` migrator hooks while retaining legacy `b2e_*`/`efs_*` aliases under `phpcs:ignore` for compatibility.
+
+### 🧰 Tooling
+
 - Replaced legacy multi-job CI workflow with focused lint, multi-version PHPUnit, and Node verification jobs using pinned actions and full-history checkout.
 - Updated CodeQL workflow to analyze both PHP and JavaScript sources with fetch-depth `0` for accurate scanning.
 - Corrected Dependabot directories to monitor Composer, npm, and GitHub Actions updates under `etch-fusion-suite/`.
 
 ### 📚 Documentation
+
 - Documented refreshed CI pipeline, dependency automation, and testing coverage in `DOCUMENTATION.md` with updated timestamps.
 
 ## [0.11.6] - 2025-10-26 (15:58)
 
 ### 🧪 Testing
+
 - GitHub Actions now installs the WordPress test suite automatically by provisioning Subversion, running the bundled `install-wp-tests.sh`, and executing PHPUnit with the shared `phpunit.xml.dist` configuration.
 
 ### 🧰 Tooling
+
 - `.wp-env.json` references the registry-hosted `WordPress/6.8` build for portable development setups, with `.wp-env.override.json.example` highlighting how to point to local archives when needed.
 - Updated README and test environment documentation to clarify the new wp-env core source and local override workflow.
 

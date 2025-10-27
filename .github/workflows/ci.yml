@@ -57,14 +57,16 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
-    env:
-      WP_TESTS_DIR: /tmp/wordpress-tests-lib
-      WP_CORE_DIR: /tmp/wordpress
     steps:
       - name: Checkout repository
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
         with:
           fetch-depth: 0
+
+      - name: Configure WordPress test paths
+        run: |
+          echo "WP_TESTS_DIR=/tmp/wordpress-tests-lib" >> "$GITHUB_ENV"
+          echo "WP_CORE_DIR=/tmp/wordpress" >> "$GITHUB_ENV"
 
       - name: Set up PHP
         uses: shivammathur/setup-php@bf6b4fbd49ca58e4608c9c89fba0b8d90bd2a39f

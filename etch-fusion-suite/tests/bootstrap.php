@@ -7,8 +7,13 @@
 
 declare(strict_types=1);
 
-define( 'EFS_TESTS_DIR', __DIR__ );
-define( 'EFS_PLUGIN_DIR', dirname( __DIR__ ) );
+if ( ! defined( 'EFS_TESTS_DIR' ) ) {
+	define( 'EFS_TESTS_DIR', __DIR__ );
+}
+
+if ( ! defined( 'EFS_PLUGIN_DIR' ) ) {
+	define( 'EFS_PLUGIN_DIR', rtrim( dirname( __DIR__ ), '/\\' ) . '/' );
+}
 
 $_tests_dir = getenv( 'WP_TESTS_DIR' );
 

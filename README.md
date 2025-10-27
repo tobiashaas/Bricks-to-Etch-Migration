@@ -301,14 +301,15 @@ This is a one-time migration tool. For issues or improvements:
 
 1. Check existing documentation
 2. Review CHANGELOG.md
-3. Test in wp-env environment first
-4. Run code quality checks locally:
-   ```bash
-   cd etch-fusion-suite
-   composer lint
-   composer test
-   ```
-5. Document any changes
+3. Test in wp-env before shipping
+4. Run regression suite
+5. Keep documentation up to date
+
+```bash
+cd etch-fusion-suite
+composer lint
+composer test
+```
 
 ### Development Workflow
 
@@ -328,6 +329,25 @@ composer test
 
 # Generate coverage report
 composer test:coverage
+```
+
+**PHP UI tests:**
+```bash
+composer test:ui
+```
+
+Locates WordPress-backed UI assertions in `tests/ui`. Use the dedicated suite for targeted runs:
+
+- `composer test:wordpress` – WordPress-specific unit helpers under `tests/unit/WordPress`
+- `composer test:integration` – Cross-service integration coverage in `tests/integration`
+- `composer test:performance` – Synthetic migration benchmarks in `tests/performance`
+
+**Browser end-to-end coverage:**
+
+Playwright specs live under `etch-fusion-suite/tests/playwright/` and run via storage-state authentication:
+
+```bash
+EFS_ADMIN_USER=admin EFS_ADMIN_PASS=password npm run test:playwright
 ```
 
 **CI/CD:**

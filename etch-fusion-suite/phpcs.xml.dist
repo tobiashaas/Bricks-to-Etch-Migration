@@ -27,6 +27,7 @@
     <exclude-pattern>*/node_modules/*</exclude-pattern>
     <exclude-pattern>tests/*</exclude-pattern>
     <exclude-pattern>*/tests/*</exclude-pattern>
+    <exclude-pattern>phpunit.xml.dist</exclude-pattern>
     <exclude-pattern>.wp-env/*</exclude-pattern>
     <exclude-pattern>*/.wp-env/*</exclude-pattern>
     <exclude-pattern>scripts/*</exclude-pattern>

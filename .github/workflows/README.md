@@ -1,207 +1,164 @@
 # GitHub Actions Workflows
 
-**Last Updated:** 2025-10-25
+**Last Updated:** 2025-10-27 23:48
 
-This directory contains CI/CD workflows for the Etch Fusion Suite plugin.
+This directory documents the CI/CD automation that keeps Etch Fusion Suite healthy across PHP, Node, and browser tooling.
 
 ---
 
 ## 📋 Workflows Overview
 
-### 1. CI Pipeline (`ci.yml`)
+### CI Pipeline (`ci.yml`)
 
-Runs on every push to `main`/`develop` and all pull requests.
+Runs on pushes to `main`, `develop`, and every pull request. Jobs execute sequentially:
 
-**Jobs:**
-- **Lint** - WordPress Coding Standards (WPCS) check on PHP 8.1
-- **Compatibility** - PHP compatibility check across PHP 7.4, 8.1, 8.2, 8.3, 8.4
-- **Test** - PHPUnit tests across all PHP versions
+1. **Lint** – Installs Composer dependencies inside `etch-fusion-suite/` and runs `vendor/bin/phpcs --standard=phpcs.xml.dist`, explicitly scanning `etch-fusion-suite.php`, `includes/`, `assets/`, and other PHP sources.
+2. **Test** – Matrix across PHP 7.4, 8.1, 8.2, 8.3, and 8.4. Exports `WP_TESTS_DIR=/tmp/wordpress-tests-lib` and `WP_CORE_DIR=/tmp/wordpress`, provisions the WordPress PHPUnit library via `install-wp-tests.sh`, and executes `vendor/bin/phpunit -c etch-fusion-suite/phpunit.xml.dist`.
+3. **Node** – Sets up Node 18 with npm caching and runs `npm ci` inside `etch-fusion-suite/` to validate front-end tooling.
 
-**Local Reproduction:**
+**Local Reproduction**
+
 ```bash
 cd etch-fusion-suite
 
-# Run linting
+# Lint PHP
 composer lint
 
-# Fix linting issues
+# Fix linting violations
 composer lint:fix
 
-# Run PHPUnit (requires WP test suite)
+# Run full PHPUnit (unit, wordpress, integration, ui, performance)
 composer test
 
-# Run PHPUnit with coverage
+# Regenerate coverage artifacts
 composer test:coverage
 
-# Optional: LocalWP AJAX/CSS regression suite
-php ../tests/run-local-tests.php
+# Playwright browser specs
+EFS_ADMIN_USER=admin EFS_ADMIN_PASS=password npm run test:playwright
 ```
 
-### 2. CodeQL Security Scanning (`codeql.yml`)
+### CodeQL Security Scanning (`codeql.yml`)
 
-Runs on:
-- Push to `main`
-- All pull requests
-- Weekly schedule (Monday 6:00 UTC)
+Triggers on pushes to `main`, all pull requests, and every Monday at 06:00 UTC.
 
-**Purpose:** Automated security vulnerability detection using GitHub's CodeQL engine.
+- Languages: PHP, JavaScript
+- Queries: `security-extended`
+- Config: `.github/codeql/codeql-config.yml`
 
-**Configuration:** `.github/codeql/codeql-config.yml`
+**Review Flow**
 
-**Reviewing Findings:**
-1. Go to repository **Security** tab
-2. Click **Code scanning alerts**
-3. Review findings and mark false positives
-4. Fix genuine security issues
+1. Open the **Security → Code scanning alerts** tab.
+2. Inspect alert details and triage duplicates or false positives.
+3. Dismiss false positives with rationale or ship fixes.
 
-### 3. Dependency Review (`dependency-review.yml`)
+### Dependency Review (`dependency-review.yml`)
 
-Runs on all pull requests.
+Runs on every pull request. Blocks merges when new dependencies introduce:
 
-**Purpose:** Checks new dependencies for:
-- Known security vulnerabilities (moderate+ severity)
-- License compatibility (allows GPL-2.0-or-later, MIT, BSD-3-Clause)
-- Blocks AGPL-3.0 licenses
+- Known vulnerabilities (moderate severity or higher)
+- Disallowed licenses (AGPL, SSPL)
 
-**Bypass:** Add `dependencies-reviewed` label to PR if manually verified.
+Apply the `dependencies-reviewed` label if manual validation has taken place.
 
-### 4. Release Automation (`release.yml`)
+### Release Automation (`release.yml`)
 
-Triggers on Git tags matching `v*` (e.g., `v1.0.0`).
+Triggers on Git tags matching `v*` (e.g., `v1.0.0`). Packaging steps:
 
-**Process:**
-1. Validates plugin headers match tag version
-2. Installs production dependencies
-3. Creates plugin ZIP (excludes dev files)
-4. Extracts changelog for release notes
-5. Creates GitHub Release with ZIP attachment
+1. Validates plugin headers in `etch-fusion-suite.php` against the tag.
+2. Installs production Composer dependencies.
+3. Builds the distributable ZIP (excludes dev/test files).
+4. Extracts changelog notes from `CHANGELOG.md`.
+5. Publishes the GitHub Release with the compiled artifact.
 
-**Creating a Release:**
+**Release Checklist**
+
 ```bash
-# 1. Update version in bricks-etch-migration.php
-# 2. Update CHANGELOG.md with new version
-# 3. Commit changes
-git add .
+# 1. Update plugin version and changelog
+vim etch-fusion-suite/etch-fusion-suite.php CHANGELOG.md
+
+# 2. Commit changes
+git add etch-fusion-suite/etch-fusion-suite.php CHANGELOG.md
 git commit -m "Release v1.0.0"
 
-# 4. Create and push tag
+# 3. Tag & push
 git tag v1.0.0
-git push origin v1.0.0
-
-# 5. GitHub Actions automatically creates release
+git push origin main v1.0.0
 ```
 
 ---
 
 ## 🔒 Security Hardening
 
-All workflows follow security best practices:
+### Pinned Actions
 
-### SHA Pinning
-
-Actions are pinned to commit SHAs (not tags) for immutability:
-- `actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955` (v4.3.0)
-- `shivammathur/setup-php@bf6b4fbd49ca58e4608c9c89fba0b8d90bd2a39f` (2.35.5)
-- `actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830` (v4.3.0)
-- `github/codeql-action/*@42213152a85ae7569bdb6bec7bcd74cd691bfe41` (v3.30.9)
-- `actions/dependency-review-action@40c09b7dc99638e5ddb0bfd91c1673effc064d8a` (v4.8.1)
+- `actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955`
+- `shivammathur/setup-php@bf6b4fbd49ca58e4608c9c89fba0b8d90bd2a39f`
+- `actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830`
+- `github/codeql-action/init@42213152a85ae7569bdb6bec7bcd74cd691bfe41`
+- `actions/dependency-review-action@40c09b7dc99638e5ddb0bfd91c1673effc064d8a`
 
 ### Least-Privilege Permissions
 
-Each workflow declares minimal required permissions:
-- CI: `contents: read`
-- CodeQL: `actions: read`, `contents: read`, `security-events: write`
-- Dependency Review: `contents: read`, `pull-requests: write`
-- Release: `contents: write`
+- **CI:** `contents: read`, `pull-requests: read`
+- **CodeQL:** `actions: read`, `contents: read`, `security-events: write`
+- **Dependency Review:** `contents: read`, `pull-requests: write`
+- **Release:** `contents: write`, `packages: write`
 
 ---
 
 ## 🔄 Dependabot
 
-Automated dependency updates via `.github/dependabot.yml`:
+`/.github/dependabot.yml` schedules weekly updates (Monday) for:
 
-**Update Schedule:**
-- Composer dependencies: Weekly (Monday)
-- npm dependencies: Weekly (Monday)
-- GitHub Actions: Weekly (Monday)
+- Composer dependencies (`etch-fusion-suite/composer.json`)
+- npm packages (`etch-fusion-suite/package.json`)
+- GitHub Actions workflows (`.github/workflows/*.yml`)
 
-**Grouping:** Minor and patch updates are grouped to reduce PR noise.
-
-**Review Process:**
-1. Dependabot creates PR
-2. CI runs automatically
-3. Review changes and test locally if needed
-4. Merge when CI passes
+Minor and patch updates are grouped to reduce PR volume. Review the generated PR, run targeted tests if necessary, and merge once CI succeeds.
 
 ---
 
 ## 📊 CI/CD Badges
 
-Add these badges to `README.md`:
-
 ```markdown
-![CI](https://github.com/[username]/Bricks2Etch/workflows/CI/badge.svg)
-![CodeQL](https://github.com/[username]/Bricks2Etch/workflows/CodeQL/badge.svg)
-![PHP Version](https://img.shields.io/badge/PHP-7.4%20%7C%208.1%20%7C%208.2%20%7C%208.3%20%7C%208.4-blue)
+![CI](https://github.com/[owner]/EtchFusion-Suite/actions/workflows/ci.yml/badge.svg)
+![CodeQL](https://github.com/[owner]/EtchFusion-Suite/actions/workflows/codeql.yml/badge.svg)
 ```
 
-Replace `[username]` with your GitHub username/organization.
+Replace `[owner]` with your GitHub username or organization.
 
 ---
 
-## 🐛 Troubleshooting
+## 🧪 Troubleshooting
 
-### PHPCS Violations
+### PHPUnit cannot locate the WordPress test suite
 
-**Error:** `WordPress.Security.EscapeOutput.OutputNotEscaped`
+- Ensure `WP_TESTS_DIR=/tmp/wordpress-tests-lib` and `WP_CORE_DIR=/tmp/wordpress` are exported (CI does this automatically).
+- Rerun `bash etch-fusion-suite/install-wp-tests.sh wordpress_test root '' 127.0.0.1 latest`.
 
-**Fix:**
-```php
-// Before
-echo $variable;
+### PHPCS failures
 
-// After
-echo esc_html($variable);
-```
-
-**Run locally:**
 ```bash
 composer lint:fix
 ```
 
-### Test Failures
+Re-run `composer lint` afterwards to verify.
 
-**Error:** `Failed asserting that false is true`
+### CodeQL noise or false positives
 
-**Debug:**
-1. Run tests locally: `composer test`
-2. Check test output for details
-3. Fix failing test or code
-4. Commit and push
+Dismiss from **Security → Code scanning alerts** with the "False positive" reason. Add context so future reviewers understand the decision.
 
-### CodeQL Findings
+### Release job blocked
 
-**False Positive:**
-1. Go to Security → Code scanning alerts
-2. Click on the alert
-3. Click "Dismiss alert" → "False positive"
-4. Add comment explaining why
+Confirm the plugin version header in `etch-fusion-suite.php` matches the pushed tag and that `CHANGELOG.md` contains the release entry. Delete and recreate the tag if mismatch occurs:
 
-**Genuine Issue:**
-1. Review the code path
-2. Fix the vulnerability
-3. Commit and push
-4. CodeQL will re-scan and close alert
-
-### Failed Release
-
-**Error:** `Version mismatch`
-
-**Fix:**
-1. Ensure `bricks-etch-migration.php` version matches tag
-2. Ensure `CHANGELOG.md` has entry for version
-3. Delete tag: `git tag -d v1.0.0 && git push origin :refs/tags/v1.0.0`
-4. Fix versions and recreate tag
+```bash
+git tag -d v1.0.0
+git push origin :refs/tags/v1.0.0
+# Fix metadata, then retag
+git tag v1.0.0
+git push origin v1.0.0
+```
 
 ---
 

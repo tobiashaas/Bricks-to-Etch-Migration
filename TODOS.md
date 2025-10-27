@@ -7,6 +7,20 @@
 
 ## In Progress 🔄
 
+- [✅] Oct 26 review – Comment 1 (Polling backoff safeguards)
+  - **Added:** 2025-10-26 23:04
+  - **Completed:** 2025-10-26 23:20
+- [✅] Oct 26 review – Comment 2 (Playwright port isolation)
+  - **Added:** 2025-10-26 23:04
+  - **Completed:** 2025-10-26 23:20
+- [✅] Oct 26 review – Comment 3 (Restore critical unit coverage)
+  - **Added:** 2025-10-26 23:04
+  - **Completed:** 2025-10-26 23:20
+
+- [✅] Address Oct 26 review – Sanitizer & validator fixes
+  - **Added:** 2025-10-26 22:57
+  - **Completed:** 2025-10-26 23:05
+
 - [✅] Complete remaining rebrand tasks
   - **Completed:** 2025-10-25 21:26
   - [✅] Migrator classes (ACF, CPT, MetaBox, Media)
@@ -77,6 +91,12 @@
 
 ## Pending
 
+- [✅] Oct 27 review – Implement CI/test/doc updates from comments
+  - **Added:** 2025-10-27 23:48
+  - **Completed:** 2025-10-27 23:58
+- [✅] Address Oct 26 review – Comment 1 (wp-env portability)
+  - **Added:** 2025-10-26 21:42
+  - **Completed:** 2025-10-26 21:52
 - [✅] WordPress Test Suite setup for PHPUnit tests (requires macOS/Linux
   environment)
   - **Added:** 2025-10-25 17:40
@@ -90,6 +110,17 @@
 - [ ] Create migration script for existing installations (`b2e_* → efs_*`
   options)
   - **Added:** 2025-10-25 16:37
+- [ ] Harden PHPCS compliance after rebrand (globals, security, naming)
+  - **Added:** 2025-10-26 16:58
+- [✅] Document Composer fallback & CI port guidance
+  - **Added:** 2025-10-26 22:38
+  - **Completed:** 2025-10-26 22:41
 - [✅] Update DOCUMENTATION.md with rebrand details - **Completed:** 2025-10-25 21:26
 - [✅] Document LocalWP test workflow in DOCUMENTATION.md
   - **Completed:** 2025-10-25 21:26
+- [✅] Surface validator errors in admin UI
+  - **Added:** 2025-10-26 20:16
+  - **Completed:** 2025-10-26 20:32
+- [✅] Document WordPress suite limitations in DOCUMENTATION.md
+  - **Added:** 2025-10-27 20:52
+  - **Completed:** 2025-10-27 20:52
